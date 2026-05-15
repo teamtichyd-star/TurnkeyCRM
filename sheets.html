@@ -1,0 +1,1981 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sheets Sync - Turnkey CRM</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    :root {
+      --primary: #c8a96e;
+      --dark: #1a1a2e;
+      --darker: #12121f;
+      --card: #16213e;
+      --text: #ffffff;
+      --subtext: #a0a0b0;
+      --success: #4caf50;
+      --warning: #ff9800;
+      --danger: #f44336;
+      --info: #2196f3;
+      --sheets: #34a853;
+    }
+
+    body {
+      background: var(--darker);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .page {
+      padding: 25px;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ─── TOP ACTIONS ─── */
+    .top-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .top-actions h2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .top-actions h2 span {
+      font-size: 13px;
+      color: var(--subtext);
+      font-weight: 400;
+      margin-left: 8px;
+    }
+
+    /* ─── BUTTONS ─── */
+    .btn {
+      padding: 10px 18px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: 0.2s;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), #a07840);
+      color: white;
+    }
+
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+
+    .btn-sheets {
+      background: rgba(52,168,83,0.15);
+      color: var(--sheets);
+      border: 1px solid rgba(52,168,83,0.3);
+    }
+
+    .btn-sheets:hover { background: rgba(52,168,83,0.25); }
+
+    .btn-danger {
+      background: rgba(244,67,54,0.15);
+      color: var(--danger);
+      border: 1px solid rgba(244,67,54,0.3);
+    }
+
+    .btn-danger:hover { background: rgba(244,67,54,0.25); }
+
+    .btn-info {
+      background: rgba(33,150,243,0.15);
+      color: var(--info);
+      border: 1px solid rgba(33,150,243,0.3);
+    }
+
+    .btn-warning {
+      background: rgba(255,152,0,0.15);
+      color: var(--warning);
+      border: 1px solid rgba(255,152,0,0.3);
+    }
+
+    .btn-success {
+      background: rgba(76,175,80,0.15);
+      color: var(--success);
+      border: 1px solid rgba(76,175,80,0.3);
+    }
+
+    /* ─── TABS ─── */
+    .main-tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--card);
+      padding: 5px;
+      border-radius: 12px;
+      margin-bottom: 25px;
+      border: 1px solid rgba(255,255,255,0.05);
+      flex-wrap: wrap;
+    }
+
+    .main-tab {
+      flex: 1;
+      min-width: 120px;
+      padding: 11px 16px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      background: transparent;
+      color: var(--subtext);
+      transition: 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+    }
+
+    .main-tab:hover { color: var(--text); }
+
+    .main-tab.active {
+      background: rgba(200,169,110,0.15);
+      color: var(--primary);
+    }
+
+    /* ─── TAB CONTENT ─── */
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* ─── SECTION CARD ─── */
+    .section-card {
+      background: var(--card);
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.05);
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+
+    .section-card-header {
+      padding: 18px 22px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .section-card-header h3 {
+      font-size: 15px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .section-card-body { padding: 22px; }
+
+    /* ─── SETUP STEPS ─── */
+    .setup-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .setup-step {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .step-number {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(200,169,110,0.15);
+      border: 2px solid rgba(200,169,110,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--primary);
+      flex-shrink: 0;
+    }
+
+    .step-number.done {
+      background: rgba(76,175,80,0.15);
+      border-color: rgba(76,175,80,0.3);
+      color: var(--success);
+    }
+
+    .step-content { flex: 1; }
+
+    .step-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+
+    .step-desc {
+      font-size: 13px;
+      color: var(--subtext);
+      line-height: 1.6;
+      margin-bottom: 10px;
+    }
+
+    /* ─── INPUT GROUP ─── */
+    .input-group {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .input-group input,
+    .input-group select {
+      flex: 1;
+      min-width: 200px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 11px 14px;
+      color: var(--text);
+      font-size: 14px;
+      outline: none;
+      transition: 0.3s;
+    }
+
+    .input-group input:focus,
+    .input-group select:focus {
+      border-color: var(--primary);
+      background: rgba(200,169,110,0.05);
+    }
+
+    .input-group select option { background: var(--dark); }
+
+    /* ─── STATUS INDICATOR ─── */
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .status-indicator.connected {
+      background: rgba(76,175,80,0.1);
+      border: 1px solid rgba(76,175,80,0.2);
+      color: var(--success);
+    }
+
+    .status-indicator.disconnected {
+      background: rgba(244,67,54,0.1);
+      border: 1px solid rgba(244,67,54,0.2);
+      color: var(--danger);
+    }
+
+    .status-indicator.pending {
+      background: rgba(255,152,0,0.1);
+      border: 1px solid rgba(255,152,0,0.2);
+      color: var(--warning);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .status-dot.green { background: var(--success); }
+    .status-dot.red { background: var(--danger); }
+    .status-dot.orange { background: var(--warning); }
+
+    /* ─── IMPORT AREA ─── */
+    .import-area {
+      border: 2px dashed rgba(200,169,110,0.3);
+      border-radius: 14px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: 0.3s;
+      background: rgba(200,169,110,0.02);
+    }
+
+    .import-area:hover {
+      border-color: var(--primary);
+      background: rgba(200,169,110,0.05);
+    }
+
+    .import-area.dragover {
+      border-color: var(--primary);
+      background: rgba(200,169,110,0.08);
+    }
+
+    .import-area i {
+      font-size: 48px;
+      color: var(--primary);
+      opacity: 0.5;
+      margin-bottom: 15px;
+      display: block;
+    }
+
+    .import-area h3 {
+      font-size: 16px;
+      margin-bottom: 8px;
+    }
+
+    .import-area p {
+      font-size: 13px;
+      color: var(--subtext);
+      margin-bottom: 15px;
+    }
+
+    /* ─── PREVIEW TABLE ─── */
+    .preview-section {
+      display: none;
+      margin-top: 20px;
+    }
+
+    .preview-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .preview-header h4 {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .preview-count {
+      font-size: 13px;
+      color: var(--subtext);
+    }
+
+    .table-wrapper {
+      overflow-x: auto;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    table th {
+      padding: 12px 15px;
+      text-align: left;
+      font-size: 12px;
+      color: var(--subtext);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      background: rgba(255,255,255,0.03);
+      white-space: nowrap;
+    }
+
+    table td {
+      padding: 12px 15px;
+      font-size: 13px;
+      border-top: 1px solid rgba(255,255,255,0.03);
+    }
+
+    table tr:hover td { background: rgba(255,255,255,0.02); }
+
+    /* ─── COLUMN MAPPER ─── */
+    .column-mapper {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 15px;
+    }
+
+    .map-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255,255,255,0.03);
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .map-row label {
+      font-size: 12px;
+      color: var(--subtext);
+      min-width: 80px;
+    }
+
+    .map-row select {
+      flex: 1;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 7px 10px;
+      color: var(--text);
+      font-size: 13px;
+      outline: none;
+    }
+
+    .map-row select option { background: var(--dark); }
+
+    /* ─── INFO BOX ─── */
+    .info-box {
+      background: rgba(33,150,243,0.08);
+      border: 1px solid rgba(33,150,243,0.2);
+      border-radius: 12px;
+      padding: 15px 18px;
+      margin-bottom: 18px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .info-box i {
+      font-size: 18px;
+      color: var(--info);
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .info-box-text h4 {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--info);
+      margin-bottom: 4px;
+    }
+
+    .info-box-text p {
+      font-size: 13px;
+      color: var(--subtext);
+      line-height: 1.6;
+    }
+
+    .info-box-text a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+
+    /* ─── SUCCESS BOX ─── */
+    .success-box {
+      background: rgba(76,175,80,0.08);
+      border: 1px solid rgba(76,175,80,0.2);
+      border-radius: 12px;
+      padding: 15px 18px;
+      margin-top: 15px;
+      display: none;
+    }
+
+    .success-box.show { display: flex; gap: 12px; align-items: flex-start; }
+
+    .success-box i { color: var(--success); font-size: 18px; flex-shrink: 0; }
+
+    .success-box-text h4 {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--success);
+      margin-bottom: 4px;
+    }
+
+    .success-box-text p {
+      font-size: 13px;
+      color: var(--subtext);
+    }
+
+    /* ─── SYNC LOG ─── */
+    .sync-log {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .log-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 14px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .log-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .log-icon.success { background: rgba(76,175,80,0.15); color: var(--success); }
+    .log-icon.error { background: rgba(244,67,54,0.15); color: var(--danger); }
+    .log-icon.info { background: rgba(33,150,243,0.15); color: var(--info); }
+    .log-icon.warning { background: rgba(255,152,0,0.15); color: var(--warning); }
+
+    .log-content { flex: 1; }
+
+    .log-message {
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 3px;
+    }
+
+    .log-time {
+      font-size: 11px;
+      color: var(--subtext);
+    }
+
+    /* ─── STATS GRID ─── */
+    .sync-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .sync-stat {
+      background: rgba(255,255,255,0.03);
+      border-radius: 12px;
+      padding: 15px;
+      text-align: center;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .sync-stat h3 {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .sync-stat p {
+      font-size: 12px;
+      color: var(--subtext);
+      margin-top: 4px;
+    }
+
+    /* ─── EXPORT SECTION ─── */
+    .export-options {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 16px;
+    }
+
+    .export-option {
+      background: rgba(255,255,255,0.03);
+      border-radius: 14px;
+      padding: 22px;
+      border: 1px solid rgba(255,255,255,0.05);
+      text-align: center;
+      transition: 0.3s;
+      cursor: pointer;
+    }
+
+    .export-option:hover {
+      border-color: rgba(200,169,110,0.3);
+      transform: translateY(-2px);
+    }
+
+    .export-option-icon {
+      font-size: 36px;
+      margin-bottom: 12px;
+    }
+
+    .export-option h4 {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .export-option p {
+      font-size: 12px;
+      color: var(--subtext);
+      margin-bottom: 15px;
+      line-height: 1.5;
+    }
+
+    /* ─── BADGE ─── */
+    .badge {
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .badge-green { background: rgba(76,175,80,0.15); color: var(--success); }
+    .badge-blue { background: rgba(33,150,243,0.15); color: var(--info); }
+    .badge-orange { background: rgba(255,152,0,0.15); color: var(--warning); }
+
+    /* ─── PROGRESS BAR ─── */
+    .import-progress {
+      display: none;
+      margin-top: 15px;
+    }
+
+    .import-progress-bar {
+      height: 8px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+
+    .import-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--success));
+      border-radius: 10px;
+      transition: width 0.3s ease;
+      width: 0%;
+    }
+
+    .import-progress-text {
+      font-size: 13px;
+      color: var(--subtext);
+      text-align: center;
+    }
+
+    /* ─── MANUAL ENTRY TABLE ─── */
+    .manual-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 15px;
+    }
+
+    .manual-table th {
+      padding: 10px 12px;
+      text-align: left;
+      font-size: 12px;
+      color: var(--subtext);
+      background: rgba(255,255,255,0.03);
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .manual-table td {
+      padding: 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+    }
+
+    .manual-table input,
+    .manual-table select {
+      width: 100%;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 6px;
+      padding: 7px 10px;
+      color: var(--text);
+      font-size: 13px;
+      outline: none;
+    }
+
+    .manual-table input:focus,
+    .manual-table select:focus {
+      border-color: var(--primary);
+    }
+
+    .manual-table select option { background: var(--dark); }
+
+    /* ─── GOOGLE SHEET INSTRUCTIONS ─── */
+    .instruction-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .instruction-step {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      padding: 14px;
+      background: rgba(255,255,255,0.02);
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.04);
+    }
+
+    .instruction-step .step-icon {
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+
+    .instruction-step-content h4 {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .instruction-step-content p {
+      font-size: 12px;
+      color: var(--subtext);
+      line-height: 1.6;
+    }
+
+    .instruction-step-content code {
+      background: rgba(200,169,110,0.1);
+      color: var(--primary);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-family: monospace;
+    }
+
+    /* ─── TOAST ─── */
+    .toast {
+      position: fixed;
+      bottom: 90px;
+      right: 20px;
+      background: var(--success);
+      color: white;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 14px;
+      z-index: 9999;
+      display: none;
+      animation: slideIn 0.3s ease;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+    }
+
+    @keyframes slideIn {
+      from { transform: translateX(100px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 768px) {
+      .page { padding: 15px; padding-bottom: 80px; }
+      .main-tabs { flex-direction: column; }
+      .main-tab { justify-content: flex-start; }
+      .column-mapper { grid-template-columns: 1fr; }
+      .export-options { grid-template-columns: 1fr; }
+      .top-actions { flex-direction: column; align-items: flex-start; }
+      .input-group { flex-direction: column; }
+      .input-group input,
+      .input-group select { width: 100%; min-width: unset; }
+      .section-card-header { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ─── TOAST ─── -->
+<div class="toast" id="toast"></div>
+
+<!-- ═══════════════════════════════════ -->
+<!--      SHEETS SYNC PAGE CONTENT      -->
+<!-- ═══════════════════════════════════ -->
+<div class="page">
+
+  <!-- TOP ACTIONS -->
+  <div class="top-actions">
+    <h2>🔄 Google Sheets Sync
+      <span>Import & Export Data</span>
+    </h2>
+  </div>
+
+  <!-- MAIN TABS -->
+  <div class="main-tabs">
+    <button class="main-tab active" onclick="switchTab('import')" id="tab-import">
+      <i class="fas fa-file-import"></i> Import from CSV/Sheets
+    </button>
+    <button class="main-tab" onclick="switchTab('manual')" id="tab-manual">
+      <i class="fas fa-keyboard"></i> Manual Entry
+    </button>
+    <button class="main-tab" onclick="switchTab('export')" id="tab-export">
+      <i class="fas fa-file-export"></i> Export Data
+    </button>
+    <button class="main-tab" onclick="switchTab('setup')" id="tab-setup">
+      <i class="fas fa-cog"></i> Setup Guide
+    </button>
+    <button class="main-tab" onclick="switchTab('log')" id="tab-log">
+      <i class="fas fa-history"></i> Sync Log
+    </button>
+  </div>
+
+  <!-- ═══════════════════════════ -->
+  <!--    TAB 1: IMPORT           -->
+  <!-- ═══════════════════════════ -->
+  <div class="tab-content active" id="content-import">
+
+    <div class="info-box">
+      <i class="fas fa-info-circle"></i>
+      <div class="info-box-text">
+        <h4>How to Import from Google Sheets</h4>
+        <p>
+          In Google Sheets → <strong>File → Download → CSV</strong>.
+          Then upload the CSV here. Your data will be imported directly into the CRM!
+          Make sure your sheet has columns: Name, Phone, Email, Project Type, Location, Budget, Status.
+        </p>
+      </div>
+    </div>
+
+    <!-- IMPORT TYPE -->
+    <div class="section-card" style="margin-bottom:20px">
+      <div class="section-card-header">
+        <h3><i class="fas fa-cogs" style="color:var(--primary)"></i> Import Settings</h3>
+      </div>
+      <div class="section-card-body">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; flex-wrap:wrap">
+          <div>
+            <label style="font-size:13px; color:var(--subtext); display:block; margin-bottom:8px">
+              Import Into
+            </label>
+            <select id="importTarget" style="
+              width:100%; background:rgba(255,255,255,0.05);
+              border:1px solid rgba(255,255,255,0.1); border-radius:10px;
+              padding:11px 14px; color:var(--text); font-size:14px; outline:none">
+              <option value="leads">📥 Leads</option>
+              <option value="tasks">✅ Tasks</option>
+              <option value="projects">🏗️ Projects</option>
+              <option value="followups">💬 Follow-ups</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:13px; color:var(--subtext); display:block; margin-bottom:8px">
+              Duplicate Handling
+            </label>
+            <select id="duplicateHandling" style="
+              width:100%; background:rgba(255,255,255,0.05);
+              border:1px solid rgba(255,255,255,0.1); border-radius:10px;
+              padding:11px 14px; color:var(--text); font-size:14px; outline:none">
+              <option value="skip">Skip Duplicates</option>
+              <option value="overwrite">Overwrite Duplicates</option>
+              <option value="add">Add All (Allow Duplicates)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- UPLOAD AREA -->
+    <div class="section-card">
+      <div class="section-card-header">
+        <h3><i class="fas fa-upload" style="color:var(--sheets)"></i> Upload CSV File</h3>
+        <button class="btn btn-sheets" onclick="document.getElementById('csvFile').click()">
+          <i class="fas fa-folder-open"></i> Browse File
+        </button>
+      </div>
+      <div class="section-card-body">
+
+        <input type="file" id="csvFile" accept=".csv"
+               style="display:none" onchange="handleFileUpload(event)"/>
+
+        <!-- DROP ZONE -->
+        <div class="import-area" id="dropZone"
+             onclick="document.getElementById('csvFile').click()"
+             ondragover="handleDragOver(event)"
+             ondragleave="handleDragLeave(event)"
+             ondrop="handleDrop(event)">
+          <i class="fas fa-cloud-upload-alt"></i>
+          <h3>Drop CSV file here or click to browse</h3>
+          <p>Supports .csv files exported from Google Sheets or Excel</p>
+          <button class="btn btn-sheets"
+                  onclick="event.stopPropagation();
+                  document.getElementById('csvFile').click()">
+            <i class="fas fa-file-csv"></i> Select CSV File
+          </button>
+        </div>
+
+        <!-- IMPORT PROGRESS -->
+        <div class="import-progress" id="importProgress">
+          <div class="import-progress-bar">
+            <div class="import-progress-fill" id="importProgressFill"></div>
+          </div>
+          <div class="import-progress-text" id="importProgressText">
+            Processing...
+          </div>
+        </div>
+
+        <!-- PREVIEW SECTION -->
+        <div class="preview-section" id="previewSection">
+
+          <!-- COLUMN MAPPING -->
+          <div style="margin-bottom:20px">
+            <h4 style="font-size:14px; font-weight:600; margin-bottom:12px">
+              🗂️ Map Your Columns
+            </h4>
+            <p style="font-size:13px; color:var(--subtext); margin-bottom:12px">
+              Match your CSV columns to CRM fields:
+            </p>
+            <div class="column-mapper" id="columnMapper"></div>
+          </div>
+
+          <!-- DATA PREVIEW -->
+          <div class="preview-header">
+            <h4>👁️ Data Preview</h4>
+            <span class="preview-count" id="previewCount"></span>
+          </div>
+          <div class="table-wrapper">
+            <table id="previewTable">
+              <thead id="previewHead"></thead>
+              <tbody id="previewBody"></tbody>
+            </table>
+          </div>
+
+          <!-- IMPORT BUTTONS -->
+          <div style="display:flex; gap:10px; margin-top:15px; flex-wrap:wrap">
+            <button class="btn btn-sheets" onclick="importData()">
+              <i class="fas fa-download"></i> Import to CRM
+            </button>
+            <button class="btn btn-warning" onclick="resetImport()">
+              <i class="fas fa-redo"></i> Reset
+            </button>
+          </div>
+
+          <!-- SUCCESS BOX -->
+          <div class="success-box" id="successBox">
+            <i class="fas fa-check-circle"></i>
+            <div class="success-box-text">
+              <h4 id="successTitle">Import Successful!</h4>
+              <p id="successText">Records imported successfully.</p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════ -->
+  <!--    TAB 2: MANUAL ENTRY     -->
+  <!-- ═══════════════════════════ -->
+  <div class="tab-content" id="content-manual">
+
+    <div class="info-box">
+      <i class="fas fa-info-circle"></i>
+      <div class="info-box-text">
+        <h4>Manual Lead Entry</h4>
+        <p>
+          Add multiple leads at once using the table below.
+          Fill in each row and click <strong>Save All</strong> to import!
+        </p>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-card-header">
+        <h3><i class="fas fa-table" style="color:var(--primary)"></i>
+          Bulk Lead Entry
+        </h3>
+        <div style="display:flex; gap:8px">
+          <button class="btn btn-info" onclick="addManualRow()">
+            <i class="fas fa-plus"></i> Add Row
+          </button>
+          <button class="btn btn-danger" onclick="clearManualRows()">
+            <i class="fas fa-trash"></i> Clear All
+          </button>
+          <button class="btn btn-primary" onclick="saveManualEntries()">
+            <i class="fas fa-save"></i> Save All
+          </button>
+        </div>
+      </div>
+      <div class="section-card-body">
+        <div style="overflow-x:auto">
+          <table class="manual-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Name *</th>
+                <th>Phone *</th>
+                <th>Email</th>
+                <th>Company</th>
+                <th>Project Type</th>
+                <th>Location</th>
+                <th>Budget (₹)</th>
+                <th>Status</th>
+                <th>Source</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="manualTableBody"></tbody>
+          </table>
+        </div>
+        <button class="btn btn-info"
+                onclick="addManualRow()"
+                style="margin-top:10px; width:100%">
+          <i class="fas fa-plus"></i> Add Another Row
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════ -->
+  <!--    TAB 3: EXPORT           -->
+  <!-- ═══════════════════════════ -->
+  <div class="tab-content" id="content-export">
+
+    <!-- STATS -->
+    <div class="sync-stats">
+      <div class="sync-stat">
+        <h3 id="export-leads-count">0</h3>
+        <p>Total Leads</p>
+      </div>
+      <div class="sync-stat">
+        <h3 id="export-tasks-count">0</h3>
+        <p>Total Tasks</p>
+      </div>
+      <div class="sync-stat">
+        <h3 id="export-projects-count">0</h3>
+        <p>Total Projects</p>
+      </div>
+      <div class="sync-stat">
+        <h3 id="export-followups-count">0</h3>
+        <p>Total Follow-ups</p>
+      </div>
+    </div>
+
+    <!-- EXPORT OPTIONS -->
+    <div class="export-options">
+
+      <!-- LEADS -->
+      <div class="export-option" onclick="exportData('leads')">
+        <div class="export-option-icon">👥</div>
+        <h4>Export Leads</h4>
+        <p>Download all leads with contact info,
+           project type, budget and status</p>
+        <button class="btn btn-sheets" style="width:100%">
+          <i class="fas fa-file-csv"></i> Download Leads CSV
+        </button>
+      </div>
+
+      <!-- TASKS -->
+      <div class="export-option" onclick="exportData('tasks')">
+        <div class="export-option-icon">✅</div>
+        <h4>Export Tasks</h4>
+        <p>Download all tasks with priority,
+           status, due dates and assignments</p>
+        <button class="btn btn-sheets" style="width:100%">
+          <i class="fas fa-file-csv"></i> Download Tasks CSV
+        </button>
+      </div>
+
+      <!-- PROJECTS -->
+      <div class="export-option" onclick="exportData('projects')">
+        <div class="export-option-icon">🏗️</div>
+        <h4>Export Projects</h4>
+        <p>Download all projects with status,
+           progress, value and deadlines</p>
+        <button class="btn btn-sheets" style="width:100%">
+          <i class="fas fa-file-csv"></i> Download Projects CSV
+        </button>
+      </div>
+
+      <!-- FOLLOWUPS -->
+      <div class="export-option" onclick="exportData('followups')">
+        <div class="export-option-icon">💬</div>
+        <h4>Export Follow-ups</h4>
+        <p>Download all follow-up notes with
+           outcomes and next actions</p>
+        <button class="btn btn-sheets" style="width:100%">
+          <i class="fas fa-file-csv"></i> Download Follow-ups CSV
+        </button>
+      </div>
+
+      <!-- ALL DATA -->
+      <div class="export-option" onclick="exportAllData()"
+           style="border-color:rgba(200,169,110,0.2);
+           background:rgba(200,169,110,0.03)">
+        <div class="export-option-icon">📦</div>
+        <h4>Export Everything</h4>
+        <p>Download all CRM data in separate CSV files
+           — Leads, Tasks, Projects & Follow-ups</p>
+        <button class="btn btn-primary" style="width:100%">
+          <i class="fas fa-download"></i> Download All Data
+        </button>
+      </div>
+
+      <!-- GOOGLE SHEETS FORMAT -->
+      <div class="export-option" onclick="exportForSheets()">
+        <div class="export-option-icon">📊</div>
+        <h4>Export for Google Sheets</h4>
+        <p>Export leads formatted specifically
+           for easy upload to Google Sheets</p>
+        <button class="btn btn-sheets" style="width:100%">
+          <i class="fab fa-google"></i> Export for Sheets
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════ -->
+  <!--    TAB 4: SETUP GUIDE      -->
+  <!-- ═══════════════════════════ -->
+  <div class="tab-content" id="content-setup">
+
+    <!-- METHOD 1 -->
+    <div class="section-card" style="margin-bottom:20px">
+      <div class="section-card-header">
+        <h3>
+          <span style="font-size:20px">📊</span>
+          Method 1: Google Sheets → Download → Import
+          <span class="badge badge-green">Easiest</span>
+        </h3>
+      </div>
+      <div class="section-card-body">
+        <div class="instruction-steps">
+          <div class="instruction-step">
+            <div class="step-icon">1️⃣</div>
+            <div class="instruction-step-content">
+              <h4>Open Your Google Sheet</h4>
+              <p>Go to sheets.google.com and open the sheet with your leads/data</p>
+            </div>
+          </div>
+          <div class="instruction-step">
+            <div class="step-icon">2️⃣</div>
+            <div class="instruction-step-content">
+              <h4>Format Your Columns</h4>
+              <p>Make sure your sheet has these column headers in Row 1:
+                <br><br>
+                <code>Name</code> &nbsp;
+                <code>Phone</code> &nbsp;
+                <code>Email</code> &nbsp;
+                <code>Company</code> &nbsp;
+                <code>Project Type</code> &nbsp;
+                <code>Location</code> &nbsp;
+                <code>Budget</code> &nbsp;
+                <code>Status</code> &nbsp;
+                <code>Source</code> &nbsp;
+                <code>Notes</code>
+              </p>
+            </div>
+          </div>
+          <div class="instruction-step">
+            <div class="step-icon">3️⃣</div>
+            <div class="instruction-step-content">
+              <h4>Download as CSV</h4>
+              <p>Click <strong>File → Download → Comma Separated Values (.csv)</strong></p>
+            </div>
+          </div>
+          <div class="instruction-step">
+            <div class="step-icon">4️⃣</div>
+            <div class="instruction-step-content">
+              <h4>Import to CRM</h4>
+              <p>Go to <strong>Import tab</strong> above → Upload the CSV file → Map columns → Click Import!</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- METHOD 2 -->
+    <div class="section-card" style="margin-bottom:20px">
+      <div class="section-card-header">
+        <h3>
+          <span style="font-size:20px">🔄</span>
+          Method 2: Google Forms → Sheets → CRM
+          <span class="badge badge-blue">Auto Capture</span>
+        </h3>
+      </div>
+      <div class="section-card-body">
+        <div class="instruction-steps">
+          <div class="instruction-step">
+            <div class="step-icon">1️⃣</div>
+            <div class="instruction-step-content">
+              <h4>Create Google Form</h4>
+              <p>Go to forms.google.com → Create a lead capture form with fields:
+                Name, Phone, Email, Project Type, Location, Budget, Message</p>
+            </div>
+          </div>
+          <div class="instruction-step">
+            <div class="step-icon">2️⃣</div>
+            <div class="instruction-step-content">
+              <h4>Link Form to Sheets</h4>
+              <p>In Google Form → Click <strong>Responses tab</strong> →
+                Click <strong>Google Sheets icon</strong> → Create new spreadsheet</p>
+            </div>
+          </div>
+          <div class="instruction-step">
+            <div class="step-icon">3️⃣</div>
+            <div class="instruction-step-content">
+              <h4>Embed Form on Website</h4>
+              <p>In Google Form → Click <strong>Send → Embed</strong> →
+                Copy the HTML code → Paste on your website contact page</p>
+            </div>
+          </div>
+          <div class="instruction-step">
+            <div class="step-icon">4️⃣</div>
+            <div class="instruction-step-content">
+              <h4>Export & Import Periodically</h4>
+              <p>Every few days → Download CSV from Sheets → Import here to keep CRM updated!</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- METHOD 3 -->
+    <div class="section-card">
+      <div class="section-card-header">
+        <h3>
+          <span style="font-size:20px">⚡</span>
+          Method 3: Zapier Auto Sync (Advanced)
+          <span class="badge badge-orange">Auto Sync</span>
+        </h3>
+      </div>
+      <div class="section-card-body">
+        <div class="info-box">
+          <i class="fas fa-bolt"></i>
+          <div class="info-box-text">
+            <h4>Zapier connects Google Sheets to your CRM automatically!</h4>
+            <p>When a new row is added to Google Sheets, Zapier automatically sends
+               the data to your CRM via webhook — no manual export needed!
+               Free plan available at
+               <a href="https://zapier.com" target="_blank">zapier.com</a>
+            </p>
+          </div>
+        </div>
+        <div class="instruction-steps">
+          <div class="instruction-step">
+            <div class="step-icon">1️⃣</div>
+            <div class="instruction-step-content">
+              <h4>Create Zapier Account</h4>
+              <p>Go to zapier.com → Sign up free → Create new Zap</p>
+            </div>
+          </div>
+          <div class="instruction-step">
+            <div class="step-icon">2️⃣</div>
+            <div class="instruction-step-content">
+              <h4>Set Trigger: Google Sheets</h4>
+              <p>Choose <strong>Google Sheets</strong> as trigger →
+                Select event: <strong>New Spreadsheet Row</strong> →
+                Connect your Google account → Select your sheet</p>
+            </div>
+          </div>
+          <div class="instruction-step">
+            <div class="step-icon">3️⃣</div>
+            <div class="instruction-step-content">
+              <h4>Set Action: Webhook</h4>
+              <p>Choose <strong>Webhooks by Zapier</strong> as action →
+                Select: <strong>POST</strong> → Enter your CRM URL →
+                Map the fields</p>
+            </div>
+          </div>
+          <div class="instruction-step">
+            <div class="step-icon">4️⃣</div>
+            <div class="instruction-step-content">
+              <h4>Test & Activate</h4>
+              <p>Test the Zap → Turn it ON →
+                Now every new Sheet row auto-syncs to your CRM! 🎉</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════ -->
+  <!--    TAB 5: SYNC LOG         -->
+  <!-- ═══════════════════════════ -->
+  <div class="tab-content" id="content-log">
+
+    <div class="section-card">
+      <div class="section-card-header">
+        <h3><i class="fas fa-history" style="color:var(--primary)"></i> Import/Export Log</h3>
+        <button class="btn btn-danger" onclick="clearLog()">
+          <i class="fas fa-trash"></i> Clear Log
+        </button>
+      </div>
+      <div class="section-card-body">
+        <div class="sync-log" id="syncLog">
+          <div style="text-align:center; color:var(--subtext);
+               padding:30px; font-size:14px">
+            <i class="fas fa-history"
+               style="font-size:40px; opacity:0.2;
+                      display:block; margin-bottom:10px"></i>
+            No sync activity yet.
+            Import or export data to see logs here!
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+  // ─── STORAGE KEYS ───
+  const LEADS_KEY = 'crm_leads';
+  const TASKS_KEY = 'crm_tasks';
+  const PROJ_KEY  = 'crm_projects';
+  const FU_KEY    = 'crm_followups';
+  const LOG_KEY   = 'crm_sync_log';
+
+  // ─── STATE ───
+  let csvData = [];
+  let csvHeaders = [];
+  let manualRowCount = 0;
+
+  // ─── SWITCH MAIN TAB ───
+  function switchTab(tab) {
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.querySelectorAll('.main-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('content-' + tab).classList.add('active');
+    document.getElementById('tab-' + tab).classList.add('active');
+
+    if (tab === 'export') updateExportCounts();
+    if (tab === 'log') renderLog();
+    if (tab === 'manual') {
+      if (document.getElementById('manualTableBody').children.length === 0) {
+        addManualRow();
+        addManualRow();
+        addManualRow();
+      }
+    }
+  }
+
+  // ─── DRAG AND DROP ───
+  function handleDragOver(e) {
+    e.preventDefault();
+    document.getElementById('dropZone').classList.add('dragover');
+  }
+
+  function handleDragLeave(e) {
+    document.getElementById('dropZone').classList.remove('dragover');
+  }
+
+  function handleDrop(e) {
+    e.preventDefault();
+    document.getElementById('dropZone').classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file && file.name.endsWith('.csv')) {
+      processCSV(file);
+    } else {
+      showToast('❌ Please drop a CSV file!', 'danger');
+    }
+  }
+
+  // ─── HANDLE FILE UPLOAD ───
+  function handleFileUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    if (!file.name.endsWith('.csv')) {
+      showToast('❌ Please select a CSV file!', 'danger');
+      return;
+    }
+    processCSV(file);
+  }
+
+  // ─── PROCESS CSV ───
+  function processCSV(file) {
+    const progress = document.getElementById('importProgress');
+    const progressFill = document.getElementById('importProgressFill');
+    const progressText = document.getElementById('importProgressText');
+
+    progress.style.display = 'block';
+    progressFill.style.width = '0%';
+    progressText.textContent = 'Reading file...';
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      progressFill.style.width = '30%';
+      progressText.textContent = 'Parsing CSV...';
+
+      setTimeout(() => {
+        const text = e.target.result;
+        const rows = parseCSV(text);
+
+        if (rows.length < 2) {
+          showToast('❌ CSV file is empty or invalid!', 'danger');
+          progress.style.display = 'none';
+          return;
+        }
+
+        csvHeaders = rows[0];
+        csvData = rows.slice(1).filter(row =>
+          row.some(cell => cell.trim() !== '')
+        );
+
+        progressFill.style.width = '70%';
+        progressText.textContent = 'Generating preview...';
+
+        setTimeout(() => {
+          progressFill.style.width = '100%';
+          progressText.textContent = 'Done!';
+
+          setTimeout(() => {
+            progress.style.display = 'none';
+            showPreview();
+          }, 500);
+        }, 300);
+      }, 200);
+    };
+
+    reader.readAsText(file);
+  }
+
+  // ─── PARSE CSV ───
+  function parseCSV(text) {
+    const rows = [];
+    const lines = text.split('\n');
+
+    for (let line of lines) {
+      if (!line.trim()) continue;
+      const row = [];
+      let inQuotes = false;
+      let current = '';
+
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') {
+          inQuotes = !inQuotes;
+        } else if (ch === ',' && !inQuotes) {
+          row.push(current.trim());
+          current = '';
+        } else {
+          current += ch;
+        }
+      }
+      row.push(current.trim());
+      rows.push(row);
+    }
+    return rows;
+  }
+
+  // ─── SHOW PREVIEW ───
+  function showPreview() {
+    const preview = document.getElementById('previewSection');
+    preview.style.display = 'block';
+
+    // Count
+    document.getElementById('previewCount').textContent =
+      csvData.length + ' records found';
+
+    // Column Mapper
+    const target = document.getElementById('importTarget').value;
+    const crmFields = getCRMFields(target);
+
+    const mapper = document.getElementById('columnMapper');
+    mapper.innerHTML = crmFields.map(field => `
+      <div class="map-row">
+        <label>${field.label}</label>
+        <select id="map_${field.key}">
+          <option value="">-- Skip --</option>
+          ${csvHeaders.map((h, i) => `
+            <option value="${i}"
+              ${h.toLowerCase().includes(field.key.toLowerCase()) ||
+                h.toLowerCase().includes(field.alt || '') ? 'selected' : ''}>
+              ${h}
+            </option>
+          `).join('')}
+        </select>
+      </div>
+    `).join('');
+
+    // Preview Table (first 5 rows)
+    const thead = document.getElementById('previewHead');
+    const tbody = document.getElementById('previewBody');
+
+    thead.innerHTML = `<tr>
+      ${csvHeaders.map(h => `<th>${h}</th>`).join('')}
+    </tr>`;
+
+    const previewRows = csvData.slice(0, 5);
+    tbody.innerHTML = previewRows.map(row => `
+      <tr>
+        ${csvHeaders.map((_, i) => `<td>${row[i] || '-'}</td>`).join('')}
+      </tr>
+    `).join('');
+
+    showToast(
+      `✅ ${csvData.length} records loaded! Check mapping & import.`,
+      'success'
+    );
+  }
+
+  // ─── GET CRM FIELDS ───
+  function getCRMFields(target) {
+    const fields = {
+      leads: [
+        { key: 'name', label: 'Name *', alt: 'contact' },
+        { key: 'phone', label: 'Phone', alt: 'mobile' },
+        { key: 'email', label: 'Email', alt: 'mail' },
+        { key: 'company', label: 'Company', alt: 'org' },
+        { key: 'projectType', label: 'Project Type', alt: 'project' },
+        { key: 'location', label: 'Location', alt: 'city' },
+        { key: 'budget', label: 'Budget (₹)', alt: 'amount' },
+        { key: 'status', label: 'Status', alt: 'stage' },
+        { key: 'source', label: 'Source', alt: 'channel' },
+        { key: 'notes', label: 'Notes', alt: 'remarks' }
+      ],
+      tasks: [
+        { key: 'title', label: 'Title *', alt: 'task' },
+        { key: 'category', label: 'Category', alt: 'type' },
+        { key: 'priority', label: 'Priority', alt: 'urgency' },
+        { key: 'status', label: 'Status', alt: 'stage' },
+        { key: 'dueDate', label: 'Due Date', alt: 'date' },
+        { key: 'assignedTo', label: 'Assigned To', alt: 'assignee' },
+        { key: 'notes', label: 'Notes', alt: 'desc' }
+      ],
+      projects: [
+        { key: 'name', label: 'Project Name *', alt: 'project' },
+        { key: 'client', label: 'Client *', alt: 'contact' },
+        { key: 'phone', label: 'Phone', alt: 'mobile' },
+        { key: 'type', label: 'Type', alt: 'category' },
+        { key: 'location', label: 'Location', alt: 'city' },
+        { key: 'value', label: 'Value (₹)', alt: 'amount' },
+        { key: 'status', label: 'Status', alt: 'stage' },
+        { key: 'deadline', label: 'Deadline', alt: 'date' },
+        { key: 'manager', label: 'Manager', alt: 'assigned' }
+      ],
+      followups: [
+        { key: 'name', label: 'Contact Name *', alt: 'contact' },
+        { key: 'phone', label: 'Phone', alt: 'mobile' },
+        { key: 'company', label: 'Company', alt: 'org' },
+        { key: 'type', label: 'Type', alt: 'method' },
+        { key: 'priority', label: 'Priority', alt: 'urgency' },
+        { key: 'date', label: 'Date', alt: 'followup' },
+        { key: 'notes', label: 'Notes', alt: 'remarks' }
+      ]
+    };
+    return fields[target] || fields.leads;
+  }
+
+  // ─── IMPORT DATA ───
+  function importData() {
+    const target = document.getElementById('importTarget').value;
+    const duplicate = document.getElementById('duplicateHandling').value;
+    const fields = getCRMFields(target);
+    const storageKey = getStorageKey(target);
+
+    let existing = JSON.parse(localStorage.getItem(storageKey) || '[]');
+    let imported = 0;
+    let skipped = 0;
+
+    csvData.forEach(row => {
+      const item = { id: target.slice(0,4) + '_' + Date.now() + Math.random(), createdAt: new Date().toISOString() };
+
+      fields.forEach(field => {
+        const mapEl = document.getElementById('map_' + field.key);
+        if (mapEl && mapEl.value !== '') {
+          item[field.key] = row[parseInt(mapEl.value)] || '';
+        }
+      });
+
+      // Check required field
+      const requiredField = target === 'tasks' ? 'title' : target === 'projects' ? ['name', 'client'] : 'name';
+      const isValid = Array.isArray(requiredField)
+        ? requiredField.every(f => item[f])
+        : item[requiredField];
+
+      if (!isValid) { skipped++; return; }
+
+      // Handle duplicates
+      if (duplicate === 'skip') {
+        const isDup = existing.some(e =>
+          (e.name && item.name && e.name.toLowerCase() === item.name.toLowerCase()) &&
+          (e.phone && item.phone && e.phone === item.phone)
+        );
+        if (isDup) { skipped++; return; }
+      } else if (duplicate === 'overwrite') {
+        const dupIndex = existing.findIndex(e =>
+          e.name && item.name &&
+          e.name.toLowerCase() === item.name.toLowerCase()
+        );
+        if (dupIndex !== -1) {
+          existing[dupIndex] = { ...existing[dupIndex], ...item };
+          imported++;
+          return;
+        }
+      }
+
+      existing.unshift(item);
+      imported++;
+    });
+
+    localStorage.setItem(storageKey, JSON.stringify(existing));
+
+    // Show success
+    const successBox = document.getElementById('successBox');
+    successBox.classList.add('show');
+    document.getElementById('successTitle').textContent =
+      `✅ Import Successful!`;
+    document.getElementById('successText').textContent =
+      `${imported} records imported, ${skipped} skipped. Go to the ${target} section to see them!`;
+
+    // Add to log
+    addLog('success',
+      `Imported ${imported} ${target} (${skipped} skipped)`,
+      `From CSV import · ${new Date().toLocaleString('en-IN')}`
+    );
+
+    showToast(`✅ ${imported} records imported successfully!`, 'success');
+  }
+
+  // ─── GET STORAGE KEY ───
+  function getStorageKey(target) {
+    const map = {
+      leads: LEADS_KEY,
+      tasks: TASKS_KEY,
+      projects: PROJ_KEY,
+      followups: FU_KEY
+    };
+    return map[target] || LEADS_KEY;
+  }
+
+  // ─── RESET IMPORT ───
+  function resetImport() {
+    csvData = [];
+    csvHeaders = [];
+    document.getElementById('previewSection').style.display = 'none';
+    document.getElementById('successBox').classList.remove('show');
+    document.getElementById('csvFile').value = '';
+    showToast('🔄 Import reset!', 'warning');
+  }
+
+  // ─── UPDATE EXPORT COUNTS ───
+  function updateExportCounts() {
+    const leads = JSON.parse(localStorage.getItem(LEADS_KEY) || '[]');
+    const tasks = JSON.parse(localStorage.getItem(TASKS_KEY) || '[]');
+    const projects = JSON.parse(localStorage.getItem(PROJ_KEY) || '[]');
+    const followups = JSON.parse(localStorage.getItem(FU_KEY) || '[]');
+
+    document.getElementById('export-leads-count').textContent = leads.length;
+    document.getElementById('export-tasks-count').textContent = tasks.length;
+    document.getElementById('export-projects-count').textContent = projects.length;
+    document.getElementById('export-followups-count').textContent = followups.length;
+  }
+
+  // ─── EXPORT DATA ───
+  function exportData(type) {
+    const storageKey = getStorageKey(type);
+    const data = JSON.parse(localStorage.getItem(storageKey) || '[]');
+
+    if (data.length === 0) {
+      showToast(`❌ No ${type} to export!`, 'danger');
+      return;
+    }
+
+    const configs = {
+      leads: {
+        headers: ['Name','Phone','Email','Company','Project Type','Location','Budget','Status','Source','Notes','Date'],
+        row: l => [l.name,l.phone,l.email,l.company,l.projectType,l.location,l.budget,l.status,l.source,l.notes,l.date]
+      },
+      tasks: {
+        headers: ['Title','Category','Priority','Status','Due Date','Assigned To','Related','Notes'],
+        row: t => [t.title,t.category,t.priority,t.status,t.dueDate,t.assignedTo,t.related,t.notes]
+      },
+      projects: {
+        headers: ['Name','Client','Phone','Type','Location','Value','Area','Status','Progress %','Start Date','Deadline','Manager','Notes'],
+        row: p => [p.name,p.client,p.phone,p.type,p.location,p.value,p.area,p.status,p.progress,p.startDate,p.deadline,p.manager,p.notes]
+      },
+      followups: {
+        headers: ['Name','Phone','Company','Type','Priority','Date','Time','Assigned To','Lead Status','Notes','Outcome','Next Action','Done'],
+        row: f => [f.name,f.phone,f.company,f.type,f.priority,f.date,f.time,f.assignedTo,f.leadStatus,f.notes,f.outcome,f.nextAction,f.done?'Yes':'No']
+      }
+    };
+
+    const config = configs[type];
+    const csvContent = [config.headers, ...data.map(config.row)]
+      .map(r => r.map(cell =>
+        '"' + (cell || '').toString().replace(/"/g, '""') + '"'
+      ).join(','))
+      .join('\n');
+
+    downloadCSV(csvContent, `TurnkeyCRM_${type}_${new Date().toISOString().split('T')[0]}.csv`);
+
+    addLog('success',
+      `Exported ${data.length} ${type}`,
+      `CSV downloaded · ${new Date().toLocaleString('en-IN')}`
+    );
+
+    showToast(`✅ ${data.length} ${type} exported!`, 'success');
+  }
+
+  // ─── EXPORT ALL DATA ───
+  function exportAllData() {
+    ['leads', 'tasks', 'projects', 'followups'].forEach((type, i) => {
+      setTimeout(() => exportData(type), i * 500);
+    });
+    showToast('✅ All data export started!', 'success');
+  }
+
+  // ─── EXPORT FOR SHEETS ───
+  function exportForSheets() {
+    const leads = JSON.parse(localStorage.getItem(LEADS_KEY) || '[]');
+
+    if (leads.length === 0) {
+      showToast('❌ No leads to export!', 'danger');
+      return;
+    }
+
+    const headers = [
+      'Lead ID', 'Full Name', 'Phone', 'Email',
+      'Company', 'Project Type', 'Location',
+      'Budget (₹)', 'Lead Source', 'Status',
+      'Assigned To', 'Area (sq ft)',
+      'Follow-up Date', 'Notes', 'Date Added'
+    ];
+
+    const rows = leads.map(l => [
+      l.id, l.name, l.phone, l.email,
+      l.company, l.projectType, l.location,
+      l.budget, l.source, l.status,
+      l.assignedTo, l.area,
+      l.followupDate, l.notes, l.date
+    ]);
+
+    const csvContent = [headers, ...rows]
+      .map(r => r.map(cell =>
+        '"' + (cell || '').toString().replace(/"/g, '""') + '"'
+      ).join(','))
+      .join('\n');
+
+    downloadCSV(csvContent, `TurnkeyCRM_ForGoogleSheets_${new Date().toISOString().split('T')[0]}.csv`);
+
+    addLog('success',
+      `Exported ${leads.length} leads for Google Sheets`,
+      `Sheets-formatted CSV · ${new Date().toLocaleString('en-IN')}`
+    );
+
+    showToast('✅ Google Sheets export ready!', 'success');
+  }
+
+  // ─── DOWNLOAD CSV ───
+  function downloadCSV(content, filename) {
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ─── MANUAL ENTRY ───
+  function addManualRow() {
+    manualRowCount++;
+    const tbody = document.getElementById('manualTableBody');
+    const row = document.createElement('tr');
+    row.id = 'manual-row-' + manualRowCount;
+    row.innerHTML = `
+      <td style="color:var(--subtext);text-align:center">${manualRowCount}</td>
+      <td><input type="text" placeholder="Full Name" class="m-name"/></td>
+      <td><input type="tel" placeholder="Phone" class="m-phone"/></td>
+      <td><input type="email" placeholder="Email" class="m-email"/></td>
+      <td><input type="text" placeholder="Company" class="m-company"/></td>
+      <td>
+        <select class="m-type">
+          <option value="Office Interior">Office Interior</option>
+          <option value="Commercial Fit-out">Commercial Fit-out</option>
+          <option value="Restaurant">Restaurant</option>
+          <option value="Retail">Retail</option>
+          <option value="Renovation">Renovation</option>
+          <option value="Other">Other</option>
+        </select>
+      </td>
+      <td><input type="text" placeholder="Location" class="m-location"/></td>
+      <td><input type="number" placeholder="Budget" class="m-budget"/></td>
+      <td>
+        <select class="m-status">
+          <option value="New">New</option>
+          <option value="Site Visit">Site Visit</option>
+          <option value="Proposal Sent">Proposal Sent</option>
+          <option value="Follow-up">Follow-up</option>
+          <option value="Won">Won</option>
+          <option value="Lost">Lost</option>
+        </select>
+      </td>
+      <td>
+        <select class="m-source">
+          <option value="Website">Website</option>
+          <option value="Referral">Referral</option>
+          <option value="Social Media">Social Media</option>
+          <option value="Google Ads">Google Ads</option>
+          <option value="Cold Call">Cold Call</option>
+          <option value="Walk-in">Walk-in</option>
+          <option value="Other">Other</option>
+        </select>
+      </td>
+      <td>
+        <button onclick="removeManualRow('manual-row-${manualRowCount}')"
+                style="background:rgba(244,67,54,0.15); border:none;
+                       color:var(--danger); padding:6px 10px;
+                       border-radius:6px; cursor:pointer;">
+          <i class="fas fa-times"></i>
+        </button>
+      </td>
+    `;
+    tbody.appendChild(row);
+  }
+
+  // ─── REMOVE ROW ───
+  function removeManualRow(id) {
+    const row = document.getElementById(id);
+    if (row) row.remove();
+  }
+
+  // ─── CLEAR MANUAL ROWS ───
+  function clearManualRows() {
+    if (confirm('Clear all rows?')) {
+      document.getElementById('manualTableBody').innerHTML = '';
+      manualRowCount = 0;
+      addManualRow();
+      addManualRow();
+      addManualRow();
+    }
+  }
+
+  // ─── SAVE MANUAL ENTRIES ───
+  function saveManualEntries() {
+    const rows = document.querySelectorAll('#manualTableBody tr');
+    let leads = JSON.parse(localStorage.getItem(LEADS_KEY) || '[]');
+    let added = 0;
+    let errors = 0;
+
+    rows.forEach(row => {
+      const name = row.querySelector('.m-name')?.value.trim();
+      const phone = row.querySelector('.m-phone')?.value.trim();
+
+      if (!name && !phone) return;
+
+      if (!name || !phone) {
+        errors++;
+        return;
+      }
+
+      const lead = {
+        id: 'lead_' + Date.now() + Math.random(),
+        name,
+        phone,
+        email: row.querySelector('.m-email')?.value.trim() || '',
+        company: row.querySelector('.m-company')?.value.trim() || '',
+        projectType: row.querySelector('.m-type')?.value || '',
+        location: row.querySelector('.m-location')?.value.trim() || '',
+        budget: row.querySelector('.m-budget')?.value || '',
+        status: row.querySelector('.m-status')?.value || 'New',
+        source: row.querySelector('.m-source')?.value || '',
+        date: new Date().toISOString().split('T')[0],
+        createdAt: new Date().toISOString()
+      };
+
+      leads.unshift(lead);
+      added++;
+    });
+
+    if (added === 0 && errors === 0) {
+      showToast('❌ No data entered!', 'danger');
+      return;
+    }
+
+    localStorage.setItem(LEADS_KEY, JSON.stringify(leads));
+
+    addLog('success',
+      `Manually added ${added} leads${errors > 0 ? ` (${errors} invalid rows skipped)` : ''}`,
+      `Manual entry · ${new Date().toLocaleString('en-IN')}`
+    );
+
+    if (errors > 0) {
+      showToast(`✅ ${added} saved · ❌ ${errors} rows had missing fields`, 'warning');
+    } else {
+      showToast(`✅ ${added} leads saved successfully!`, 'success');
+    }
+
+    // Clear and reset
+    document.getElementById('manualTableBody').innerHTML = '';
+    manualRowCount = 0;
+    addManualRow();
+    addManualRow();
+    addManualRow();
+  }
+
+  // ─── ADD LOG ───
+  function addLog(type, message, time) {
+    let log = JSON.parse(localStorage.getItem(LOG_KEY) || '[]');
+    log.unshift({ type, message, time, id: 'log_' + Date.now() });
+    if (log.length > 50) log = log.slice(0, 50);
+    localStorage.setItem(LOG_KEY, JSON.stringify(log));
+  }
+
+  // ─── RENDER LOG ───
+  function renderLog() {
+    const log = JSON.parse(localStorage.getItem(LOG_KEY) || '[]');
+    const container = document.getElementById('syncLog');
+
+    if (log.length === 0) {
+      container.innerHTML = `
+        <div style="text-align:center; color:var(--subtext);
+             padding:30px; font-size:14px">
+          <i class="fas fa-history"
+             style="font-size:40px; opacity:0.2;
+                    display:block; margin-bottom:10px"></i>
+          No sync activity yet.
+        </div>`;
+      return;
+    }
+
+    const icons = {
+      success: '<i class="fas fa-check"></i>',
+      error: '<i class="fas fa-times"></i>',
+      info: '<i class="fas fa-info"></i>',
+      warning: '<i class="fas fa-exclamation"></i>'
+    };
+
+    container.innerHTML = log.map(item => `
+      <div class="log-item">
+        <div class="log-icon ${item.type}">
+          ${icons[item.type] || icons.info}
+        </div>
+        <div class="log-content">
+          <div class="log-message">${item.message}</div>
+          <div class="log-time">${item.time}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // ─── CLEAR LOG ───
+  function clearLog() {
+    if (confirm('Clear all sync logs?')) {
+      localStorage.removeItem(LOG_KEY);
+      renderLog();
+      showToast('🗑️ Log cleared!', 'warning');
+    }
+  }
+
+  // ─── TOAST ───
+  function showToast(message, type = 'success') {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.style.display = 'block';
+    toast.style.background =
+      type === 'danger' ? 'var(--danger)' :
+      type === 'warning' ? 'var(--warning)' :
+      'var(--success)';
+    setTimeout(() => { toast.style.display = 'none'; }, 3500);
+  }
+
+  // ─── INIT ───
+  updateExportCounts();
+</script>
+</body>
+</html>

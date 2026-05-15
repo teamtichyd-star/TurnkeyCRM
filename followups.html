@@ -1,0 +1,1563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Follow-ups - Turnkey CRM</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    :root {
+      --primary: #c8a96e;
+      --dark: #1a1a2e;
+      --darker: #12121f;
+      --card: #16213e;
+      --text: #ffffff;
+      --subtext: #a0a0b0;
+      --success: #4caf50;
+      --warning: #ff9800;
+      --danger: #f44336;
+      --info: #2196f3;
+    }
+
+    body {
+      background: var(--darker);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .page {
+      padding: 25px;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ─── TOP ACTIONS ─── */
+    .top-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .top-actions h2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .top-actions h2 span {
+      font-size: 13px;
+      color: var(--subtext);
+      font-weight: 400;
+      margin-left: 8px;
+    }
+
+    /* ─── BUTTONS ─── */
+    .btn {
+      padding: 10px 18px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: 0.2s;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), #a07840);
+      color: white;
+    }
+
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+
+    .btn-danger {
+      background: rgba(244,67,54,0.15);
+      color: var(--danger);
+      border: 1px solid rgba(244,67,54,0.3);
+    }
+
+    .btn-danger:hover { background: rgba(244,67,54,0.25); }
+
+    .btn-info {
+      background: rgba(33,150,243,0.15);
+      color: var(--info);
+      border: 1px solid rgba(33,150,243,0.3);
+    }
+
+    .btn-success {
+      background: rgba(76,175,80,0.15);
+      color: var(--success);
+      border: 1px solid rgba(76,175,80,0.3);
+    }
+
+    .btn-warning {
+      background: rgba(255,152,0,0.15);
+      color: var(--warning);
+      border: 1px solid rgba(255,152,0,0.3);
+    }
+
+    /* ─── STATS ─── */
+    .fu-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .fu-stat {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 15px;
+      text-align: center;
+      border: 1px solid rgba(255,255,255,0.05);
+      transition: 0.3s;
+    }
+
+    .fu-stat:hover {
+      transform: translateY(-2px);
+      border-color: rgba(200,169,110,0.2);
+    }
+
+    .fu-stat h3 {
+      font-size: 26px;
+      font-weight: 700;
+    }
+
+    .fu-stat p {
+      font-size: 12px;
+      color: var(--subtext);
+      margin-top: 4px;
+    }
+
+    .fu-stat.gold h3 { color: var(--primary); }
+    .fu-stat.red h3 { color: var(--danger); }
+    .fu-stat.orange h3 { color: var(--warning); }
+    .fu-stat.green h3 { color: var(--success); }
+    .fu-stat.blue h3 { color: var(--info); }
+
+    /* ─── TODAY ALERT ─── */
+    .today-alert {
+      background: rgba(244,67,54,0.08);
+      border: 1px solid rgba(244,67,54,0.25);
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .today-alert i {
+      font-size: 22px;
+      color: var(--danger);
+      flex-shrink: 0;
+    }
+
+    .today-alert-text h4 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--danger);
+      margin-bottom: 3px;
+    }
+
+    .today-alert-text p {
+      font-size: 13px;
+      color: var(--subtext);
+    }
+
+    /* ─── TABS ─── */
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .tab {
+      padding: 9px 18px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      border: 1px solid rgba(255,255,255,0.1);
+      color: var(--subtext);
+      background: var(--card);
+      transition: 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tab:hover { border-color: var(--primary); color: var(--primary); }
+
+    .tab.active {
+      background: rgba(200,169,110,0.15);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .tab .count {
+      background: rgba(255,255,255,0.1);
+      padding: 1px 7px;
+      border-radius: 10px;
+      font-size: 11px;
+    }
+
+    .tab.active .count { background: rgba(200,169,110,0.3); }
+
+    /* ─── FILTER BAR ─── */
+    .filter-bar {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 15px;
+      margin-bottom: 20px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .filter-bar input,
+    .filter-bar select {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 9px 14px;
+      color: var(--text);
+      font-size: 14px;
+      outline: none;
+      transition: 0.3s;
+    }
+
+    .filter-bar input { flex: 1; min-width: 180px; }
+    .filter-bar select { min-width: 150px; }
+
+    .filter-bar input:focus,
+    .filter-bar select:focus { border-color: var(--primary); }
+
+    .filter-bar select option { background: var(--card); }
+
+    /* ─── FOLLOWUP LIST ─── */
+    .followup-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    /* ─── FOLLOWUP CARD ─── */
+    .followup-card {
+      background: var(--card);
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.05);
+      overflow: hidden;
+      transition: 0.3s;
+    }
+
+    .followup-card:hover {
+      border-color: rgba(200,169,110,0.2);
+      transform: translateY(-1px);
+    }
+
+    .followup-card.overdue {
+      border-color: rgba(244,67,54,0.3);
+      background: rgba(244,67,54,0.02);
+    }
+
+    .followup-card.today {
+      border-color: rgba(255,152,0,0.3);
+      background: rgba(255,152,0,0.02);
+    }
+
+    .followup-card.done {
+      opacity: 0.6;
+      border-color: rgba(76,175,80,0.2);
+    }
+
+    .followup-card-header {
+      padding: 16px 20px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+
+    .followup-card-left {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      flex: 1;
+    }
+
+    /* ─── TYPE ICON ─── */
+    .type-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .type-icon.call { background: rgba(33,150,243,0.15); }
+    .type-icon.meeting { background: rgba(200,169,110,0.15); }
+    .type-icon.email { background: rgba(156,39,176,0.15); }
+    .type-icon.whatsapp { background: rgba(76,175,80,0.15); }
+    .type-icon.site { background: rgba(255,152,0,0.15); }
+    .type-icon.other { background: rgba(255,255,255,0.05); }
+
+    .followup-card-info {
+      flex: 1;
+    }
+
+    .followup-card-name {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 3px;
+    }
+
+    .followup-card-name.done-text {
+      text-decoration: line-through;
+      color: var(--subtext);
+    }
+
+    .followup-card-contact {
+      font-size: 13px;
+      color: var(--subtext);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .followup-card-contact a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+
+    .followup-card-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    /* ─── BADGE ─── */
+    .badge {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .badge-call { background: rgba(33,150,243,0.15); color: var(--info); }
+    .badge-meeting { background: rgba(200,169,110,0.15); color: var(--primary); }
+    .badge-email { background: rgba(156,39,176,0.15); color: #ce93d8; }
+    .badge-whatsapp { background: rgba(76,175,80,0.15); color: var(--success); }
+    .badge-site { background: rgba(255,152,0,0.15); color: var(--warning); }
+    .badge-done { background: rgba(76,175,80,0.15); color: var(--success); }
+    .badge-overdue { background: rgba(244,67,54,0.15); color: var(--danger); }
+    .badge-today { background: rgba(255,152,0,0.15); color: var(--warning); }
+    .badge-upcoming { background: rgba(33,150,243,0.15); color: var(--info); }
+    .badge-other { background: rgba(255,255,255,0.05); color: var(--subtext); }
+
+    /* ─── DATE BADGE ─── */
+    .date-badge {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.05);
+    }
+
+    .date-badge.overdue {
+      background: rgba(244,67,54,0.1);
+      color: var(--danger);
+    }
+
+    .date-badge.today {
+      background: rgba(255,152,0,0.1);
+      color: var(--warning);
+    }
+
+    .date-badge.done {
+      background: rgba(76,175,80,0.1);
+      color: var(--success);
+    }
+
+    .followup-card-body {
+      padding: 14px 20px;
+    }
+
+    .followup-note {
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--text);
+      background: rgba(255,255,255,0.03);
+      padding: 12px 14px;
+      border-radius: 10px;
+      border-left: 3px solid var(--primary);
+      margin-bottom: 12px;
+    }
+
+    .followup-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .followup-meta-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      color: var(--subtext);
+      background: rgba(255,255,255,0.04);
+      padding: 4px 10px;
+      border-radius: 6px;
+    }
+
+    .followup-card-footer {
+      padding: 12px 20px;
+      border-top: 1px solid rgba(255,255,255,0.04);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .followup-complete-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 14px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: 0.2s;
+    }
+
+    .followup-complete-btn.mark-done {
+      background: rgba(76,175,80,0.1);
+      color: var(--success);
+      border: 1px solid rgba(76,175,80,0.2);
+    }
+
+    .followup-complete-btn.mark-done:hover {
+      background: rgba(76,175,80,0.2);
+    }
+
+    .followup-complete-btn.mark-pending {
+      background: rgba(255,152,0,0.1);
+      color: var(--warning);
+      border: 1px solid rgba(255,152,0,0.2);
+    }
+
+    .followup-card-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    /* ─── ICON BUTTONS ─── */
+    .icon-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      transition: 0.2s;
+    }
+
+    .icon-btn.edit { background: rgba(33,150,243,0.15); color: var(--info); }
+    .icon-btn.delete { background: rgba(244,67,54,0.15); color: var(--danger); }
+    .icon-btn:hover { transform: scale(1.1); }
+
+    /* ─── NOTES TIMELINE ─── */
+    .notes-section {
+      margin-top: 12px;
+    }
+
+    .notes-section h5 {
+      font-size: 12px;
+      color: var(--subtext);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    .note-timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .note-item {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .note-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--primary);
+      flex-shrink: 0;
+      margin-top: 5px;
+    }
+
+    .note-content {
+      flex: 1;
+      font-size: 13px;
+      color: var(--subtext);
+      line-height: 1.5;
+    }
+
+    .note-content strong {
+      color: var(--text);
+      font-size: 12px;
+    }
+
+    /* ─── EMPTY STATE ─── */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--subtext);
+    }
+
+    .empty-state i {
+      font-size: 55px;
+      color: var(--primary);
+      opacity: 0.3;
+      margin-bottom: 15px;
+      display: block;
+    }
+
+    .empty-state h3 {
+      font-size: 18px;
+      margin-bottom: 8px;
+      color: var(--text);
+    }
+
+    /* ─── MODAL ─── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 2000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-overlay.show { display: flex; }
+
+    .modal {
+      background: var(--dark);
+      border-radius: 20px;
+      width: 100%;
+      max-width: 580px;
+      max-height: 90vh;
+      overflow-y: auto;
+      border: 1px solid rgba(200,169,110,0.2);
+      animation: slideUp 0.3s ease;
+    }
+
+    .modal-sm { max-width: 420px; }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .modal-header {
+      padding: 22px 25px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      background: var(--dark);
+      z-index: 1;
+    }
+
+    .modal-header h3 {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--primary);
+    }
+
+    .modal-close {
+      width: 34px;
+      height: 34px;
+      background: rgba(255,255,255,0.05);
+      border: none;
+      border-radius: 8px;
+      color: var(--text);
+      cursor: pointer;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: 0.2s;
+    }
+
+    .modal-close:hover {
+      background: rgba(244,67,54,0.2);
+      color: var(--danger);
+    }
+
+    .modal-body { padding: 25px; }
+
+    .modal-footer {
+      padding: 15px 25px;
+      border-top: 1px solid rgba(255,255,255,0.05);
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    /* ─── FORM ─── */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .form-group.full { grid-column: 1 / -1; }
+
+    .form-group label {
+      font-size: 13px;
+      color: var(--subtext);
+    }
+
+    .form-group label span { color: var(--danger); }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 11px 14px;
+      color: var(--text);
+      font-size: 14px;
+      outline: none;
+      transition: 0.3s;
+      width: 100%;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      border-color: var(--primary);
+      background: rgba(200,169,110,0.05);
+    }
+
+    .form-group select option { background: var(--dark); }
+
+    .form-group textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    /* ─── OUTCOME SECTION ─── */
+    .outcome-section {
+      background: rgba(255,255,255,0.03);
+      border-radius: 12px;
+      padding: 16px;
+      border: 1px solid rgba(255,255,255,0.05);
+      margin-top: 5px;
+    }
+
+    .outcome-section h4 {
+      font-size: 13px;
+      color: var(--subtext);
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* ─── TOAST ─── */
+    .toast {
+      position: fixed;
+      bottom: 90px;
+      right: 20px;
+      background: var(--success);
+      color: white;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 14px;
+      z-index: 9999;
+      display: none;
+      animation: slideIn 0.3s ease;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+    }
+
+    @keyframes slideIn {
+      from { transform: translateX(100px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 768px) {
+      .page { padding: 15px; padding-bottom: 80px; }
+      .form-grid { grid-template-columns: 1fr; }
+      .top-actions { flex-direction: column; align-items: flex-start; }
+      .filter-bar { flex-direction: column; }
+      .filter-bar input,
+      .filter-bar select { width: 100%; min-width: unset; }
+      .followup-card-header { flex-direction: column; }
+      .followup-card-right { flex-direction: row; align-items: center; }
+      .followup-card-footer { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ─── TOAST ─── -->
+<div class="toast" id="toast"></div>
+
+<!-- ═══════════════════════════════════ -->
+<!--      FOLLOWUPS PAGE CONTENT        -->
+<!-- ═══════════════════════════════════ -->
+<div class="page">
+
+  <!-- TOP ACTIONS -->
+  <div class="top-actions">
+    <h2>💬 Follow-up Notes
+      <span id="fuCount">0 follow-ups</span>
+    </h2>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="btn btn-warning" onclick="exportFollowups()">
+        <i class="fas fa-file-csv"></i> Export
+      </button>
+      <button class="btn btn-primary" onclick="openAddModal()">
+        <i class="fas fa-plus"></i> Add Follow-up
+      </button>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="fu-stats">
+    <div class="fu-stat gold">
+      <h3 id="fs-total">0</h3>
+      <p>Total</p>
+    </div>
+    <div class="fu-stat red">
+      <h3 id="fs-overdue">0</h3>
+      <p>Overdue</p>
+    </div>
+    <div class="fu-stat orange">
+      <h3 id="fs-today">0</h3>
+      <p>Due Today</p>
+    </div>
+    <div class="fu-stat blue">
+      <h3 id="fs-upcoming">0</h3>
+      <p>Upcoming</p>
+    </div>
+    <div class="fu-stat green">
+      <h3 id="fs-done">0</h3>
+      <p>Completed</p>
+    </div>
+  </div>
+
+  <!-- TODAY ALERT (shown only when overdue/today exist) -->
+  <div class="today-alert" id="todayAlert" style="display:none">
+    <i class="fas fa-bell"></i>
+    <div class="today-alert-text">
+      <h4 id="alertTitle">⚠️ Urgent Follow-ups!</h4>
+      <p id="alertText">You have follow-ups that need immediate attention.</p>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <div class="tab active" onclick="setTab('all')" id="tab-all">
+      <i class="fas fa-list"></i> All
+      <span class="count" id="tab-count-all">0</span>
+    </div>
+    <div class="tab" onclick="setTab('overdue')" id="tab-overdue">
+      <i class="fas fa-exclamation-circle"></i> Overdue
+      <span class="count" id="tab-count-overdue">0</span>
+    </div>
+    <div class="tab" onclick="setTab('today')" id="tab-today">
+      <i class="fas fa-calendar-day"></i> Today
+      <span class="count" id="tab-count-today">0</span>
+    </div>
+    <div class="tab" onclick="setTab('upcoming')" id="tab-upcoming">
+      <i class="fas fa-calendar"></i> Upcoming
+      <span class="count" id="tab-count-upcoming">0</span>
+    </div>
+    <div class="tab" onclick="setTab('done')" id="tab-done">
+      <i class="fas fa-check-circle"></i> Done
+      <span class="count" id="tab-count-done">0</span>
+    </div>
+    <div class="tab" onclick="setTab('call')" id="tab-call">
+      <i class="fas fa-phone"></i> Calls
+      <span class="count" id="tab-count-call">0</span>
+    </div>
+    <div class="tab" onclick="setTab('meeting')" id="tab-meeting">
+      <i class="fas fa-handshake"></i> Meetings
+      <span class="count" id="tab-count-meeting">0</span>
+    </div>
+  </div>
+
+  <!-- FILTER BAR -->
+  <div class="filter-bar">
+    <input type="text" id="searchInput"
+           placeholder="🔍 Search by name, phone, notes..."
+           oninput="renderFollowups()"/>
+    <select id="typeFilter" onchange="renderFollowups()">
+      <option value="">All Types</option>
+      <option value="Call">📞 Call</option>
+      <option value="Meeting">🤝 Meeting</option>
+      <option value="WhatsApp">💬 WhatsApp</option>
+      <option value="Email">📧 Email</option>
+      <option value="Site Visit">🏗️ Site Visit</option>
+      <option value="Other">Other</option>
+    </select>
+    <select id="priorityFilter" onchange="renderFollowups()">
+      <option value="">All Priorities</option>
+      <option value="High">🔴 High</option>
+      <option value="Medium">🟡 Medium</option>
+      <option value="Low">🟢 Low</option>
+    </select>
+    <select id="sortFilter" onchange="renderFollowups()">
+      <option value="duedate">Due Date</option>
+      <option value="newest">Newest First</option>
+      <option value="priority">Priority</option>
+    </select>
+  </div>
+
+  <!-- FOLLOWUP LIST -->
+  <div class="followup-list" id="followupList"></div>
+
+</div>
+
+<!-- ═══════════════════════════════════ -->
+<!--       ADD / EDIT MODAL             -->
+<!-- ═══════════════════════════════════ -->
+<div class="modal-overlay" id="followupModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">💬 Add Follow-up</h3>
+      <button class="modal-close" onclick="closeModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+
+        <div class="form-group">
+          <label>Contact Name <span>*</span></label>
+          <input type="text" id="fuName"
+                 placeholder="e.g. Rajesh Kumar"/>
+        </div>
+
+        <div class="form-group">
+          <label>Phone Number</label>
+          <input type="tel" id="fuPhone"
+                 placeholder="e.g. 9876543210"/>
+        </div>
+
+        <div class="form-group">
+          <label>Company</label>
+          <input type="text" id="fuCompany"
+                 placeholder="e.g. ABC Pvt Ltd"/>
+        </div>
+
+        <div class="form-group">
+          <label>Related Lead/Project</label>
+          <input type="text" id="fuRelated"
+                 placeholder="e.g. Office Fit-out, Gachibowli"/>
+        </div>
+
+        <div class="form-group">
+          <label>Follow-up Type <span>*</span></label>
+          <select id="fuType">
+            <option value="Call">📞 Call</option>
+            <option value="Meeting">🤝 Meeting</option>
+            <option value="WhatsApp">💬 WhatsApp</option>
+            <option value="Email">📧 Email</option>
+            <option value="Site Visit">🏗️ Site Visit</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Priority</label>
+          <select id="fuPriority">
+            <option value="High">🔴 High</option>
+            <option value="Medium">🟡 Medium</option>
+            <option value="Low">🟢 Low</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Follow-up Date <span>*</span></label>
+          <input type="date" id="fuDate"/>
+        </div>
+
+        <div class="form-group">
+          <label>Follow-up Time</label>
+          <input type="time" id="fuTime"/>
+        </div>
+
+        <div class="form-group">
+          <label>Assigned To</label>
+          <input type="text" id="fuAssigned"
+                 placeholder="e.g. Rahul"/>
+        </div>
+
+        <div class="form-group">
+          <label>Lead Status</label>
+          <select id="fuLeadStatus">
+            <option value="">Select Status</option>
+            <option value="New">New</option>
+            <option value="Site Visit">Site Visit</option>
+            <option value="Proposal Sent">Proposal Sent</option>
+            <option value="Negotiation">Negotiation</option>
+            <option value="Won">Won</option>
+            <option value="Lost">Lost</option>
+          </select>
+        </div>
+
+        <div class="form-group full">
+          <label>Notes / Discussion Points <span>*</span></label>
+          <textarea id="fuNotes"
+            placeholder="What to discuss, key points, reminders..."></textarea>
+        </div>
+
+        <!-- OUTCOME SECTION (only for editing) -->
+        <div class="form-group full" id="outcomeSection" style="display:none">
+          <div class="outcome-section">
+            <h4>📝 Follow-up Outcome</h4>
+            <div class="form-group" style="margin-bottom:10px">
+              <label>Outcome / Result</label>
+              <textarea id="fuOutcome"
+                placeholder="What happened? What was discussed? What was decided?"
+                style="min-height:70px"></textarea>
+            </div>
+            <div class="form-group">
+              <label>Next Action</label>
+              <input type="text" id="fuNextAction"
+                     placeholder="e.g. Send proposal by Friday"/>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" onclick="closeModal()">
+        <i class="fas fa-times"></i> Cancel
+      </button>
+      <button class="btn btn-primary" onclick="saveFollowup()">
+        <i class="fas fa-save"></i> Save Follow-up
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ -->
+<!--       DELETE CONFIRM MODAL         -->
+<!-- ═══════════════════════════════════ -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h3 style="color:var(--danger)">🗑️ Delete Follow-up</h3>
+      <button class="modal-close" onclick="closeDeleteModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body" style="text-align:center; padding:30px 25px">
+      <i class="fas fa-exclamation-triangle"
+         style="font-size:50px; color:var(--danger);
+                margin-bottom:15px; display:block"></i>
+      <h3 style="margin-bottom:10px">Are you sure?</h3>
+      <p style="color:var(--subtext); font-size:14px">
+        This will permanently delete this follow-up note!
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-info" onclick="closeDeleteModal()">
+        <i class="fas fa-times"></i> Cancel
+      </button>
+      <button class="btn btn-danger" onclick="confirmDelete()">
+        <i class="fas fa-trash"></i> Yes, Delete
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ─── STORAGE KEY ───
+  const FU_KEY = 'crm_followups';
+
+  // ─── STATE ───
+  let followups = JSON.parse(localStorage.getItem(FU_KEY) || '[]');
+  let editingId = null;
+  let deletingId = null;
+  let currentTab = 'all';
+
+  // ─── TYPE CONFIG ───
+  const typeConfig = {
+    'Call': { icon: '📞', class: 'call', badge: 'badge-call' },
+    'Meeting': { icon: '🤝', class: 'meeting', badge: 'badge-meeting' },
+    'WhatsApp': { icon: '💬', class: 'whatsapp', badge: 'badge-whatsapp' },
+    'Email': { icon: '📧', class: 'email', badge: 'badge-email' },
+    'Site Visit': { icon: '🏗️', class: 'site', badge: 'badge-site' },
+    'Other': { icon: '📌', class: 'other', badge: 'badge-other' }
+  };
+
+  // ─── PRIORITY CONFIG ───
+  const priorityConfig = {
+    'High': { icon: '🔴', color: 'var(--danger)' },
+    'Medium': { icon: '🟡', color: 'var(--warning)' },
+    'Low': { icon: '🟢', color: 'var(--success)' }
+  };
+
+  // ─── DATE HELPERS ───
+  function isOverdue(fu) {
+    if (!fu.date || fu.done) return false;
+    const due = new Date(fu.date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return due < today;
+  }
+
+  function isToday(fu) {
+    if (!fu.date || fu.done) return false;
+    const due = new Date(fu.date);
+    const today = new Date();
+    return due.toDateString() === today.toDateString();
+  }
+
+  function isUpcoming(fu) {
+    if (!fu.date || fu.done) return false;
+    const due = new Date(fu.date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return due > today && !isToday(fu);
+  }
+
+  function formatDate(d) {
+    if (!d) return '-';
+    return new Date(d).toLocaleDateString('en-IN', {
+      day: '2-digit', month: 'short', year: 'numeric'
+    });
+  }
+
+  function formatDateTime(d, t) {
+    let result = formatDate(d);
+    if (t) result += ' at ' + t;
+    return result;
+  }
+
+  // ─── GET DATE STATUS ───
+  function getDateStatus(fu) {
+    if (fu.done) return { label: '✅ Completed', class: 'done' };
+    if (isOverdue(fu)) return { label: '⚠️ Overdue', class: 'overdue' };
+    if (isToday(fu)) return { label: '⏰ Today', class: 'today' };
+    return { label: '📅 ' + formatDate(fu.date), class: '' };
+  }
+
+  // ─── SET TAB ───
+  function setTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    renderFollowups();
+  }
+
+  // ─── GET FILTERED ───
+  function getFiltered() {
+    const search = document.getElementById('searchInput').value.toLowerCase();
+    const type = document.getElementById('typeFilter').value;
+    const priority = document.getElementById('priorityFilter').value;
+    const sort = document.getElementById('sortFilter').value;
+
+    let filtered = followups.filter(fu => {
+      // Tab filter
+      if (currentTab === 'overdue' && !isOverdue(fu)) return false;
+      if (currentTab === 'today' && !isToday(fu)) return false;
+      if (currentTab === 'upcoming' && !isUpcoming(fu)) return false;
+      if (currentTab === 'done' && !fu.done) return false;
+      if (currentTab === 'call' && fu.type !== 'Call') return false;
+      if (currentTab === 'meeting' && fu.type !== 'Meeting') return false;
+
+      // Search
+      const matchSearch =
+        fu.name.toLowerCase().includes(search) ||
+        (fu.phone && fu.phone.includes(search)) ||
+        (fu.notes && fu.notes.toLowerCase().includes(search)) ||
+        (fu.company && fu.company.toLowerCase().includes(search)) ||
+        (fu.related && fu.related.toLowerCase().includes(search));
+
+      const matchType = !type || fu.type === type;
+      const matchPriority = !priority || fu.priority === priority;
+
+      return matchSearch && matchType && matchPriority;
+    });
+
+    // Sort
+    if (sort === 'newest') {
+      filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    } else if (sort === 'duedate') {
+      filtered.sort((a, b) => {
+        if (!a.date) return 1;
+        if (!b.date) return -1;
+        return new Date(a.date) - new Date(b.date);
+      });
+    } else if (sort === 'priority') {
+      const order = { 'High': 0, 'Medium': 1, 'Low': 2 };
+      filtered.sort((a, b) => order[a.priority] - order[b.priority]);
+    }
+
+    return filtered;
+  }
+
+  // ─── RENDER FOLLOWUPS ───
+  function renderFollowups() {
+    updateStats();
+    updateTabCounts();
+    updateAlert();
+
+    const filtered = getFiltered();
+    const container = document.getElementById('followupList');
+
+    document.getElementById('fuCount').textContent =
+      filtered.length + ' follow-up' + (filtered.length !== 1 ? 's' : '');
+
+    if (filtered.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <i class="fas fa-comments"></i>
+          <h3>No Follow-ups Found</h3>
+          <p>Add a new follow-up or adjust your filters</p>
+        </div>`;
+      return;
+    }
+
+    container.innerHTML = filtered.map(fu => {
+      const tc = typeConfig[fu.type] || typeConfig['Other'];
+      const pc = priorityConfig[fu.priority] || priorityConfig['Medium'];
+      const dateStatus = getDateStatus(fu);
+      const overdueClass = isOverdue(fu) ? 'overdue' : isToday(fu) ? 'today' : fu.done ? 'done' : '';
+
+      return `
+        <div class="followup-card ${overdueClass}">
+
+          <!-- HEADER -->
+          <div class="followup-card-header">
+            <div class="followup-card-left">
+
+              <!-- TYPE ICON -->
+              <div class="type-icon ${tc.class}">${tc.icon}</div>
+
+              <!-- INFO -->
+              <div class="followup-card-info">
+                <div class="followup-card-name ${fu.done ? 'done-text' : ''}">
+                  ${fu.name}
+                  ${fu.company ? `<span style="font-size:12px;
+                    color:var(--subtext); font-weight:400">
+                    · ${fu.company}</span>` : ''}
+                </div>
+                <div class="followup-card-contact">
+                  ${fu.phone ? `
+                  <span>
+                    <a href="tel:${fu.phone}">📞 ${fu.phone}</a>
+                  </span>` : ''}
+                  ${fu.related ? `
+                  <span>🔗 ${fu.related}</span>` : ''}
+                  ${fu.assignedTo ? `
+                  <span>👤 ${fu.assignedTo}</span>` : ''}
+                </div>
+              </div>
+            </div>
+
+            <!-- RIGHT: TYPE BADGE + DATE -->
+            <div class="followup-card-right">
+              <span class="badge ${tc.badge}">${tc.icon} ${fu.type}</span>
+              <div class="date-badge ${dateStatus.class}">
+                ${dateStatus.label}
+                ${fu.time ? ' · ' + fu.time : ''}
+              </div>
+              ${fu.leadStatus ? `
+              <span style="font-size:11px; color:var(--subtext)">
+                Status: <strong style="color:var(--primary)">${fu.leadStatus}</strong>
+              </span>` : ''}
+            </div>
+          </div>
+
+          <!-- BODY -->
+          <div class="followup-card-body">
+
+            <!-- NOTES -->
+            <div class="followup-note">
+              📝 ${fu.notes}
+            </div>
+
+            <!-- META -->
+            <div class="followup-meta">
+              <div class="followup-meta-item">
+                ${pc.icon} ${fu.priority} Priority
+              </div>
+              <div class="followup-meta-item">
+                <i class="fas fa-calendar"></i>
+                ${formatDateTime(fu.date, fu.time)}
+              </div>
+              <div class="followup-meta-item">
+                <i class="fas fa-clock"></i>
+                Added: ${formatDate(fu.createdAt)}
+              </div>
+            </div>
+
+            <!-- OUTCOME (if done) -->
+            ${fu.outcome ? `
+            <div class="notes-section" style="margin-top:12px">
+              <h5>📋 Outcome</h5>
+              <div class="note-timeline">
+                <div class="note-item">
+                  <div class="note-dot"
+                       style="background:var(--success)"></div>
+                  <div class="note-content">
+                    ${fu.outcome}
+                  </div>
+                </div>
+                ${fu.nextAction ? `
+                <div class="note-item">
+                  <div class="note-dot"
+                       style="background:var(--warning)"></div>
+                  <div class="note-content">
+                    <strong>Next Action:</strong> ${fu.nextAction}
+                  </div>
+                </div>` : ''}
+              </div>
+            </div>` : ''}
+
+          </div>
+
+          <!-- FOOTER -->
+          <div class="followup-card-footer">
+            <button class="followup-complete-btn ${fu.done ? 'mark-pending' : 'mark-done'}"
+                    onclick="toggleDone('${fu.id}')">
+              <i class="fas fa-${fu.done ? 'undo' : 'check'}"></i>
+              ${fu.done ? 'Reopen' : 'Mark as Done'}
+            </button>
+            <div class="followup-card-actions">
+              <button class="icon-btn edit" onclick="editFollowup('${fu.id}')" title="Edit">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button class="icon-btn delete" onclick="deleteFollowup('${fu.id}')" title="Delete">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </div>
+
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ─── UPDATE STATS ───
+  function updateStats() {
+    const total = followups.length;
+    const overdue = followups.filter(fu => isOverdue(fu)).length;
+    const today = followups.filter(fu => isToday(fu)).length;
+    const upcoming = followups.filter(fu => isUpcoming(fu)).length;
+    const done = followups.filter(fu => fu.done).length;
+
+    document.getElementById('fs-total').textContent = total;
+    document.getElementById('fs-overdue').textContent = overdue;
+    document.getElementById('fs-today').textContent = today;
+    document.getElementById('fs-upcoming').textContent = upcoming;
+    document.getElementById('fs-done').textContent = done;
+  }
+
+  // ─── UPDATE TAB COUNTS ───
+  function updateTabCounts() {
+    document.getElementById('tab-count-all').textContent = followups.length;
+    document.getElementById('tab-count-overdue').textContent =
+      followups.filter(fu => isOverdue(fu)).length;
+    document.getElementById('tab-count-today').textContent =
+      followups.filter(fu => isToday(fu)).length;
+    document.getElementById('tab-count-upcoming').textContent =
+      followups.filter(fu => isUpcoming(fu)).length;
+    document.getElementById('tab-count-done').textContent =
+      followups.filter(fu => fu.done).length;
+    document.getElementById('tab-count-call').textContent =
+      followups.filter(fu => fu.type === 'Call').length;
+    document.getElementById('tab-count-meeting').textContent =
+      followups.filter(fu => fu.type === 'Meeting').length;
+  }
+
+  // ─── UPDATE ALERT ───
+  function updateAlert() {
+    const overdue = followups.filter(fu => isOverdue(fu)).length;
+    const today = followups.filter(fu => isToday(fu)).length;
+    const alert = document.getElementById('todayAlert');
+
+    if (overdue > 0 || today > 0) {
+      alert.style.display = 'flex';
+      document.getElementById('alertTitle').textContent =
+        overdue > 0 ? `⚠️ ${overdue} Overdue Follow-up(s)!` : `⏰ ${today} Follow-up(s) Due Today!`;
+      document.getElementById('alertText').textContent =
+        overdue > 0
+          ? `You have ${overdue} overdue and ${today} today. Take action now!`
+          : `You have ${today} follow-up(s) scheduled for today.`;
+    } else {
+      alert.style.display = 'none';
+    }
+  }
+
+  // ─── TOGGLE DONE ───
+  function toggleDone(id) {
+    const fu = followups.find(f => f.id === id);
+    if (!fu) return;
+    fu.done = !fu.done;
+    fu.updatedAt = new Date().toISOString();
+    localStorage.setItem(FU_KEY, JSON.stringify(followups));
+    renderFollowups();
+    showToast(
+      fu.done ? '✅ Follow-up completed!' : '🔄 Follow-up reopened!',
+      fu.done ? 'success' : 'warning'
+    );
+  }
+
+  // ─── OPEN ADD MODAL ───
+  function openAddModal() {
+    editingId = null;
+    document.getElementById('modalTitle').textContent = '💬 Add Follow-up';
+    document.getElementById('outcomeSection').style.display = 'none';
+    clearForm();
+
+    // Set today as default date
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('fuDate').value = today;
+
+    document.getElementById('followupModal').classList.add('show');
+  }
+
+  // ─── CLEAR FORM ───
+  function clearForm() {
+    document.getElementById('fuName').value = '';
+    document.getElementById('fuPhone').value = '';
+    document.getElementById('fuCompany').value = '';
+    document.getElementById('fuRelated').value = '';
+    document.getElementById('fuType').value = 'Call';
+    document.getElementById('fuPriority').value = 'High';
+    document.getElementById('fuDate').value = '';
+    document.getElementById('fuTime').value = '';
+    document.getElementById('fuAssigned').value = '';
+    document.getElementById('fuLeadStatus').value = '';
+    document.getElementById('fuNotes').value = '';
+    document.getElementById('fuOutcome').value = '';
+    document.getElementById('fuNextAction').value = '';
+  }
+
+  // ─── CLOSE MODAL ───
+  function closeModal() {
+    document.getElementById('followupModal').classList.remove('show');
+    editingId = null;
+  }
+
+  // ─── SAVE FOLLOWUP ───
+  function saveFollowup() {
+    const name = document.getElementById('fuName').value.trim();
+    const date = document.getElementById('fuDate').value;
+    const notes = document.getElementById('fuNotes').value.trim();
+
+    if (!name) { showToast('❌ Please enter contact name!', 'danger'); return; }
+    if (!date) { showToast('❌ Please select a date!', 'danger'); return; }
+    if (!notes) { showToast('❌ Please add notes!', 'danger'); return; }
+
+    const fuData = {
+      id: editingId || 'fu_' + Date.now(),
+      name,
+      phone: document.getElementById('fuPhone').value.trim(),
+      company: document.getElementById('fuCompany').value.trim(),
+      related: document.getElementById('fuRelated').value.trim(),
+      type: document.getElementById('fuType').value,
+      priority: document.getElementById('fuPriority').value,
+      date,
+      time: document.getElementById('fuTime').value,
+      assignedTo: document.getElementById('fuAssigned').value.trim(),
+      leadStatus: document.getElementById('fuLeadStatus').value,
+      notes,
+      outcome: document.getElementById('fuOutcome').value.trim(),
+      nextAction: document.getElementById('fuNextAction').value.trim(),
+      done: editingId
+        ? followups.find(f => f.id === editingId)?.done || false
+        : false,
+      createdAt: editingId
+        ? followups.find(f => f.id === editingId)?.createdAt
+        : new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    if (editingId) {
+      const index = followups.findIndex(f => f.id === editingId);
+      if (index !== -1) followups[index] = fuData;
+      showToast('✅ Follow-up updated!', 'success');
+    } else {
+      followups.unshift(fuData);
+      showToast('✅ Follow-up added!', 'success');
+    }
+
+    localStorage.setItem(FU_KEY, JSON.stringify(followups));
+    renderFollowups();
+    closeModal();
+  }
+
+  // ─── EDIT FOLLOWUP ───
+  function editFollowup(id) {
+    const fu = followups.find(f => f.id === id);
+    if (!fu) return;
+
+    editingId = id;
+    document.getElementById('modalTitle').textContent = '✏️ Edit Follow-up';
+    document.getElementById('outcomeSection').style.display = 'block';
+
+    document.getElementById('fuName').value = fu.name || '';
+    document.getElementById('fuPhone').value = fu.phone || '';
+    document.getElementById('fuCompany').value = fu.company || '';
+    document.getElementById('fuRelated').value = fu.related || '';
+    document.getElementById('fuType').value = fu.type || 'Call';
+    document.getElementById('fuPriority').value = fu.priority || 'High';
+    document.getElementById('fuDate').value = fu.date || '';
+    document.getElementById('fuTime').value = fu.time || '';
+    document.getElementById('fuAssigned').value = fu.assignedTo || '';
+    document.getElementById('fuLeadStatus').value = fu.leadStatus || '';
+    document.getElementById('fuNotes').value = fu.notes || '';
+    document.getElementById('fuOutcome').value = fu.outcome || '';
+    document.getElementById('fuNextAction').value = fu.nextAction || '';
+
+    document.getElementById('followupModal').classList.add('show');
+  }
+
+  // ─── DELETE FOLLOWUP ───
+  function deleteFollowup(id) {
+    deletingId = id;
+    document.getElementById('deleteModal').classList.add('show');
+  }
+
+  function closeDeleteModal() {
+    document.getElementById('deleteModal').classList.remove('show');
+    deletingId = null;
+  }
+
+  function confirmDelete() {
+    if (!deletingId) return;
+    followups = followups.filter(f => f.id !== deletingId);
+    localStorage.setItem(FU_KEY, JSON.stringify(followups));
+    renderFollowups();
+    closeDeleteModal();
+    showToast('🗑️ Follow-up deleted!', 'danger');
+  }
+
+  // ─── EXPORT FOLLOWUPS ───
+  function exportFollowups() {
+    if (followups.length === 0) {
+      showToast('❌ No follow-ups to export!', 'danger');
+      return;
+    }
+
+    const headers = [
+      'Name', 'Phone', 'Company', 'Related',
+      'Type', 'Priority', 'Date', 'Time',
+      'Assigned To', 'Lead Status', 'Notes',
+      'Outcome', 'Next Action', 'Done', 'Created'
+    ];
+
+    const rows = followups.map(fu => [
+      fu.name, fu.phone, fu.company, fu.related,
+      fu.type, fu.priority, fu.date, fu.time,
+      fu.assignedTo, fu.leadStatus, fu.notes,
+      fu.outcome, fu.nextAction,
+      fu.done ? 'Yes' : 'No',
+      fu.createdAt ? fu.createdAt.split('T')[0] : ''
+    ]);
+
+    const csvContent = [headers, ...rows]
+      .map(r => r.map(cell =>
+        '"' + (cell || '').toString().replace(/"/g, '""') + '"'
+      ).join(','))
+      .join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'TurnkeyCRM_Followups_' +
+      new Date().toISOString().split('T')[0] + '.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('✅ Follow-ups exported!', 'success');
+  }
+
+  // ─── TOAST ───
+  function showToast(message, type = 'success') {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.style.display = 'block';
+    toast.style.background =
+      type === 'danger' ? 'var(--danger)' :
+      type === 'warning' ? 'var(--warning)' :
+      'var(--success)';
+    setTimeout(() => { toast.style.display = 'none'; }, 3000);
+  }
+
+  // ─── CLOSE ON OUTSIDE CLICK ───
+  document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', function (e) {
+      if (e.target === this) {
+        this.classList.remove('show');
+        editingId = null;
+        deletingId = null;
+      }
+    });
+  });
+
+  // ─── INIT ───
+  renderFollowups();
+</script>
+</body>
+</html>
