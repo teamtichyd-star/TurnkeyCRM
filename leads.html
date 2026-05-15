@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Leads - Turnkey CRM</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    :root {
+      --primary: #c8a96e;
+      --dark: #1a1a2e;
+      --darker: #12121f;
+      --card: #16213e;
+      --text: #ffffff;
+      --subtext: #a0a0b0;
+      --success: #4caf50;
+      --warning: #ff9800;
+      --danger: #f44336;
+      --info: #2196f3;
+    }
+
+    body {
+      background: var(--darker);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ─── PAGE ─── */
+    .page {
+      padding: 25px;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ─── TOP BAR ─── */
+    .top-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .top-actions h2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .top-actions h2 span {
+      font-size: 13px;
+      color: var(--subtext);
+      font-weight: 400;
+      margin-left: 8px;
+    }
+
+    /* ─── BUTTONS ─── */
+    .btn {
+      padding: 10px 18px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: 0.2s;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), #a07840);
+      color: white;
+    }
+
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+
+    .btn-danger {
+      background: rgba(244,67,54,0.15);
+      color: var(--danger);
+      border: 1px solid rgba(244,67,54,0.3);
+    }
+
+    .btn-danger:hover { background: rgba(244,67,54,0.25); }
+
+    .btn-info {
+      background: rgba(33,150,243,0.15);
+      color: var(--info);
+      border: 1px solid rgba(33,150,243,0.3);
+    }
+
+    .btn-success {
+      background: rgba(76,175,80,0.15);
+      color: var(--success);
+      border: 1px solid rgba(76,175,80,0.3);
+    }
+
+    .btn-warning {
+      background: rgba(255,152,0,0.15);
+      color: var(--warning);
+      border: 1px solid rgba(255,152,0,0.3);
+    }
+
+    /* ─── STATS ROW ─── */
+    .lead-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .lead-stat {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 15px;
+      text-align: center;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .lead-stat h3 {
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    .lead-stat p {
+      font-size: 12px;
+      color: var(--subtext);
+      margin-top: 4px;
+    }
+
+    .lead-stat.gold h3 { color: var(--primary); }
+    .lead-stat.blue h3 { color: var(--info); }
+    .lead-stat.orange h3 { color: var(--warning); }
+    .lead-stat.green h3 { color: var(--success); }
+    .lead-stat.red h3 { color: var(--danger); }
+
+    /* ─── FILTER BAR ─── */
+    .filter-bar {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 15px;
+      margin-bottom: 20px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .filter-bar input,
+    .filter-bar select {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 9px 14px;
+      color: var(--text);
+      font-size: 14px;
+      outline: none;
+      transition: 0.3s;
+    }
+
+    .filter-bar input {
+      flex: 1;
+      min-width: 180px;
+    }
+
+    .filter-bar select {
+      min-width: 150px;
+    }
+
+    .filter-bar input:focus,
+    .filter-bar select:focus {
+      border-color: var(--primary);
+    }
+
+    .filter-bar select option {
+      background: var(--card);
+    }
+
+    /* ─── LEADS TABLE CARD ─── */
+    .table-card {
+      background: var(--card);
+      border-radius: 15px;
+      border: 1px solid rgba(255,255,255,0.05);
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    .table-wrapper {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    table th {
+      padding: 13px 18px;
+      text-align: left;
+      font-size: 12px;
+      color: var(--subtext);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      background: rgba(255,255,255,0.02);
+      white-space: nowrap;
+    }
+
+    table td {
+      padding: 14px 18px;
+      font-size: 14px;
+      border-top: 1px solid rgba(255,255,255,0.03);
+      vertical-align: middle;
+    }
+
+    table tr:hover td {
+      background: rgba(255,255,255,0.02);
+    }
+
+    .badge {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .badge-new { background: rgba(200,169,110,0.15); color: var(--primary); }
+    .badge-visit { background: rgba(33,150,243,0.15); color: var(--info); }
+    .badge-proposal { background: rgba(255,152,0,0.15); color: var(--warning); }
+    .badge-won { background: rgba(76,175,80,0.15); color: var(--success); }
+    .badge-lost { background: rgba(244,67,54,0.15); color: var(--danger); }
+    .badge-followup { background: rgba(156,39,176,0.15); color: #ce93d8; }
+
+    .action-btns {
+      display: flex;
+      gap: 6px;
+    }
+
+    .icon-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      transition: 0.2s;
+    }
+
+    .icon-btn.edit {
+      background: rgba(33,150,243,0.15);
+      color: var(--info);
+    }
+
+    .icon-btn.delete {
+      background: rgba(244,67,54,0.15);
+      color: var(--danger);
+    }
+
+    .icon-btn.view {
+      background: rgba(200,169,110,0.15);
+      color: var(--primary);
+    }
+
+    .icon-btn:hover {
+      transform: scale(1.1);
+    }
+
+    /* ─── EMPTY STATE ─── */
+    .empty-state {
+      text-align: center;
+      padding: 50px 20px;
+      color: var(--subtext);
+    }
+
+    .empty-state i {
+      font-size: 50px;
+      color: var(--primary);
+      opacity: 0.3;
+      margin-bottom: 15px;
+    }
+
+    .empty-state h3 {
+      font-size: 18px;
+      margin-bottom: 8px;
+      color: var(--text);
+    }
+
+    /* ─── MODAL ─── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 2000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-overlay.show {
+      display: flex;
+    }
+
+    .modal {
+      background: var(--dark);
+      border-radius: 20px;
+      width: 100%;
+      max-width: 580px;
+      max-height: 90vh;
+      overflow-y: auto;
+      border: 1px solid rgba(200,169,110,0.2);
+      animation: slideUp 0.3s ease;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .modal-header {
+      padding: 22px 25px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      background: var(--dark);
+      z-index: 1;
+    }
+
+    .modal-header h3 {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--primary);
+    }
+
+    .modal-close {
+      width: 34px;
+      height: 34px;
+      background: rgba(255,255,255,0.05);
+      border: none;
+      border-radius: 8px;
+      color: var(--text);
+      cursor: pointer;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: 0.2s;
+    }
+
+    .modal-close:hover {
+      background: rgba(244,67,54,0.2);
+      color: var(--danger);
+    }
+
+    .modal-body {
+      padding: 25px;
+    }
+
+    .modal-footer {
+      padding: 15px 25px;
+      border-top: 1px solid rgba(255,255,255,0.05);
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    /* ─── FORM ─── */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .form-group.full {
+      grid-column: 1 / -1;
+    }
+
+    .form-group label {
+      font-size: 13px;
+      color: var(--subtext);
+    }
+
+    .form-group label span {
+      color: var(--danger);
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 11px 14px;
+      color: var(--text);
+      font-size: 14px;
+      outline: none;
+      transition: 0.3s;
+      width: 100%;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      border-color: var(--primary);
+      background: rgba(200,169,110,0.05);
+    }
+
+    .form-group select option {
+      background: var(--dark);
+    }
+
+    .form-group textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    /* ─── VIEW MODAL ─── */
+    .view-detail {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    .detail-item {
+      background: rgba(255,255,255,0.03);
+      border-radius: 10px;
+      padding: 12px 15px;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .detail-item.full {
+      grid-column: 1 / -1;
+    }
+
+    .detail-label {
+      font-size: 11px;
+      color: var(--subtext);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 5px;
+    }
+
+    .detail-value {
+      font-size: 15px;
+      font-weight: 500;
+    }
+
+    /* ─── TOAST ─── */
+    .toast {
+      position: fixed;
+      bottom: 90px;
+      right: 20px;
+      background: var(--success);
+      color: white;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 14px;
+      z-index: 9999;
+      display: none;
+      animation: slideIn 0.3s ease;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+    }
+
+    @keyframes slideIn {
+      from { transform: translateX(100px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    /* ─── MOBILE ─── */
+    .mobile-cards {
+      display: none;
+    }
+
+    .lead-card {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 16px;
+      border: 1px solid rgba(255,255,255,0.05);
+      margin-bottom: 12px;
+    }
+
+    .lead-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 10px;
+    }
+
+    .lead-card-name {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .lead-card-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .lead-card-info {
+      font-size: 13px;
+      color: var(--subtext);
+    }
+
+    .lead-card-info span {
+      color: var(--text);
+      display: block;
+      font-size: 14px;
+    }
+
+    .lead-card-footer {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    @media (max-width: 768px) {
+      .page { padding: 15px; padding-bottom: 80px; }
+      .form-grid { grid-template-columns: 1fr; }
+      .view-detail { grid-template-columns: 1fr; }
+      .table-card { display: none; }
+      .mobile-cards { display: block; }
+      .top-actions { flex-direction: column; align-items: flex-start; }
+      .filter-bar { flex-direction: column; }
+      .filter-bar input,
+      .filter-bar select { width: 100%; min-width: unset; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ─── TOAST ─── -->
+<div class="toast" id="toast"></div>
+
+<!-- ═══════════════════════════════════ -->
+<!--         LEADS PAGE CONTENT         -->
+<!-- ═══════════════════════════════════ -->
+<div class="page">
+
+  <!-- TOP ACTIONS -->
+  <div class="top-actions">
+    <h2>👥 Leads Management
+      <span id="leadsCount">0 leads</span>
+    </h2>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="btn btn-success" onclick="exportLeads()">
+        <i class="fas fa-file-csv"></i> Export CSV
+      </button>
+      <button class="btn btn-primary" onclick="openAddModal()">
+        <i class="fas fa-plus"></i> Add Lead
+      </button>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="lead-stats">
+    <div class="lead-stat gold">
+      <h3 id="ls-total">0</h3>
+      <p>Total Leads</p>
+    </div>
+    <div class="lead-stat blue">
+      <h3 id="ls-new">0</h3>
+      <p>New</p>
+    </div>
+    <div class="lead-stat blue">
+      <h3 id="ls-visit">0</h3>
+      <p>Site Visit</p>
+    </div>
+    <div class="lead-stat orange">
+      <h3 id="ls-proposal">0</h3>
+      <p>Proposal</p>
+    </div>
+    <div class="lead-stat green">
+      <h3 id="ls-won">0</h3>
+      <p>Won</p>
+    </div>
+    <div class="lead-stat red">
+      <h3 id="ls-lost">0</h3>
+      <p>Lost</p>
+    </div>
+  </div>
+
+  <!-- FILTER BAR -->
+  <div class="filter-bar">
+    <input type="text" id="searchInput" placeholder="🔍 Search by name, phone, location..."
+           oninput="filterLeads()"/>
+    <select id="statusFilter" onchange="filterLeads()">
+      <option value="">All Statuses</option>
+      <option value="New">New</option>
+      <option value="Site Visit">Site Visit</option>
+      <option value="Proposal Sent">Proposal Sent</option>
+      <option value="Follow-up">Follow-up</option>
+      <option value="Won">Won</option>
+      <option value="Lost">Lost</option>
+    </select>
+    <select id="typeFilter" onchange="filterLeads()">
+      <option value="">All Project Types</option>
+      <option value="Office Interior">Office Interior</option>
+      <option value="Commercial Fit-out">Commercial Fit-out</option>
+      <option value="Restaurant">Restaurant</option>
+      <option value="Retail">Retail</option>
+      <option value="Renovation">Renovation</option>
+      <option value="Other">Other</option>
+    </select>
+    <select id="sortFilter" onchange="filterLeads()">
+      <option value="newest">Newest First</option>
+      <option value="oldest">Oldest First</option>
+      <option value="name">Name A-Z</option>
+    </select>
+  </div>
+
+  <!-- DESKTOP TABLE -->
+  <div class="table-card">
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>Phone</th>
+            <th>Email</th>
+            <th>Project Type</th>
+            <th>Location</th>
+            <th>Budget</th>
+            <th>Status</th>
+            <th>Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="leadsTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- MOBILE CARDS -->
+  <div class="mobile-cards" id="mobileCards"></div>
+
+</div>
+
+<!-- ═══════════════════════════════════ -->
+<!--         ADD / EDIT MODAL           -->
+<!-- ═══════════════════════════════════ -->
+<div class="modal-overlay" id="leadModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">➕ Add New Lead</h3>
+      <button class="modal-close" onclick="closeModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+
+        <div class="form-group">
+          <label>Full Name <span>*</span></label>
+          <input type="text" id="leadName" placeholder="e.g. Rajesh Kumar"/>
+        </div>
+
+        <div class="form-group">
+          <label>Phone Number <span>*</span></label>
+          <input type="tel" id="leadPhone" placeholder="e.g. 9876543210"/>
+        </div>
+
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" id="leadEmail" placeholder="e.g. rajesh@company.com"/>
+        </div>
+
+        <div class="form-group">
+          <label>Company Name</label>
+          <input type="text" id="leadCompany" placeholder="e.g. ABC Pvt Ltd"/>
+        </div>
+
+        <div class="form-group">
+          <label>Project Type <span>*</span></label>
+          <select id="leadType">
+            <option value="">Select Type</option>
+            <option value="Office Interior">Office Interior</option>
+            <option value="Commercial Fit-out">Commercial Fit-out</option>
+            <option value="Restaurant">Restaurant</option>
+            <option value="Retail">Retail</option>
+            <option value="Renovation">Renovation</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Location</label>
+          <input type="text" id="leadLocation" placeholder="e.g. Gachibowli, Hyderabad"/>
+        </div>
+
+        <div class="form-group">
+          <label>Budget (₹)</label>
+          <input type="number" id="leadBudget" placeholder="e.g. 500000"/>
+        </div>
+
+        <div class="form-group">
+          <label>Lead Source</label>
+          <select id="leadSource">
+            <option value="">Select Source</option>
+            <option value="Website">Website</option>
+            <option value="Referral">Referral</option>
+            <option value="Social Media">Social Media</option>
+            <option value="Cold Call">Cold Call</option>
+            <option value="Google Ads">Google Ads</option>
+            <option value="Walk-in">Walk-in</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Status <span>*</span></label>
+          <select id="leadStatus">
+            <option value="New">New</option>
+            <option value="Site Visit">Site Visit</option>
+            <option value="Proposal Sent">Proposal Sent</option>
+            <option value="Follow-up">Follow-up</option>
+            <option value="Won">Won</option>
+            <option value="Lost">Lost</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Follow-up Date</label>
+          <input type="date" id="leadFollowup"/>
+        </div>
+
+        <div class="form-group">
+          <label>Assigned To</label>
+          <input type="text" id="leadAssigned" placeholder="e.g. Rahul"/>
+        </div>
+
+        <div class="form-group">
+          <label>Area (sq ft)</label>
+          <input type="number" id="leadArea" placeholder="e.g. 2000"/>
+        </div>
+
+        <div class="form-group full">
+          <label>Notes / Requirements</label>
+          <textarea id="leadNotes"
+            placeholder="Enter lead requirements, notes, special requests..."></textarea>
+        </div>
+
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" onclick="closeModal()">
+        <i class="fas fa-times"></i> Cancel
+      </button>
+      <button class="btn btn-primary" onclick="saveLead()">
+        <i class="fas fa-save"></i> Save Lead
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ -->
+<!--          VIEW LEAD MODAL           -->
+<!-- ═══════════════════════════════════ -->
+<div class="modal-overlay" id="viewModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>👤 Lead Details</h3>
+      <button class="modal-close" onclick="closeViewModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="view-detail" id="viewDetails"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-info" id="viewEditBtn">
+        <i class="fas fa-edit"></i> Edit Lead
+      </button>
+      <button class="btn btn-primary" onclick="closeViewModal()">
+        <i class="fas fa-check"></i> Close
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ -->
+<!--         DELETE CONFIRM MODAL       -->
+<!-- ═══════════════════════════════════ -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header">
+      <h3 style="color:var(--danger)">🗑️ Delete Lead</h3>
+      <button class="modal-close" onclick="closeDeleteModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body" style="text-align:center; padding:30px 25px">
+      <i class="fas fa-exclamation-triangle"
+         style="font-size:50px; color:var(--danger); margin-bottom:15px; display:block"></i>
+      <h3 style="margin-bottom:10px">Are you sure?</h3>
+      <p style="color:var(--subtext); font-size:14px">
+        This will permanently delete the lead. This action cannot be undone!
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-info" onclick="closeDeleteModal()">
+        <i class="fas fa-times"></i> Cancel
+      </button>
+      <button class="btn btn-danger" onclick="confirmDelete()">
+        <i class="fas fa-trash"></i> Yes, Delete
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ─── STORAGE KEYS ───
+  const LEADS_KEY = 'crm_leads';
+
+  // ─── STATE ───
+  let leads = JSON.parse(localStorage.getItem(LEADS_KEY) || '[]');
+  let editingId = null;
+  let deletingId = null;
+  let filteredLeads = [...leads];
+
+  // ─── BADGE CLASS ───
+  function getBadgeClass(status) {
+    const map = {
+      'New': 'badge-new',
+      'Site Visit': 'badge-visit',
+      'Proposal Sent': 'badge-proposal',
+      'Won': 'badge-won',
+      'Lost': 'badge-lost',
+      'Follow-up': 'badge-followup'
+    };
+    return map[status] || 'badge-new';
+  }
+
+  // ─── FORMAT DATE ───
+  function formatDate(d) {
+    if (!d) return '-';
+    const date = new Date(d);
+    return date.toLocaleDateString('en-IN', {
+      day: '2-digit', month: 'short', year: 'numeric'
+    });
+  }
+
+  // ─── FORMAT BUDGET ───
+  function formatBudget(b) {
+    if (!b) return '-';
+    return '₹' + parseInt(b).toLocaleString('en-IN');
+  }
+
+  // ─── RENDER LEADS ───
+  function renderLeads() {
+    updateStats();
+    renderTable();
+    renderMobileCards();
+    document.getElementById('leadsCount').textContent =
+      filteredLeads.length + ' lead' + (filteredLeads.length !== 1 ? 's' : '');
+  }
+
+  // ─── RENDER TABLE (DESKTOP) ───
+  function renderTable() {
+    const tbody = document.getElementById('leadsTableBody');
+
+    if (filteredLeads.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="10">
+            <div class="empty-state">
+              <i class="fas fa-user-plus"></i>
+              <h3>No Leads Found</h3>
+              <p>Add your first lead or adjust filters</p>
+            </div>
+          </td>
+        </tr>`;
+      return;
+    }
+
+    tbody.innerHTML = filteredLeads.map((lead, index) => `
+      <tr>
+        <td style="color:var(--subtext)">${index + 1}</td>
+        <td>
+          <strong>${lead.name}</strong>
+          ${lead.company ? `<br><small style="color:var(--subtext)">${lead.company}</small>` : ''}
+        </td>
+        <td>
+          <a href="tel:${lead.phone}" style="color:var(--primary); text-decoration:none">
+            ${lead.phone}
+          </a>
+        </td>
+        <td style="color:var(--subtext)">${lead.email || '-'}</td>
+        <td>${lead.projectType || '-'}</td>
+        <td style="color:var(--subtext)">${lead.location || '-'}</td>
+        <td style="color:var(--success)">${formatBudget(lead.budget)}</td>
+        <td>
+          <span class="badge ${getBadgeClass(lead.status)}">${lead.status}</span>
+        </td>
+        <td style="color:var(--subtext)">${formatDate(lead.date)}</td>
+        <td>
+          <div class="action-btns">
+            <button class="icon-btn view" onclick="viewLead('${lead.id}')" title="View">
+              <i class="fas fa-eye"></i>
+            </button>
+            <button class="icon-btn edit" onclick="editLead('${lead.id}')" title="Edit">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button class="icon-btn delete" onclick="deleteLead('${lead.id}')" title="Delete">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  // ─── RENDER MOBILE CARDS ───
+  function renderMobileCards() {
+    const container = document.getElementById('mobileCards');
+
+    if (filteredLeads.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <i class="fas fa-user-plus"></i>
+          <h3>No Leads Found</h3>
+          <p>Add your first lead or adjust filters</p>
+        </div>`;
+      return;
+    }
+
+    container.innerHTML = filteredLeads.map(lead => `
+      <div class="lead-card">
+        <div class="lead-card-header">
+          <div>
+            <div class="lead-card-name">${lead.name}</div>
+            ${lead.company ? `<div style="font-size:12px; color:var(--subtext)">${lead.company}</div>` : ''}
+          </div>
+          <span class="badge ${getBadgeClass(lead.status)}">${lead.status}</span>
+        </div>
+        <div class="lead-card-body">
+          <div class="lead-card-info">
+            Phone
+            <span>
+              <a href="tel:${lead.phone}" style="color:var(--primary); text-decoration:none">
+                ${lead.phone}
+              </a>
+            </span>
+          </div>
+          <div class="lead-card-info">
+            Type
+            <span>${lead.projectType || '-'}</span>
+          </div>
+          <div class="lead-card-info">
+            Location
+            <span>${lead.location || '-'}</span>
+          </div>
+          <div class="lead-card-info">
+            Budget
+            <span style="color:var(--success)">${formatBudget(lead.budget)}</span>
+          </div>
+          <div class="lead-card-info">
+            Source
+            <span>${lead.source || '-'}</span>
+          </div>
+          <div class="lead-card-info">
+            Date
+            <span>${formatDate(lead.date)}</span>
+          </div>
+        </div>
+        ${lead.notes ? `
+        <div style="font-size:13px; color:var(--subtext);
+             background:rgba(255,255,255,0.03); padding:8px 12px;
+             border-radius:8px; margin-bottom:12px">
+          📝 ${lead.notes}
+        </div>` : ''}
+        <div class="lead-card-footer">
+          <button class="icon-btn view" onclick="viewLead('${lead.id}')">
+            <i class="fas fa-eye"></i>
+          </button>
+          <button class="icon-btn edit" onclick="editLead('${lead.id}')">
+            <i class="fas fa-edit"></i>
+          </button>
+          <button class="icon-btn delete" onclick="deleteLead('${lead.id}')">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // ─── UPDATE STATS ───
+  function updateStats() {
+    document.getElementById('ls-total').textContent = leads.length;
+    document.getElementById('ls-new').textContent =
+      leads.filter(l => l.status === 'New').length;
+    document.getElementById('ls-visit').textContent =
+      leads.filter(l => l.status === 'Site Visit').length;
+    document.getElementById('ls-proposal').textContent =
+      leads.filter(l => l.status === 'Proposal Sent').length;
+    document.getElementById('ls-won').textContent =
+      leads.filter(l => l.status === 'Won').length;
+    document.getElementById('ls-lost').textContent =
+      leads.filter(l => l.status === 'Lost').length;
+  }
+
+  // ─── FILTER LEADS ───
+  function filterLeads() {
+    const search = document.getElementById('searchInput').value.toLowerCase();
+    const status = document.getElementById('statusFilter').value;
+    const type = document.getElementById('typeFilter').value;
+    const sort = document.getElementById('sortFilter').value;
+
+    filteredLeads = leads.filter(lead => {
+      const matchSearch =
+        lead.name.toLowerCase().includes(search) ||
+        (lead.phone && lead.phone.includes(search)) ||
+        (lead.location && lead.location.toLowerCase().includes(search)) ||
+        (lead.company && lead.company.toLowerCase().includes(search));
+      const matchStatus = !status || lead.status === status;
+      const matchType = !type || lead.projectType === type;
+      return matchSearch && matchStatus && matchType;
+    });
+
+    // Sort
+    if (sort === 'newest') {
+      filteredLeads.sort((a, b) => new Date(b.date) - new Date(a.date));
+    } else if (sort === 'oldest') {
+      filteredLeads.sort((a, b) => new Date(a.date) - new Date(b.date));
+    } else if (sort === 'name') {
+      filteredLeads.sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    renderLeads();
+  }
+
+  // ─── OPEN ADD MODAL ───
+  function openAddModal() {
+    editingId = null;
+    document.getElementById('modalTitle').textContent = '➕ Add New Lead';
+    clearForm();
+    document.getElementById('leadModal').classList.add('show');
+  }
+
+  // ─── CLEAR FORM ───
+  function clearForm() {
+    document.getElementById('leadName').value = '';
+    document.getElementById('leadPhone').value = '';
+    document.getElementById('leadEmail').value = '';
+    document.getElementById('leadCompany').value = '';
+    document.getElementById('leadType').value = '';
+    document.getElementById('leadLocation').value = '';
+    document.getElementById('leadBudget').value = '';
+    document.getElementById('leadSource').value = '';
+    document.getElementById('leadStatus').value = 'New';
+    document.getElementById('leadFollowup').value = '';
+    document.getElementById('leadAssigned').value = '';
+    document.getElementById('leadArea').value = '';
+    document.getElementById('leadNotes').value = '';
+  }
+
+  // ─── CLOSE MODAL ───
+  function closeModal() {
+    document.getElementById('leadModal').classList.remove('show');
+    editingId = null;
+  }
+
+  // ─── SAVE LEAD ───
+  function saveLead() {
+    const name = document.getElementById('leadName').value.trim();
+    const phone = document.getElementById('leadPhone').value.trim();
+    const status = document.getElementById('leadStatus').value;
+
+    if (!name) { showToast('❌ Please enter a name!', 'danger'); return; }
+    if (!phone) { showToast('❌ Please enter a phone number!', 'danger'); return; }
+
+    const leadData = {
+      id: editingId || 'lead_' + Date.now(),
+      name,
+      phone,
+      email: document.getElementById('leadEmail').value.trim(),
+      company: document.getElementById('leadCompany').value.trim(),
+      projectType: document.getElementById('leadType').value,
+      location: document.getElementById('leadLocation').value.trim(),
+      budget: document.getElementById('leadBudget').value,
+      source: document.getElementById('leadSource').value,
+      status,
+      followupDate: document.getElementById('leadFollowup').value,
+      assignedTo: document.getElementById('leadAssigned').value.trim(),
+      area: document.getElementById('leadArea').value,
+      notes: document.getElementById('leadNotes').value.trim(),
+      date: editingId
+        ? leads.find(l => l.id === editingId)?.date
+        : new Date().toISOString().split('T')[0],
+      updatedAt: new Date().toISOString()
+    };
+
+    if (editingId) {
+      const index = leads.findIndex(l => l.id === editingId);
+      if (index !== -1) leads[index] = leadData;
+      showToast('✅ Lead updated successfully!', 'success');
+    } else {
+      leads.unshift(leadData);
+      showToast('✅ Lead added successfully!', 'success');
+    }
+
+    localStorage.setItem(LEADS_KEY, JSON.stringify(leads));
+    filteredLeads = [...leads];
+    filterLeads();
+    closeModal();
+  }
+
+  // ─── EDIT LEAD ───
+  function editLead(id) {
+    const lead = leads.find(l => l.id === id);
+    if (!lead) return;
+
+    editingId = id;
+    document.getElementById('modalTitle').textContent = '✏️ Edit Lead';
+    document.getElementById('leadName').value = lead.name || '';
+    document.getElementById('leadPhone').value = lead.phone || '';
+    document.getElementById('leadEmail').value = lead.email || '';
+    document.getElementById('leadCompany').value = lead.company || '';
+    document.getElementById('leadType').value = lead.projectType || '';
+    document.getElementById('leadLocation').value = lead.location || '';
+    document.getElementById('leadBudget').value = lead.budget || '';
+    document.getElementById('leadSource').value = lead.source || '';
+    document.getElementById('leadStatus').value = lead.status || 'New';
+    document.getElementById('leadFollowup').value = lead.followupDate || '';
+    document.getElementById('leadAssigned').value = lead.assignedTo || '';
+    document.getElementById('leadArea').value = lead.area || '';
+    document.getElementById('leadNotes').value = lead.notes || '';
+
+    closeViewModal();
+    document.getElementById('leadModal').classList.add('show');
+  }
+
+  // ─── VIEW LEAD ───
+  function viewLead(id) {
+    const lead = leads.find(l => l.id === id);
+    if (!lead) return;
+
+    document.getElementById('viewDetails').innerHTML = `
+      <div class="detail-item">
+        <div class="detail-label">Full Name</div>
+        <div class="detail-value">${lead.name}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">Phone</div>
+        <div class="detail-value">
+          <a href="tel:${lead.phone}"
+             style="color:var(--primary); text-decoration:none">
+            📞 ${lead.phone}
+          </a>
+        </div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">Email</div>
+        <div class="detail-value">
+          ${lead.email
+            ? `<a href="mailto:${lead.email}"
+                  style="color:var(--primary); text-decoration:none">
+                  ${lead.email}
+               </a>`
+            : '-'}
+        </div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">Company</div>
+        <div class="detail-value">${lead.company || '-'}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">Project Type</div>
+        <div class="detail-value">${lead.projectType || '-'}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">Location</div>
+        <div class="detail-value">${lead.location || '-'}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">Budget</div>
+        <div class="detail-value" style="color:var(--success)">
+          ${formatBudget(lead.budget)}
+        </div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">Area</div>
+        <div class="detail-value">${lead.area ? lead.area + ' sq ft' : '-'}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">Status</div>
+        <div class="detail-value">
+          <span class="badge ${getBadgeClass(lead.status)}">${lead.status}</span>
+        </div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">Lead Source</div>
+        <div class="detail-value">${lead.source || '-'}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">Follow-up Date</div>
+        <div class="detail-value">${formatDate(lead.followupDate)}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">Assigned To</div>
+        <div class="detail-value">${lead.assignedTo || '-'}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">Added Date</div>
+        <div class="detail-value">${formatDate(lead.date)}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">Last Updated</div>
+        <div class="detail-value">${lead.updatedAt
+          ? new Date(lead.updatedAt).toLocaleString('en-IN') : '-'}</div>
+      </div>
+      ${lead.notes ? `
+      <div class="detail-item full">
+        <div class="detail-label">Notes / Requirements</div>
+        <div class="detail-value" style="font-size:14px; line-height:1.6">
+          ${lead.notes}
+        </div>
+      </div>` : ''}
+    `;
+
+    document.getElementById('viewEditBtn').onclick = () => editLead(id);
+    document.getElementById('viewModal').classList.add('show');
+  }
+
+  function closeViewModal() {
+    document.getElementById('viewModal').classList.remove('show');
+  }
+
+  // ─── DELETE LEAD ───
+  function deleteLead(id) {
+    deletingId = id;
+    document.getElementById('deleteModal').classList.add('show');
+  }
+
+  function closeDeleteModal() {
+    document.getElementById('deleteModal').classList.remove('show');
+    deletingId = null;
+  }
+
+  function confirmDelete() {
+    if (!deletingId) return;
+    leads = leads.filter(l => l.id !== deletingId);
+    localStorage.setItem(LEADS_KEY, JSON.stringify(leads));
+    filteredLeads = [...leads];
+    filterLeads();
+    closeDeleteModal();
+    showToast('🗑️ Lead deleted!', 'danger');
+  }
+
+  // ─── EXPORT CSV ───
+  function exportLeads() {
+    if (leads.length === 0) {
+      showToast('❌ No leads to export!', 'danger');
+      return;
+    }
+
+    const headers = [
+      'Name', 'Phone', 'Email', 'Company',
+      'Project Type', 'Location', 'Budget',
+      'Area (sqft)', 'Source', 'Status',
+      'Follow-up Date', 'Assigned To',
+      'Notes', 'Date Added'
+    ];
+
+    const rows = leads.map(l => [
+      l.name, l.phone, l.email, l.company,
+      l.projectType, l.location, l.budget,
+      l.area, l.source, l.status,
+      l.followupDate, l.assignedTo,
+      l.notes, l.date
+    ]);
+
+    const csvContent = [headers, ...rows]
+      .map(r => r.map(cell =>
+        '"' + (cell || '').toString().replace(/"/g, '""') + '"'
+      ).join(','))
+      .join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'TurnkeyCRM_Leads_' + new Date().toISOString().split('T')[0] + '.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('✅ Leads exported to CSV!', 'success');
+  }
+
+  // ─── TOAST ───
+  function showToast(message, type = 'success') {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.style.display = 'block';
+    toast.style.background = type === 'danger'
+      ? 'var(--danger)' : type === 'warning'
+      ? 'var(--warning)' : 'var(--success)';
+    setTimeout(() => { toast.style.display = 'none'; }, 3000);
+  }
+
+  // ─── CLOSE MODALS ON OUTSIDE CLICK ───
+  document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', function (e) {
+      if (e.target === this) {
+        this.classList.remove('show');
+        editingId = null;
+        deletingId = null;
+      }
+    });
+  });
+
+  // ─── INIT ───
+  filteredLeads = [...leads];
+  filterLeads();
+</script>
+</body>
+</html>
