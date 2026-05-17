@@ -924,7 +924,10 @@
         <div class="form-group">
           <label>Client Phone</label>
           <input type="tel" id="projPhone"
-                 placeholder="e.g. 9876543210"/>
+        placeholder="e.g. 9876543210"
+       maxlength="10"
+       oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)"
+       pattern="[0-9]{10}"/>
         </div>
 
         <div class="form-group">
@@ -1466,6 +1469,11 @@
 
     if (!name) { showToast('❌ Please enter project name!', 'danger'); return; }
     if (!client) { showToast('❌ Please enter client name!', 'danger'); return; }
+const projPhone = document.getElementById('projPhone').value.trim();
+if (projPhone && (projPhone.length !== 10 || !/^[0-9]{10}$/.test(projPhone))) {
+  showToast('❌ Phone number must be exactly 10 digits!', 'danger');
+  return;
+}
 
     const projData = {
       id: editingId || 'proj_' + Date.now(),

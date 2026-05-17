@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Leads - Turnkey CRM</title>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+
+  <!-- ─── FIREBASE SDK ─── -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
   <style>
     * {
       margin: 0;
@@ -32,7 +37,6 @@
       min-height: 100vh;
     }
 
-    /* ─── PAGE ─── */
     .page {
       padding: 25px;
       animation: fadeIn 0.3s ease;
@@ -43,7 +47,33 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    /* ─── TOP BAR ─── */
+    /* ─── LOADING ─── */
+    .page-loader {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 60px;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .page-loader .spinner {
+      width: 36px;
+      height: 36px;
+      border: 4px solid rgba(200,169,110,0.2);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .page-loader p {
+      font-size: 14px;
+      color: var(--subtext);
+    }
+
+    /* ─── TOP ACTIONS ─── */
     .top-actions {
       display: flex;
       align-items: center;
@@ -107,12 +137,6 @@
       border: 1px solid rgba(76,175,80,0.3);
     }
 
-    .btn-warning {
-      background: rgba(255,152,0,0.15);
-      color: var(--warning);
-      border: 1px solid rgba(255,152,0,0.3);
-    }
-
     /* ─── STATS ROW ─── */
     .lead-stats {
       display: grid;
@@ -129,16 +153,8 @@
       border: 1px solid rgba(255,255,255,0.05);
     }
 
-    .lead-stat h3 {
-      font-size: 24px;
-      font-weight: 700;
-    }
-
-    .lead-stat p {
-      font-size: 12px;
-      color: var(--subtext);
-      margin-top: 4px;
-    }
+    .lead-stat h3 { font-size: 24px; font-weight: 700; }
+    .lead-stat p { font-size: 12px; color: var(--subtext); margin-top: 4px; }
 
     .lead-stat.gold h3 { color: var(--primary); }
     .lead-stat.blue h3 { color: var(--info); }
@@ -170,25 +186,15 @@
       transition: 0.3s;
     }
 
-    .filter-bar input {
-      flex: 1;
-      min-width: 180px;
-    }
-
-    .filter-bar select {
-      min-width: 150px;
-    }
+    .filter-bar input { flex: 1; min-width: 180px; }
+    .filter-bar select { min-width: 150px; }
 
     .filter-bar input:focus,
-    .filter-bar select:focus {
-      border-color: var(--primary);
-    }
+    .filter-bar select:focus { border-color: var(--primary); }
 
-    .filter-bar select option {
-      background: var(--card);
-    }
+    .filter-bar select option { background: var(--card); }
 
-    /* ─── LEADS TABLE CARD ─── */
+    /* ─── TABLE CARD ─── */
     .table-card {
       background: var(--card);
       border-radius: 15px;
@@ -197,14 +203,9 @@
       margin-bottom: 20px;
     }
 
-    .table-wrapper {
-      overflow-x: auto;
-    }
+    .table-wrapper { overflow-x: auto; }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
+    table { width: 100%; border-collapse: collapse; }
 
     table th {
       padding: 13px 18px;
@@ -224,9 +225,7 @@
       vertical-align: middle;
     }
 
-    table tr:hover td {
-      background: rgba(255,255,255,0.02);
-    }
+    table tr:hover td { background: rgba(255,255,255,0.02); }
 
     .badge {
       padding: 4px 12px;
@@ -243,10 +242,7 @@
     .badge-lost { background: rgba(244,67,54,0.15); color: var(--danger); }
     .badge-followup { background: rgba(156,39,176,0.15); color: #ce93d8; }
 
-    .action-btns {
-      display: flex;
-      gap: 6px;
-    }
+    .action-btns { display: flex; gap: 6px; }
 
     .icon-btn {
       width: 32px;
@@ -261,24 +257,10 @@
       transition: 0.2s;
     }
 
-    .icon-btn.edit {
-      background: rgba(33,150,243,0.15);
-      color: var(--info);
-    }
-
-    .icon-btn.delete {
-      background: rgba(244,67,54,0.15);
-      color: var(--danger);
-    }
-
-    .icon-btn.view {
-      background: rgba(200,169,110,0.15);
-      color: var(--primary);
-    }
-
-    .icon-btn:hover {
-      transform: scale(1.1);
-    }
+    .icon-btn.edit { background: rgba(33,150,243,0.15); color: var(--info); }
+    .icon-btn.delete { background: rgba(244,67,54,0.15); color: var(--danger); }
+    .icon-btn.view { background: rgba(200,169,110,0.15); color: var(--primary); }
+    .icon-btn:hover { transform: scale(1.1); }
 
     /* ─── EMPTY STATE ─── */
     .empty-state {
@@ -312,9 +294,7 @@
       padding: 20px;
     }
 
-    .modal-overlay.show {
-      display: flex;
-    }
+    .modal-overlay.show { display: flex; }
 
     .modal {
       background: var(--dark);
@@ -370,9 +350,7 @@
       color: var(--danger);
     }
 
-    .modal-body {
-      padding: 25px;
-    }
+    .modal-body { padding: 25px; }
 
     .modal-footer {
       padding: 15px 25px;
@@ -395,18 +373,14 @@
       gap: 7px;
     }
 
-    .form-group.full {
-      grid-column: 1 / -1;
-    }
+    .form-group.full { grid-column: 1 / -1; }
 
     .form-group label {
       font-size: 13px;
       color: var(--subtext);
     }
 
-    .form-group label span {
-      color: var(--danger);
-    }
+    .form-group label span { color: var(--danger); }
 
     .form-group input,
     .form-group select,
@@ -429,14 +403,8 @@
       background: rgba(200,169,110,0.05);
     }
 
-    .form-group select option {
-      background: var(--dark);
-    }
-
-    .form-group textarea {
-      resize: vertical;
-      min-height: 80px;
-    }
+    .form-group select option { background: var(--dark); }
+    .form-group textarea { resize: vertical; min-height: 80px; }
 
     /* ─── VIEW MODAL ─── */
     .view-detail {
@@ -452,9 +420,7 @@
       border: 1px solid rgba(255,255,255,0.05);
     }
 
-    .detail-item.full {
-      grid-column: 1 / -1;
-    }
+    .detail-item.full { grid-column: 1 / -1; }
 
     .detail-label {
       font-size: 11px;
@@ -464,9 +430,47 @@
       margin-bottom: 5px;
     }
 
-    .detail-value {
-      font-size: 15px;
-      font-weight: 500;
+    .detail-value { font-size: 15px; font-weight: 500; }
+
+    /* ─── MOBILE CARDS ─── */
+    .mobile-cards { display: none; }
+
+    .lead-card {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 16px;
+      border: 1px solid rgba(255,255,255,0.05);
+      margin-bottom: 12px;
+    }
+
+    .lead-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 10px;
+    }
+
+    .lead-card-name { font-size: 16px; font-weight: 600; }
+
+    .lead-card-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .lead-card-info { font-size: 13px; color: var(--subtext); }
+
+    .lead-card-info span {
+      color: var(--text);
+      display: block;
+      font-size: 14px;
+    }
+
+    .lead-card-footer {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
     }
 
     /* ─── TOAST ─── */
@@ -490,55 +494,21 @@
       to { transform: translateX(0); opacity: 1; }
     }
 
-    /* ─── MOBILE ─── */
-    .mobile-cards {
+    /* ─── SAVING INDICATOR ─── */
+    .saving-indicator {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: rgba(200,169,110,0.2);
+      color: var(--primary);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      z-index: 9999;
       display: none;
     }
 
-    .lead-card {
-      background: var(--card);
-      border-radius: 14px;
-      padding: 16px;
-      border: 1px solid rgba(255,255,255,0.05);
-      margin-bottom: 12px;
-    }
-
-    .lead-card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 10px;
-    }
-
-    .lead-card-name {
-      font-size: 16px;
-      font-weight: 600;
-    }
-
-    .lead-card-body {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-bottom: 12px;
-    }
-
-    .lead-card-info {
-      font-size: 13px;
-      color: var(--subtext);
-    }
-
-    .lead-card-info span {
-      color: var(--text);
-      display: block;
-      font-size: 14px;
-    }
-
-    .lead-card-footer {
-      display: flex;
-      gap: 8px;
-      justify-content: flex-end;
-    }
-
+    /* ─── MOBILE ─── */
     @media (max-width: 768px) {
       .page { padding: 15px; padding-bottom: 80px; }
       .form-grid { grid-template-columns: 1fr; }
@@ -554,13 +524,24 @@
 </head>
 <body>
 
+<!-- ─── SAVING INDICATOR ─── -->
+<div class="saving-indicator" id="savingIndicator">
+  ⏳ Saving to Firebase...
+</div>
+
 <!-- ─── TOAST ─── -->
 <div class="toast" id="toast"></div>
+
+<!-- ─── LOADING ─── -->
+<div class="page-loader" id="pageLoader">
+  <div class="spinner"></div>
+  <p>Loading leads from Firebase...</p>
+</div>
 
 <!-- ═══════════════════════════════════ -->
 <!--         LEADS PAGE CONTENT         -->
 <!-- ═══════════════════════════════════ -->
-<div class="page">
+<div class="page" id="mainPage" style="display:none">
 
   <!-- TOP ACTIONS -->
   <div class="top-actions">
@@ -580,28 +561,22 @@
   <!-- STATS -->
   <div class="lead-stats">
     <div class="lead-stat gold">
-      <h3 id="ls-total">0</h3>
-      <p>Total Leads</p>
+      <h3 id="ls-total">0</h3><p>Total Leads</p>
     </div>
     <div class="lead-stat blue">
-      <h3 id="ls-new">0</h3>
-      <p>New</p>
+      <h3 id="ls-new">0</h3><p>New</p>
     </div>
     <div class="lead-stat blue">
-      <h3 id="ls-visit">0</h3>
-      <p>Site Visit</p>
+      <h3 id="ls-visit">0</h3><p>Site Visit</p>
     </div>
     <div class="lead-stat orange">
-      <h3 id="ls-proposal">0</h3>
-      <p>Proposal</p>
+      <h3 id="ls-proposal">0</h3><p>Proposal</p>
     </div>
     <div class="lead-stat green">
-      <h3 id="ls-won">0</h3>
-      <p>Won</p>
+      <h3 id="ls-won">0</h3><p>Won</p>
     </div>
     <div class="lead-stat red">
-      <h3 id="ls-lost">0</h3>
-      <p>Lost</p>
+      <h3 id="ls-lost">0</h3><p>Lost</p>
     </div>
   </div>
 
@@ -675,31 +650,25 @@
     </div>
     <div class="modal-body">
       <div class="form-grid">
-
         <div class="form-group">
           <label>Full Name <span>*</span></label>
           <input type="text" id="leadName" placeholder="e.g. Rajesh Kumar"/>
         </div>
-
         <div class="form-group">
           <label>Phone Number <span>*</span></label>
-          <input type="tel" id="leadPhone"
-            placeholder="e.g. 9876543210"
-            maxlength="10"
-            oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)"
-            pattern="[0-9]{10}"/>
+          <input type="tel" id="leadPhone" placeholder="e.g. 9876543210"
+                 maxlength="10"
+                 oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)"
+                 pattern="[0-9]{10}"/>
         </div>
-
         <div class="form-group">
           <label>Email Address</label>
           <input type="email" id="leadEmail" placeholder="e.g. rajesh@company.com"/>
         </div>
-
         <div class="form-group">
           <label>Company Name</label>
           <input type="text" id="leadCompany" placeholder="e.g. ABC Pvt Ltd"/>
         </div>
-
         <div class="form-group">
           <label>Project Type <span>*</span></label>
           <select id="leadType">
@@ -712,17 +681,14 @@
             <option value="Other">Other</option>
           </select>
         </div>
-
         <div class="form-group">
           <label>Location</label>
           <input type="text" id="leadLocation" placeholder="e.g. Gachibowli, Hyderabad"/>
         </div>
-
         <div class="form-group">
           <label>Budget (₹)</label>
           <input type="number" id="leadBudget" placeholder="e.g. 500000"/>
         </div>
-
         <div class="form-group">
           <label>Lead Source</label>
           <select id="leadSource">
@@ -736,7 +702,6 @@
             <option value="Other">Other</option>
           </select>
         </div>
-
         <div class="form-group">
           <label>Status <span>*</span></label>
           <select id="leadStatus">
@@ -748,28 +713,23 @@
             <option value="Lost">Lost</option>
           </select>
         </div>
-
         <div class="form-group">
           <label>Follow-up Date</label>
           <input type="date" id="leadFollowup"/>
         </div>
-
         <div class="form-group">
           <label>Assigned To</label>
           <input type="text" id="leadAssigned" placeholder="e.g. Rahul"/>
         </div>
-
         <div class="form-group">
           <label>Area (sq ft)</label>
           <input type="number" id="leadArea" placeholder="e.g. 2000"/>
         </div>
-
         <div class="form-group full">
           <label>Notes / Requirements</label>
           <textarea id="leadNotes"
             placeholder="Enter lead requirements, notes, special requests..."></textarea>
         </div>
-
       </div>
     </div>
     <div class="modal-footer">
@@ -824,7 +784,7 @@
          style="font-size:50px; color:var(--danger); margin-bottom:15px; display:block"></i>
       <h3 style="margin-bottom:10px">Are you sure?</h3>
       <p style="color:var(--subtext); font-size:14px">
-        This will permanently delete the lead. This action cannot be undone!
+        This will permanently delete the lead from database!
       </p>
     </div>
     <div class="modal-footer">
@@ -839,41 +799,79 @@
 </div>
 
 <script>
-  // ─── STORAGE KEYS ───
-  const LEADS_KEY = 'crm_leads';
+  // ═══════════════════════════════════════
+  //        FIREBASE CONFIGURATION
+  // ═══════════════════════════════════════
+  const firebaseConfig = {
+    apiKey: "AIzaSyBLQhUZA-VN4_A9FhQWmlRSQZC2D95KoE8",
+    authDomain: "turnkeycrm-ce7b8.firebaseapp.com",
+    projectId: "turnkeycrm-ce7b8",
+    storageBucket: "turnkeycrm-ce7b8.firebasestorage.app",
+    messagingSenderId: "487224108102",
+    appId: "1:487224108102:web:dbe9d4ea6abdb2db581647"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+  const leadsRef = db.collection('leads');
 
   // ─── STATE ───
-  let leads = JSON.parse(localStorage.getItem(LEADS_KEY) || '[]');
+  let leads = [];
+  let filteredLeads = [];
   let editingId = null;
   let deletingId = null;
-  let filteredLeads = [...leads];
 
   // ─── BADGE CLASS ───
   function getBadgeClass(status) {
     const map = {
-      'New': 'badge-new',
-      'Site Visit': 'badge-visit',
-      'Proposal Sent': 'badge-proposal',
-      'Won': 'badge-won',
-      'Lost': 'badge-lost',
-      'Follow-up': 'badge-followup'
+      'New': 'badge-new', 'Site Visit': 'badge-visit',
+      'Proposal Sent': 'badge-proposal', 'Won': 'badge-won',
+      'Lost': 'badge-lost', 'Follow-up': 'badge-followup'
     };
     return map[status] || 'badge-new';
   }
 
-  // ─── FORMAT DATE ───
+  // ─── FORMAT ───
   function formatDate(d) {
     if (!d) return '-';
-    const date = new Date(d);
-    return date.toLocaleDateString('en-IN', {
+    return new Date(d).toLocaleDateString('en-IN', {
       day: '2-digit', month: 'short', year: 'numeric'
     });
   }
 
-  // ─── FORMAT BUDGET ───
   function formatBudget(b) {
     if (!b) return '-';
     return '₹' + parseInt(b).toLocaleString('en-IN');
+  }
+
+  // ═══════════════════════════════════════
+  //     LOAD LEADS FROM FIREBASE
+  // ═══════════════════════════════════════
+  async function loadLeads() {
+    try {
+      const snapshot = await leadsRef.orderBy('createdAt', 'desc').get();
+      leads = [];
+      snapshot.forEach(doc => {
+        leads.push({ id: doc.id, ...doc.data() });
+      });
+      filteredLeads = [...leads];
+      filterLeads();
+
+      // Show main page, hide loader
+      document.getElementById('pageLoader').style.display = 'none';
+      document.getElementById('mainPage').style.display = 'block';
+    } catch (error) {
+      console.error('Error loading leads:', error);
+      document.getElementById('pageLoader').innerHTML = `
+        <div style="text-align:center; color:var(--danger)">
+          <i class="fas fa-exclamation-triangle"
+             style="font-size:40px; margin-bottom:15px; display:block"></i>
+          <h3>Error Loading Data</h3>
+          <p style="color:var(--subtext); margin-top:8px">
+            Check your internet connection and refresh
+          </p>
+        </div>`;
+    }
   }
 
   // ─── RENDER LEADS ───
@@ -885,21 +883,19 @@
       filteredLeads.length + ' lead' + (filteredLeads.length !== 1 ? 's' : '');
   }
 
-  // ─── RENDER TABLE (DESKTOP) ───
+  // ─── RENDER TABLE ───
   function renderTable() {
     const tbody = document.getElementById('leadsTableBody');
 
     if (filteredLeads.length === 0) {
       tbody.innerHTML = `
-        <tr>
-          <td colspan="10">
-            <div class="empty-state">
-              <i class="fas fa-user-plus"></i>
-              <h3>No Leads Found</h3>
-              <p>Add your first lead or adjust filters</p>
-            </div>
-          </td>
-        </tr>`;
+        <tr><td colspan="10">
+          <div class="empty-state">
+            <i class="fas fa-user-plus"></i>
+            <h3>No Leads Found</h3>
+            <p>Add your first lead or adjust filters</p>
+          </div>
+        </td></tr>`;
       return;
     }
 
@@ -919,9 +915,7 @@
         <td>${lead.projectType || '-'}</td>
         <td style="color:var(--subtext)">${lead.location || '-'}</td>
         <td style="color:var(--success)">${formatBudget(lead.budget)}</td>
-        <td>
-          <span class="badge ${getBadgeClass(lead.status)}">${lead.status}</span>
-        </td>
+        <td><span class="badge ${getBadgeClass(lead.status)}">${lead.status}</span></td>
         <td style="color:var(--subtext)">${formatDate(lead.date)}</td>
         <td>
           <div class="action-btns">
@@ -964,51 +958,19 @@
           <span class="badge ${getBadgeClass(lead.status)}">${lead.status}</span>
         </div>
         <div class="lead-card-body">
-          <div class="lead-card-info">
-            Phone
-            <span>
-              <a href="tel:${lead.phone}" style="color:var(--primary); text-decoration:none">
-                ${lead.phone}
-              </a>
-            </span>
+          <div class="lead-card-info">Phone
+            <span><a href="tel:${lead.phone}" style="color:var(--primary); text-decoration:none">${lead.phone}</a></span>
           </div>
-          <div class="lead-card-info">
-            Type
-            <span>${lead.projectType || '-'}</span>
-          </div>
-          <div class="lead-card-info">
-            Location
-            <span>${lead.location || '-'}</span>
-          </div>
-          <div class="lead-card-info">
-            Budget
-            <span style="color:var(--success)">${formatBudget(lead.budget)}</span>
-          </div>
-          <div class="lead-card-info">
-            Source
-            <span>${lead.source || '-'}</span>
-          </div>
-          <div class="lead-card-info">
-            Date
-            <span>${formatDate(lead.date)}</span>
-          </div>
+          <div class="lead-card-info">Type<span>${lead.projectType || '-'}</span></div>
+          <div class="lead-card-info">Location<span>${lead.location || '-'}</span></div>
+          <div class="lead-card-info">Budget<span style="color:var(--success)">${formatBudget(lead.budget)}</span></div>
+          <div class="lead-card-info">Source<span>${lead.source || '-'}</span></div>
+          <div class="lead-card-info">Date<span>${formatDate(lead.date)}</span></div>
         </div>
-        ${lead.notes ? `
-        <div style="font-size:13px; color:var(--subtext);
-             background:rgba(255,255,255,0.03); padding:8px 12px;
-             border-radius:8px; margin-bottom:12px">
-          📝 ${lead.notes}
-        </div>` : ''}
         <div class="lead-card-footer">
-          <button class="icon-btn view" onclick="viewLead('${lead.id}')">
-            <i class="fas fa-eye"></i>
-          </button>
-          <button class="icon-btn edit" onclick="editLead('${lead.id}')">
-            <i class="fas fa-edit"></i>
-          </button>
-          <button class="icon-btn delete" onclick="deleteLead('${lead.id}')">
-            <i class="fas fa-trash"></i>
-          </button>
+          <button class="icon-btn view" onclick="viewLead('${lead.id}')"><i class="fas fa-eye"></i></button>
+          <button class="icon-btn edit" onclick="editLead('${lead.id}')"><i class="fas fa-edit"></i></button>
+          <button class="icon-btn delete" onclick="deleteLead('${lead.id}')"><i class="fas fa-trash"></i></button>
         </div>
       </div>
     `).join('');
@@ -1017,16 +979,11 @@
   // ─── UPDATE STATS ───
   function updateStats() {
     document.getElementById('ls-total').textContent = leads.length;
-    document.getElementById('ls-new').textContent =
-      leads.filter(l => l.status === 'New').length;
-    document.getElementById('ls-visit').textContent =
-      leads.filter(l => l.status === 'Site Visit').length;
-    document.getElementById('ls-proposal').textContent =
-      leads.filter(l => l.status === 'Proposal Sent').length;
-    document.getElementById('ls-won').textContent =
-      leads.filter(l => l.status === 'Won').length;
-    document.getElementById('ls-lost').textContent =
-      leads.filter(l => l.status === 'Lost').length;
+    document.getElementById('ls-new').textContent = leads.filter(l => l.status === 'New').length;
+    document.getElementById('ls-visit').textContent = leads.filter(l => l.status === 'Site Visit').length;
+    document.getElementById('ls-proposal').textContent = leads.filter(l => l.status === 'Proposal Sent').length;
+    document.getElementById('ls-won').textContent = leads.filter(l => l.status === 'Won').length;
+    document.getElementById('ls-lost').textContent = leads.filter(l => l.status === 'Lost').length;
   }
 
   // ─── FILTER LEADS ───
@@ -1047,11 +1004,10 @@
       return matchSearch && matchStatus && matchType;
     });
 
-    // Sort
     if (sort === 'newest') {
-      filteredLeads.sort((a, b) => new Date(b.date) - new Date(a.date));
+      filteredLeads.sort((a, b) => new Date(b.createdAt || b.date || 0) - new Date(a.createdAt || a.date || 0));
     } else if (sort === 'oldest') {
-      filteredLeads.sort((a, b) => new Date(a.date) - new Date(b.date));
+      filteredLeads.sort((a, b) => new Date(a.createdAt || a.date || 0) - new Date(b.createdAt || b.date || 0));
     } else if (sort === 'name') {
       filteredLeads.sort((a, b) => a.name.localeCompare(b.name));
     }
@@ -1084,27 +1040,26 @@
     document.getElementById('leadNotes').value = '';
   }
 
-  // ─── CLOSE MODAL ───
   function closeModal() {
     document.getElementById('leadModal').classList.remove('show');
     editingId = null;
   }
 
-  // ─── SAVE LEAD ───
-  function saveLead() {
+  // ═══════════════════════════════════════
+  //     SAVE LEAD TO FIREBASE
+  // ═══════════════════════════════════════
+  async function saveLead() {
     const name = document.getElementById('leadName').value.trim();
     const phone = document.getElementById('leadPhone').value.trim();
-    const status = document.getElementById('leadStatus').value;
 
     if (!name) { showToast('❌ Please enter a name!', 'danger'); return; }
     if (!phone) { showToast('❌ Please enter a phone number!', 'danger'); return; }
-if (phone.length !== 10 || !/^[0-9]{10}$/.test(phone)) {
-  showToast('❌ Phone number must be exactly 10 digits!', 'danger');
-  return;
-}
+    if (phone.length !== 10 || !/^[0-9]{10}$/.test(phone)) {
+      showToast('❌ Phone must be exactly 10 digits!', 'danger');
+      return;
+    }
 
     const leadData = {
-      id: editingId || 'lead_' + Date.now(),
       name,
       phone,
       email: document.getElementById('leadEmail').value.trim(),
@@ -1113,30 +1068,37 @@ if (phone.length !== 10 || !/^[0-9]{10}$/.test(phone)) {
       location: document.getElementById('leadLocation').value.trim(),
       budget: document.getElementById('leadBudget').value,
       source: document.getElementById('leadSource').value,
-      status,
+      status: document.getElementById('leadStatus').value,
       followupDate: document.getElementById('leadFollowup').value,
       assignedTo: document.getElementById('leadAssigned').value.trim(),
       area: document.getElementById('leadArea').value,
       notes: document.getElementById('leadNotes').value.trim(),
-      date: editingId
-        ? leads.find(l => l.id === editingId)?.date
-        : new Date().toISOString().split('T')[0],
       updatedAt: new Date().toISOString()
     };
 
-    if (editingId) {
-      const index = leads.findIndex(l => l.id === editingId);
-      if (index !== -1) leads[index] = leadData;
-      showToast('✅ Lead updated successfully!', 'success');
-    } else {
-      leads.unshift(leadData);
-      showToast('✅ Lead added successfully!', 'success');
+    showSaving(true);
+
+    try {
+      if (editingId) {
+        // UPDATE existing lead in Firebase
+        await leadsRef.doc(editingId).update(leadData);
+        showToast('✅ Lead updated in database!', 'success');
+      } else {
+        // ADD new lead to Firebase
+        leadData.date = new Date().toISOString().split('T')[0];
+        leadData.createdAt = new Date().toISOString();
+        await leadsRef.add(leadData);
+        showToast('✅ Lead saved to database!', 'success');
+      }
+
+      closeModal();
+      await loadLeads(); // Reload from Firebase
+    } catch (error) {
+      console.error('Save error:', error);
+      showToast('❌ Error saving! Check connection.', 'danger');
     }
 
-    localStorage.setItem(LEADS_KEY, JSON.stringify(leads));
-    filteredLeads = [...leads];
-    filterLeads();
-    closeModal();
+    showSaving(false);
   }
 
   // ─── EDIT LEAD ───
@@ -1177,21 +1139,13 @@ if (phone.length !== 10 || !/^[0-9]{10}$/.test(phone)) {
       <div class="detail-item">
         <div class="detail-label">Phone</div>
         <div class="detail-value">
-          <a href="tel:${lead.phone}"
-             style="color:var(--primary); text-decoration:none">
-            📞 ${lead.phone}
-          </a>
+          <a href="tel:${lead.phone}" style="color:var(--primary); text-decoration:none">📞 ${lead.phone}</a>
         </div>
       </div>
       <div class="detail-item">
         <div class="detail-label">Email</div>
         <div class="detail-value">
-          ${lead.email
-            ? `<a href="mailto:${lead.email}"
-                  style="color:var(--primary); text-decoration:none">
-                  ${lead.email}
-               </a>`
-            : '-'}
+          ${lead.email ? `<a href="mailto:${lead.email}" style="color:var(--primary); text-decoration:none">${lead.email}</a>` : '-'}
         </div>
       </div>
       <div class="detail-item">
@@ -1208,9 +1162,7 @@ if (phone.length !== 10 || !/^[0-9]{10}$/.test(phone)) {
       </div>
       <div class="detail-item">
         <div class="detail-label">Budget</div>
-        <div class="detail-value" style="color:var(--success)">
-          ${formatBudget(lead.budget)}
-        </div>
+        <div class="detail-value" style="color:var(--success)">${formatBudget(lead.budget)}</div>
       </div>
       <div class="detail-item">
         <div class="detail-label">Area</div>
@@ -1218,9 +1170,7 @@ if (phone.length !== 10 || !/^[0-9]{10}$/.test(phone)) {
       </div>
       <div class="detail-item">
         <div class="detail-label">Status</div>
-        <div class="detail-value">
-          <span class="badge ${getBadgeClass(lead.status)}">${lead.status}</span>
-        </div>
+        <div class="detail-value"><span class="badge ${getBadgeClass(lead.status)}">${lead.status}</span></div>
       </div>
       <div class="detail-item">
         <div class="detail-label">Lead Source</div>
@@ -1240,15 +1190,12 @@ if (phone.length !== 10 || !/^[0-9]{10}$/.test(phone)) {
       </div>
       <div class="detail-item">
         <div class="detail-label">Last Updated</div>
-        <div class="detail-value">${lead.updatedAt
-          ? new Date(lead.updatedAt).toLocaleString('en-IN') : '-'}</div>
+        <div class="detail-value">${lead.updatedAt ? new Date(lead.updatedAt).toLocaleString('en-IN') : '-'}</div>
       </div>
       ${lead.notes ? `
       <div class="detail-item full">
-        <div class="detail-label">Notes / Requirements</div>
-        <div class="detail-value" style="font-size:14px; line-height:1.6">
-          ${lead.notes}
-        </div>
+        <div class="detail-label">Notes</div>
+        <div class="detail-value" style="font-size:14px; line-height:1.6">${lead.notes}</div>
       </div>` : ''}
     `;
 
@@ -1260,7 +1207,9 @@ if (phone.length !== 10 || !/^[0-9]{10}$/.test(phone)) {
     document.getElementById('viewModal').classList.remove('show');
   }
 
-  // ─── DELETE LEAD ───
+  // ═══════════════════════════════════════
+  //     DELETE LEAD FROM FIREBASE
+  // ═══════════════════════════════════════
   function deleteLead(id) {
     deletingId = id;
     document.getElementById('deleteModal').classList.add('show');
@@ -1271,14 +1220,22 @@ if (phone.length !== 10 || !/^[0-9]{10}$/.test(phone)) {
     deletingId = null;
   }
 
-  function confirmDelete() {
+  async function confirmDelete() {
     if (!deletingId) return;
-    leads = leads.filter(l => l.id !== deletingId);
-    localStorage.setItem(LEADS_KEY, JSON.stringify(leads));
-    filteredLeads = [...leads];
-    filterLeads();
-    closeDeleteModal();
-    showToast('🗑️ Lead deleted!', 'danger');
+
+    showSaving(true);
+
+    try {
+      await leadsRef.doc(deletingId).delete();
+      closeDeleteModal();
+      await loadLeads();
+      showToast('🗑️ Lead deleted from database!', 'danger');
+    } catch (error) {
+      console.error('Delete error:', error);
+      showToast('❌ Error deleting! Check connection.', 'danger');
+    }
+
+    showSaving(false);
   }
 
   // ─── EXPORT CSV ───
@@ -1289,11 +1246,11 @@ if (phone.length !== 10 || !/^[0-9]{10}$/.test(phone)) {
     }
 
     const headers = [
-      'Name', 'Phone', 'Email', 'Company',
-      'Project Type', 'Location', 'Budget',
-      'Area (sqft)', 'Source', 'Status',
-      'Follow-up Date', 'Assigned To',
-      'Notes', 'Date Added'
+      'Name','Phone','Email','Company',
+      'Project Type','Location','Budget',
+      'Area (sqft)','Source','Status',
+      'Follow-up Date','Assigned To',
+      'Notes','Date Added'
     ];
 
     const rows = leads.map(l => [
@@ -1320,6 +1277,12 @@ if (phone.length !== 10 || !/^[0-9]{10}$/.test(phone)) {
     showToast('✅ Leads exported to CSV!', 'success');
   }
 
+  // ─── SAVING INDICATOR ───
+  function showSaving(show) {
+    document.getElementById('savingIndicator').style.display =
+      show ? 'block' : 'none';
+  }
+
   // ─── TOAST ───
   function showToast(message, type = 'success') {
     const toast = document.getElementById('toast');
@@ -1331,7 +1294,7 @@ if (phone.length !== 10 || !/^[0-9]{10}$/.test(phone)) {
     setTimeout(() => { toast.style.display = 'none'; }, 3000);
   }
 
-  // ─── CLOSE MODALS ON OUTSIDE CLICK ───
+  // ─── CLOSE ON OUTSIDE CLICK ───
   document.querySelectorAll('.modal-overlay').forEach(overlay => {
     overlay.addEventListener('click', function (e) {
       if (e.target === this) {
@@ -1342,9 +1305,8 @@ if (phone.length !== 10 || !/^[0-9]{10}$/.test(phone)) {
     });
   });
 
-  // ─── INIT ───
-  filteredLeads = [...leads];
-  filterLeads();
+  // ─── INIT: LOAD FROM FIREBASE ───
+  loadLeads();
 </script>
 </body>
 </html>
