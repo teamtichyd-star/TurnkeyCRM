@@ -5,510 +5,106 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Leads - Turnkey CRM</title>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
-
-  <!-- ─── FIREBASE SDK ─── -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: 'Segoe UI', sans-serif;
-    }
-
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
     :root {
-      --primary: #c8a96e;
-      --dark: #1a1a2e;
-      --darker: #12121f;
-      --card: #16213e;
-      --text: #ffffff;
-      --subtext: #a0a0b0;
-      --success: #4caf50;
-      --warning: #ff9800;
-      --danger: #f44336;
-      --info: #2196f3;
+      --primary: #c8a96e; --dark: #1a1a2e; --darker: #12121f;
+      --card: #16213e; --text: #ffffff; --subtext: #a0a0b0;
+      --success: #4caf50; --warning: #ff9800; --danger: #f44336;
+      --info: #2196f3; --whatsapp: #25d366;
     }
-
-    body {
-      background: var(--darker);
-      color: var(--text);
-      min-height: 100vh;
-    }
-
-    .page {
-      padding: 25px;
-      animation: fadeIn 0.3s ease;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* ─── LOADING ─── */
-    .page-loader {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 60px;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .page-loader .spinner {
-      width: 36px;
-      height: 36px;
-      border: 4px solid rgba(200,169,110,0.2);
-      border-top-color: var(--primary);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-
+    body { background: var(--darker); color: var(--text); min-height: 100vh; }
+    .page { padding: 25px; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .page-loader { display: flex; align-items: center; justify-content: center; padding: 60px; flex-direction: column; gap: 12px; }
+    .page-loader .spinner { width: 36px; height: 36px; border: 4px solid rgba(200,169,110,0.2); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
-
-    .page-loader p {
-      font-size: 14px;
-      color: var(--subtext);
-    }
-
-    /* ─── TOP ACTIONS ─── */
-    .top-actions {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-
-    .top-actions h2 {
-      font-size: 20px;
-      font-weight: 700;
-      color: var(--primary);
-    }
-
-    .top-actions h2 span {
-      font-size: 13px;
-      color: var(--subtext);
-      font-weight: 400;
-      margin-left: 8px;
-    }
-
-    /* ─── BUTTONS ─── */
-    .btn {
-      padding: 10px 18px;
-      border-radius: 10px;
-      border: none;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 500;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      transition: 0.2s;
-    }
-
-    .btn-primary {
-      background: linear-gradient(135deg, var(--primary), #a07840);
-      color: white;
-    }
-
+    .page-loader p { font-size: 14px; color: var(--subtext); }
+    .top-actions { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+    .top-actions h2 { font-size: 20px; font-weight: 700; color: var(--primary); }
+    .top-actions h2 span { font-size: 13px; color: var(--subtext); font-weight: 400; margin-left: 8px; }
+    .btn { padding: 10px 18px; border-radius: 10px; border: none; cursor: pointer; font-size: 14px; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; }
+    .btn-primary { background: linear-gradient(135deg, var(--primary), #a07840); color: white; }
     .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
-
-    .btn-danger {
-      background: rgba(244,67,54,0.15);
-      color: var(--danger);
-      border: 1px solid rgba(244,67,54,0.3);
-    }
-
-    .btn-danger:hover { background: rgba(244,67,54,0.25); }
-
-    .btn-info {
-      background: rgba(33,150,243,0.15);
-      color: var(--info);
-      border: 1px solid rgba(33,150,243,0.3);
-    }
-
-    .btn-success {
-      background: rgba(76,175,80,0.15);
-      color: var(--success);
-      border: 1px solid rgba(76,175,80,0.3);
-    }
-
-    /* ─── STATS ROW ─── */
-    .lead-stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-
-    .lead-stat {
-      background: var(--card);
-      border-radius: 12px;
-      padding: 15px;
-      text-align: center;
-      border: 1px solid rgba(255,255,255,0.05);
-    }
-
+    .btn-danger { background: rgba(244,67,54,0.15); color: var(--danger); border: 1px solid rgba(244,67,54,0.3); }
+    .btn-info { background: rgba(33,150,243,0.15); color: var(--info); border: 1px solid rgba(33,150,243,0.3); }
+    .btn-success { background: rgba(76,175,80,0.15); color: var(--success); border: 1px solid rgba(76,175,80,0.3); }
+    .btn-whatsapp { background: rgba(37,211,102,0.15); color: var(--whatsapp); border: 1px solid rgba(37,211,102,0.3); text-decoration: none; }
+    .lead-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .lead-stat { background: var(--card); border-radius: 12px; padding: 15px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
     .lead-stat h3 { font-size: 24px; font-weight: 700; }
     .lead-stat p { font-size: 12px; color: var(--subtext); margin-top: 4px; }
-
     .lead-stat.gold h3 { color: var(--primary); }
     .lead-stat.blue h3 { color: var(--info); }
     .lead-stat.orange h3 { color: var(--warning); }
     .lead-stat.green h3 { color: var(--success); }
     .lead-stat.red h3 { color: var(--danger); }
-
-    /* ─── FILTER BAR ─── */
-    .filter-bar {
-      background: var(--card);
-      border-radius: 12px;
-      padding: 15px;
-      margin-bottom: 20px;
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      border: 1px solid rgba(255,255,255,0.05);
-    }
-
-    .filter-bar input,
-    .filter-bar select {
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 8px;
-      padding: 9px 14px;
-      color: var(--text);
-      font-size: 14px;
-      outline: none;
-      transition: 0.3s;
-    }
-
+    .filter-bar { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 20px; display: flex; gap: 12px; flex-wrap: wrap; border: 1px solid rgba(255,255,255,0.05); }
+    .filter-bar input, .filter-bar select { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 9px 14px; color: var(--text); font-size: 14px; outline: none; transition: 0.3s; }
     .filter-bar input { flex: 1; min-width: 180px; }
     .filter-bar select { min-width: 150px; }
-
-    .filter-bar input:focus,
-    .filter-bar select:focus { border-color: var(--primary); }
-
+    .filter-bar input:focus, .filter-bar select:focus { border-color: var(--primary); }
     .filter-bar select option { background: var(--card); }
-
-    /* ─── TABLE CARD ─── */
-    .table-card {
-      background: var(--card);
-      border-radius: 15px;
-      border: 1px solid rgba(255,255,255,0.05);
-      overflow: hidden;
-      margin-bottom: 20px;
-    }
-
+    .table-card { background: var(--card); border-radius: 15px; border: 1px solid rgba(255,255,255,0.05); overflow: hidden; margin-bottom: 20px; }
     .table-wrapper { overflow-x: auto; }
-
     table { width: 100%; border-collapse: collapse; }
-
-    table th {
-      padding: 13px 18px;
-      text-align: left;
-      font-size: 12px;
-      color: var(--subtext);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      background: rgba(255,255,255,0.02);
-      white-space: nowrap;
-    }
-
-    table td {
-      padding: 14px 18px;
-      font-size: 14px;
-      border-top: 1px solid rgba(255,255,255,0.03);
-      vertical-align: middle;
-    }
-
+    table th { padding: 13px 18px; text-align: left; font-size: 12px; color: var(--subtext); text-transform: uppercase; letter-spacing: 0.5px; background: rgba(255,255,255,0.02); white-space: nowrap; }
+    table td { padding: 14px 18px; font-size: 14px; border-top: 1px solid rgba(255,255,255,0.03); vertical-align: middle; }
     table tr:hover td { background: rgba(255,255,255,0.02); }
-
-    .badge {
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 500;
-      white-space: nowrap;
-    }
-
+    .badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; white-space: nowrap; }
     .badge-new { background: rgba(200,169,110,0.15); color: var(--primary); }
     .badge-visit { background: rgba(33,150,243,0.15); color: var(--info); }
     .badge-proposal { background: rgba(255,152,0,0.15); color: var(--warning); }
     .badge-won { background: rgba(76,175,80,0.15); color: var(--success); }
     .badge-lost { background: rgba(244,67,54,0.15); color: var(--danger); }
     .badge-followup { background: rgba(156,39,176,0.15); color: #ce93d8; }
-
-    .action-btns { display: flex; gap: 6px; }
-
-    .icon-btn {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      border: none;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 13px;
-      transition: 0.2s;
-    }
-
+    .action-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+    .icon-btn { width: 32px; height: 32px; border-radius: 8px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; transition: 0.2s; text-decoration: none; }
     .icon-btn.edit { background: rgba(33,150,243,0.15); color: var(--info); }
     .icon-btn.delete { background: rgba(244,67,54,0.15); color: var(--danger); }
     .icon-btn.view { background: rgba(200,169,110,0.15); color: var(--primary); }
+    .icon-btn.whatsapp { background: rgba(37,211,102,0.15); color: var(--whatsapp); }
     .icon-btn:hover { transform: scale(1.1); }
-
-    /* ─── EMPTY STATE ─── */
-    .empty-state {
-      text-align: center;
-      padding: 50px 20px;
-      color: var(--subtext);
-    }
-
-    .empty-state i {
-      font-size: 50px;
-      color: var(--primary);
-      opacity: 0.3;
-      margin-bottom: 15px;
-    }
-
-    .empty-state h3 {
-      font-size: 18px;
-      margin-bottom: 8px;
-      color: var(--text);
-    }
-
-    /* ─── MODAL ─── */
-    .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.7);
-      z-index: 2000;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
-
+    .empty-state { text-align: center; padding: 50px 20px; color: var(--subtext); }
+    .empty-state i { font-size: 50px; color: var(--primary); opacity: 0.3; margin-bottom: 15px; }
+    .empty-state h3 { font-size: 18px; margin-bottom: 8px; color: var(--text); }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 2000; display: none; align-items: center; justify-content: center; padding: 20px; }
     .modal-overlay.show { display: flex; }
-
-    .modal {
-      background: var(--dark);
-      border-radius: 20px;
-      width: 100%;
-      max-width: 580px;
-      max-height: 90vh;
-      overflow-y: auto;
-      border: 1px solid rgba(200,169,110,0.2);
-      animation: slideUp 0.3s ease;
-    }
-
-    @keyframes slideUp {
-      from { opacity: 0; transform: translateY(30px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .modal-header {
-      padding: 22px 25px;
-      border-bottom: 1px solid rgba(255,255,255,0.05);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      position: sticky;
-      top: 0;
-      background: var(--dark);
-      z-index: 1;
-    }
-
-    .modal-header h3 {
-      font-size: 17px;
-      font-weight: 600;
-      color: var(--primary);
-    }
-
-    .modal-close {
-      width: 34px;
-      height: 34px;
-      background: rgba(255,255,255,0.05);
-      border: none;
-      border-radius: 8px;
-      color: var(--text);
-      cursor: pointer;
-      font-size: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: 0.2s;
-    }
-
-    .modal-close:hover {
-      background: rgba(244,67,54,0.2);
-      color: var(--danger);
-    }
-
+    .modal { background: var(--dark); border-radius: 20px; width: 100%; max-width: 580px; max-height: 90vh; overflow-y: auto; border: 1px solid rgba(200,169,110,0.2); animation: slideUp 0.3s ease; }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .modal-header { padding: 22px 25px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--dark); z-index: 1; }
+    .modal-header h3 { font-size: 17px; font-weight: 600; color: var(--primary); }
+    .modal-close { width: 34px; height: 34px; background: rgba(255,255,255,0.05); border: none; border-radius: 8px; color: var(--text); cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+    .modal-close:hover { background: rgba(244,67,54,0.2); color: var(--danger); }
     .modal-body { padding: 25px; }
-
-    .modal-footer {
-      padding: 15px 25px;
-      border-top: 1px solid rgba(255,255,255,0.05);
-      display: flex;
-      gap: 10px;
-      justify-content: flex-end;
-    }
-
-    /* ─── FORM ─── */
-    .form-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 15px;
-    }
-
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 7px;
-    }
-
+    .modal-footer { padding: 15px 25px; border-top: 1px solid rgba(255,255,255,0.05); display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    .form-group { display: flex; flex-direction: column; gap: 7px; }
     .form-group.full { grid-column: 1 / -1; }
-
-    .form-group label {
-      font-size: 13px;
-      color: var(--subtext);
-    }
-
+    .form-group label { font-size: 13px; color: var(--subtext); }
     .form-group label span { color: var(--danger); }
-
-    .form-group input,
-    .form-group select,
-    .form-group textarea {
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 10px;
-      padding: 11px 14px;
-      color: var(--text);
-      font-size: 14px;
-      outline: none;
-      transition: 0.3s;
-      width: 100%;
-    }
-
-    .form-group input:focus,
-    .form-group select:focus,
-    .form-group textarea:focus {
-      border-color: var(--primary);
-      background: rgba(200,169,110,0.05);
-    }
-
+    .form-group input, .form-group select, .form-group textarea { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 11px 14px; color: var(--text); font-size: 14px; outline: none; transition: 0.3s; width: 100%; }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--primary); background: rgba(200,169,110,0.05); }
     .form-group select option { background: var(--dark); }
     .form-group textarea { resize: vertical; min-height: 80px; }
-
-    /* ─── VIEW MODAL ─── */
-    .view-detail {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 15px;
-    }
-
-    .detail-item {
-      background: rgba(255,255,255,0.03);
-      border-radius: 10px;
-      padding: 12px 15px;
-      border: 1px solid rgba(255,255,255,0.05);
-    }
-
+    .view-detail { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    .detail-item { background: rgba(255,255,255,0.03); border-radius: 10px; padding: 12px 15px; border: 1px solid rgba(255,255,255,0.05); }
     .detail-item.full { grid-column: 1 / -1; }
-
-    .detail-label {
-      font-size: 11px;
-      color: var(--subtext);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 5px;
-    }
-
+    .detail-label { font-size: 11px; color: var(--subtext); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; }
     .detail-value { font-size: 15px; font-weight: 500; }
-
-    /* ─── MOBILE CARDS ─── */
     .mobile-cards { display: none; }
-
-    .lead-card {
-      background: var(--card);
-      border-radius: 14px;
-      padding: 16px;
-      border: 1px solid rgba(255,255,255,0.05);
-      margin-bottom: 12px;
-    }
-
-    .lead-card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 10px;
-    }
-
+    .lead-card { background: var(--card); border-radius: 14px; padding: 16px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 12px; }
+    .lead-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
     .lead-card-name { font-size: 16px; font-weight: 600; }
-
-    .lead-card-body {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-bottom: 12px;
-    }
-
+    .lead-card-body { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
     .lead-card-info { font-size: 13px; color: var(--subtext); }
-
-    .lead-card-info span {
-      color: var(--text);
-      display: block;
-      font-size: 14px;
-    }
-
-    .lead-card-footer {
-      display: flex;
-      gap: 8px;
-      justify-content: flex-end;
-    }
-
-    /* ─── TOAST ─── */
-    .toast {
-      position: fixed;
-      bottom: 90px;
-      right: 20px;
-      background: var(--success);
-      color: white;
-      padding: 12px 20px;
-      border-radius: 10px;
-      font-size: 14px;
-      z-index: 9999;
-      display: none;
-      animation: slideIn 0.3s ease;
-      box-shadow: 0 5px 20px rgba(0,0,0,0.3);
-    }
-
-    @keyframes slideIn {
-      from { transform: translateX(100px); opacity: 0; }
-      to { transform: translateX(0); opacity: 1; }
-    }
-
-    /* ─── SAVING INDICATOR ─── */
-    .saving-indicator {
-      position: fixed;
-      top: 10px;
-      right: 10px;
-      background: rgba(200,169,110,0.2);
-      color: var(--primary);
-      padding: 8px 16px;
-      border-radius: 8px;
-      font-size: 13px;
-      z-index: 9999;
-      display: none;
-    }
-
-    /* ─── MOBILE ─── */
+    .lead-card-info span { color: var(--text); display: block; font-size: 14px; }
+    .lead-card-footer { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+    .toast { position: fixed; bottom: 90px; right: 20px; background: var(--success); color: white; padding: 12px 20px; border-radius: 10px; font-size: 14px; z-index: 9999; display: none; animation: slideIn 0.3s ease; box-shadow: 0 5px 20px rgba(0,0,0,0.3); }
+    @keyframes slideIn { from { transform: translateX(100px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    .saving-indicator { position: fixed; top: 10px; right: 10px; background: rgba(200,169,110,0.2); color: var(--primary); padding: 8px 16px; border-radius: 8px; font-size: 13px; z-index: 9999; display: none; }
     @media (max-width: 768px) {
       .page { padding: 15px; padding-bottom: 80px; }
       .form-grid { grid-template-columns: 1fr; }
@@ -517,37 +113,24 @@
       .mobile-cards { display: block; }
       .top-actions { flex-direction: column; align-items: flex-start; }
       .filter-bar { flex-direction: column; }
-      .filter-bar input,
-      .filter-bar select { width: 100%; min-width: unset; }
+      .filter-bar input, .filter-bar select { width: 100%; min-width: unset; }
     }
   </style>
 </head>
 <body>
 
-<!-- ─── SAVING INDICATOR ─── -->
-<div class="saving-indicator" id="savingIndicator">
-  ⏳ Saving to Firebase...
-</div>
-
-<!-- ─── TOAST ─── -->
+<div class="saving-indicator" id="savingIndicator">⏳ Saving to Firebase...</div>
 <div class="toast" id="toast"></div>
 
-<!-- ─── LOADING ─── -->
 <div class="page-loader" id="pageLoader">
   <div class="spinner"></div>
   <p>Loading leads from Firebase...</p>
 </div>
 
-<!-- ═══════════════════════════════════ -->
-<!--         LEADS PAGE CONTENT         -->
-<!-- ═══════════════════════════════════ -->
 <div class="page" id="mainPage" style="display:none">
 
-  <!-- TOP ACTIONS -->
   <div class="top-actions">
-    <h2>👥 Leads Management
-      <span id="leadsCount">0 leads</span>
-    </h2>
+    <h2>👥 Leads Management <span id="leadsCount">0 leads</span></h2>
     <div style="display:flex; gap:10px; flex-wrap:wrap;">
       <button class="btn btn-success" onclick="exportLeads()">
         <i class="fas fa-file-csv"></i> Export CSV
@@ -558,31 +141,18 @@
     </div>
   </div>
 
-  <!-- STATS -->
   <div class="lead-stats">
-    <div class="lead-stat gold">
-      <h3 id="ls-total">0</h3><p>Total Leads</p>
-    </div>
-    <div class="lead-stat blue">
-      <h3 id="ls-new">0</h3><p>New</p>
-    </div>
-    <div class="lead-stat blue">
-      <h3 id="ls-visit">0</h3><p>Site Visit</p>
-    </div>
-    <div class="lead-stat orange">
-      <h3 id="ls-proposal">0</h3><p>Proposal</p>
-    </div>
-    <div class="lead-stat green">
-      <h3 id="ls-won">0</h3><p>Won</p>
-    </div>
-    <div class="lead-stat red">
-      <h3 id="ls-lost">0</h3><p>Lost</p>
-    </div>
+    <div class="lead-stat gold"><h3 id="ls-total">0</h3><p>Total Leads</p></div>
+    <div class="lead-stat blue"><h3 id="ls-new">0</h3><p>New</p></div>
+    <div class="lead-stat blue"><h3 id="ls-visit">0</h3><p>Site Visit</p></div>
+    <div class="lead-stat orange"><h3 id="ls-proposal">0</h3><p>Proposal</p></div>
+    <div class="lead-stat green"><h3 id="ls-won">0</h3><p>Won</p></div>
+    <div class="lead-stat red"><h3 id="ls-lost">0</h3><p>Lost</p></div>
   </div>
 
-  <!-- FILTER BAR -->
   <div class="filter-bar">
-    <input type="text" id="searchInput" placeholder="🔍 Search by name, phone, location..."
+    <input type="text" id="searchInput"
+           placeholder="🔍 Search by name, phone, location..."
            oninput="filterLeads()"/>
     <select id="statusFilter" onchange="filterLeads()">
       <option value="">All Statuses</option>
@@ -595,12 +165,8 @@
     </select>
     <select id="typeFilter" onchange="filterLeads()">
       <option value="">All Project Types</option>
-      <option value="Office Interior">Office Interior</option>
-      <option value="Commercial Fit-out">Commercial Fit-out</option>
-      <option value="Restaurant">Restaurant</option>
-      <option value="Retail">Retail</option>
-      <option value="Renovation">Renovation</option>
-      <option value="Other">Other</option>
+      <option value="Commercial">Commercial</option>
+      <option value="Residential">Residential</option>
     </select>
     <select id="sortFilter" onchange="filterLeads()">
       <option value="newest">Newest First</option>
@@ -615,16 +181,10 @@
       <table>
         <thead>
           <tr>
-            <th>#</th>
-            <th>Name</th>
-            <th>Phone</th>
-            <th>Email</th>
-            <th>Project Type</th>
-            <th>Location</th>
-            <th>Budget</th>
-            <th>Status</th>
-            <th>Date</th>
-            <th>Actions</th>
+            <th>#</th><th>Name</th><th>Phone</th>
+            <th>Project Type</th><th>Location</th>
+            <th>Budget</th><th>Status</th>
+            <th>Assigned To</th><th>Date</th><th>Actions</th>
           </tr>
         </thead>
         <tbody id="leadsTableBody"></tbody>
@@ -637,9 +197,7 @@
 
 </div>
 
-<!-- ═══════════════════════════════════ -->
-<!--         ADD / EDIT MODAL           -->
-<!-- ═══════════════════════════════════ -->
+<!-- ADD/EDIT MODAL -->
 <div class="modal-overlay" id="leadModal">
   <div class="modal">
     <div class="modal-header">
@@ -650,45 +208,53 @@
     </div>
     <div class="modal-body">
       <div class="form-grid">
+
         <div class="form-group">
           <label>Full Name <span>*</span></label>
           <input type="text" id="leadName" placeholder="e.g. Rajesh Kumar"/>
         </div>
+
         <div class="form-group">
           <label>Phone Number <span>*</span></label>
-          <input type="tel" id="leadPhone" placeholder="e.g. 9876543210"
+          <input type="tel" id="leadPhone"
+                 placeholder="e.g. 9876543210"
                  maxlength="10"
-                 oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)"
-                 pattern="[0-9]{10}"/>
+                 oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)"/>
         </div>
+
         <div class="form-group">
           <label>Email Address</label>
-          <input type="email" id="leadEmail" placeholder="e.g. rajesh@company.com"/>
+          <input type="email" id="leadEmail"
+                 placeholder="e.g. rajesh@company.com"/>
         </div>
+
         <div class="form-group">
           <label>Company Name</label>
-          <input type="text" id="leadCompany" placeholder="e.g. ABC Pvt Ltd"/>
+          <input type="text" id="leadCompany"
+                 placeholder="e.g. ABC Pvt Ltd"/>
         </div>
+
         <div class="form-group">
-          <label>Project Type <span>*</span></label>
+          <label>Project Type</label>
           <select id="leadType">
             <option value="">Select Type</option>
-            <option value="Office Interior">Office Interior</option>
-            <option value="Commercial Fit-out">Commercial Fit-out</option>
-            <option value="Restaurant">Restaurant</option>
-            <option value="Retail">Retail</option>
-            <option value="Renovation">Renovation</option>
-            <option value="Other">Other</option>
+            <option value="Commercial">Commercial</option>
+            <option value="Residential">Residential</option>
           </select>
         </div>
+
         <div class="form-group">
           <label>Location</label>
-          <input type="text" id="leadLocation" placeholder="e.g. Gachibowli, Hyderabad"/>
+          <input type="text" id="leadLocation"
+                 placeholder="e.g. Gachibowli, Hyderabad"/>
         </div>
+
         <div class="form-group">
           <label>Budget (₹)</label>
-          <input type="number" id="leadBudget" placeholder="e.g. 500000"/>
+          <input type="number" id="leadBudget"
+                 placeholder="e.g. 500000"/>
         </div>
+
         <div class="form-group">
           <label>Lead Source</label>
           <select id="leadSource">
@@ -702,8 +268,9 @@
             <option value="Other">Other</option>
           </select>
         </div>
+
         <div class="form-group">
-          <label>Status <span>*</span></label>
+          <label>Status</label>
           <select id="leadStatus">
             <option value="New">New</option>
             <option value="Site Visit">Site Visit</option>
@@ -713,23 +280,31 @@
             <option value="Lost">Lost</option>
           </select>
         </div>
+
         <div class="form-group">
           <label>Follow-up Date</label>
           <input type="date" id="leadFollowup"/>
         </div>
+
         <div class="form-group">
           <label>Assigned To</label>
-          <input type="text" id="leadAssigned" placeholder="e.g. Rahul"/>
+          <select id="leadAssigned">
+            <option value="">Select User</option>
+          </select>
         </div>
+
         <div class="form-group">
           <label>Area (sq ft)</label>
-          <input type="number" id="leadArea" placeholder="e.g. 2000"/>
+          <input type="number" id="leadArea"
+                 placeholder="e.g. 2000"/>
         </div>
+
         <div class="form-group full">
           <label>Notes / Requirements</label>
           <textarea id="leadNotes"
-            placeholder="Enter lead requirements, notes, special requests..."></textarea>
+            placeholder="Enter lead requirements..."></textarea>
         </div>
+
       </div>
     </div>
     <div class="modal-footer">
@@ -743,9 +318,7 @@
   </div>
 </div>
 
-<!-- ═══════════════════════════════════ -->
-<!--          VIEW LEAD MODAL           -->
-<!-- ═══════════════════════════════════ -->
+<!-- VIEW MODAL -->
 <div class="modal-overlay" id="viewModal">
   <div class="modal">
     <div class="modal-header">
@@ -759,7 +332,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-info" id="viewEditBtn">
-        <i class="fas fa-edit"></i> Edit Lead
+        <i class="fas fa-edit"></i> Edit
       </button>
       <button class="btn btn-primary" onclick="closeViewModal()">
         <i class="fas fa-check"></i> Close
@@ -768,9 +341,7 @@
   </div>
 </div>
 
-<!-- ═══════════════════════════════════ -->
-<!--         DELETE CONFIRM MODAL       -->
-<!-- ═══════════════════════════════════ -->
+<!-- DELETE MODAL -->
 <div class="modal-overlay" id="deleteModal">
   <div class="modal" style="max-width:400px">
     <div class="modal-header">
@@ -781,10 +352,11 @@
     </div>
     <div class="modal-body" style="text-align:center; padding:30px 25px">
       <i class="fas fa-exclamation-triangle"
-         style="font-size:50px; color:var(--danger); margin-bottom:15px; display:block"></i>
+         style="font-size:50px; color:var(--danger);
+                margin-bottom:15px; display:block"></i>
       <h3 style="margin-bottom:10px">Are you sure?</h3>
       <p style="color:var(--subtext); font-size:14px">
-        This will permanently delete the lead from database!
+        Permanently delete this lead from Firebase!
       </p>
     </div>
     <div class="modal-footer">
@@ -792,16 +364,14 @@
         <i class="fas fa-times"></i> Cancel
       </button>
       <button class="btn btn-danger" onclick="confirmDelete()">
-        <i class="fas fa-trash"></i> Yes, Delete
+        <i class="fas fa-trash"></i> Delete
       </button>
     </div>
   </div>
 </div>
 
 <script>
-  // ═══════════════════════════════════════
-  //        FIREBASE CONFIGURATION
-  // ═══════════════════════════════════════
+  // ─── FIREBASE ───
   const firebaseConfig = {
     apiKey: "AIzaSyBLQhUZA-VN4_A9FhQWmlRSQZC2D95KoE8",
     authDomain: "turnkeycrm-ce7b8.firebaseapp.com",
@@ -811,7 +381,9 @@
     appId: "1:487224108102:web:dbe9d4ea6abdb2db581647"
   };
 
-  firebase.initializeApp(firebaseConfig);
+  if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
   const db = firebase.firestore();
   const leadsRef = db.collection('leads');
 
@@ -821,21 +393,20 @@
   let editingId = null;
   let deletingId = null;
 
-  // ─── BADGE CLASS ───
+  // ─── HELPERS ───
   function getBadgeClass(status) {
     const map = {
-      'New': 'badge-new', 'Site Visit': 'badge-visit',
-      'Proposal Sent': 'badge-proposal', 'Won': 'badge-won',
-      'Lost': 'badge-lost', 'Follow-up': 'badge-followup'
+      'New':'badge-new','Site Visit':'badge-visit',
+      'Proposal Sent':'badge-proposal','Won':'badge-won',
+      'Lost':'badge-lost','Follow-up':'badge-followup'
     };
     return map[status] || 'badge-new';
   }
 
-  // ─── FORMAT ───
   function formatDate(d) {
     if (!d) return '-';
     return new Date(d).toLocaleDateString('en-IN', {
-      day: '2-digit', month: 'short', year: 'numeric'
+      day:'2-digit', month:'short', year:'numeric'
     });
   }
 
@@ -844,56 +415,77 @@
     return '₹' + parseInt(b).toLocaleString('en-IN');
   }
 
-  // ═══════════════════════════════════════
-  //     LOAD LEADS FROM FIREBASE
-  // ═══════════════════════════════════════
+  // ─── LOAD USERS FOR ASSIGNED TO ───
+  async function loadUsersForAssign(selectedValue = '') {
+    try {
+      const snapshot = await db.collection('users').get();
+      const select = document.getElementById('leadAssigned');
+      select.innerHTML = '<option value="">Select User</option>';
+      snapshot.forEach(doc => {
+        const user = doc.data();
+        const option = document.createElement('option');
+        option.value = user.name || user.email;
+        option.textContent = (user.name || user.email);
+        if (option.value === selectedValue) option.selected = true;
+        select.appendChild(option);
+      });
+    } catch (error) {
+      console.error('Error loading users:', error);
+    }
+  }
+
+  // ─── LOAD LEADS ───
   async function loadLeads() {
     try {
-      const snapshot = await leadsRef.orderBy('createdAt', 'desc').get();
+      const snapshot = await leadsRef
+        .orderBy('createdAt', 'desc').get();
       leads = [];
       snapshot.forEach(doc => {
         leads.push({ id: doc.id, ...doc.data() });
       });
       filteredLeads = [...leads];
       filterLeads();
-
-      // Show main page, hide loader
       document.getElementById('pageLoader').style.display = 'none';
       document.getElementById('mainPage').style.display = 'block';
     } catch (error) {
-      console.error('Error loading leads:', error);
+      console.error('Error:', error);
       document.getElementById('pageLoader').innerHTML = `
         <div style="text-align:center; color:var(--danger)">
           <i class="fas fa-exclamation-triangle"
              style="font-size:40px; margin-bottom:15px; display:block"></i>
           <h3>Error Loading Data</h3>
           <p style="color:var(--subtext); margin-top:8px">
-            Check your internet connection and refresh
+            Check internet & refresh
           </p>
+          <button onclick="loadLeads()"
+            style="margin-top:15px; padding:10px 20px;
+            background:var(--primary); border:none;
+            border-radius:8px; color:white; cursor:pointer">
+            Retry
+          </button>
         </div>`;
     }
   }
 
-  // ─── RENDER LEADS ───
+  // ─── RENDER ───
   function renderLeads() {
     updateStats();
     renderTable();
     renderMobileCards();
     document.getElementById('leadsCount').textContent =
-      filteredLeads.length + ' lead' + (filteredLeads.length !== 1 ? 's' : '');
+      filteredLeads.length + ' lead' +
+      (filteredLeads.length !== 1 ? 's' : '');
   }
 
-  // ─── RENDER TABLE ───
   function renderTable() {
     const tbody = document.getElementById('leadsTableBody');
-
     if (filteredLeads.length === 0) {
       tbody.innerHTML = `
         <tr><td colspan="10">
           <div class="empty-state">
             <i class="fas fa-user-plus"></i>
             <h3>No Leads Found</h3>
-            <p>Add your first lead or adjust filters</p>
+            <p>Add your first lead!</p>
           </div>
         </td></tr>`;
       return;
@@ -904,28 +496,48 @@
         <td style="color:var(--subtext)">${index + 1}</td>
         <td>
           <strong>${lead.name}</strong>
-          ${lead.company ? `<br><small style="color:var(--subtext)">${lead.company}</small>` : ''}
+          ${lead.company ?
+            `<br><small style="color:var(--subtext)">${lead.company}</small>`
+            : ''}
         </td>
         <td>
-          <a href="tel:${lead.phone}" style="color:var(--primary); text-decoration:none">
+          <a href="tel:${lead.phone}"
+             style="color:var(--primary); text-decoration:none">
             ${lead.phone}
           </a>
         </td>
-        <td style="color:var(--subtext)">${lead.email || '-'}</td>
         <td>${lead.projectType || '-'}</td>
         <td style="color:var(--subtext)">${lead.location || '-'}</td>
         <td style="color:var(--success)">${formatBudget(lead.budget)}</td>
-        <td><span class="badge ${getBadgeClass(lead.status)}">${lead.status}</span></td>
+        <td>
+          <span class="badge ${getBadgeClass(lead.status)}">
+            ${lead.status}
+          </span>
+        </td>
+        <td style="color:var(--subtext)">${lead.assignedTo || '-'}</td>
         <td style="color:var(--subtext)">${formatDate(lead.date)}</td>
         <td>
           <div class="action-btns">
-            <button class="icon-btn view" onclick="viewLead('${lead.id}')" title="View">
+            ${lead.phone ? `
+            <a href="https://wa.me/91${lead.phone}"
+               target="_blank"
+               class="icon-btn whatsapp"
+               title="WhatsApp">
+              <i class="fab fa-whatsapp"></i>
+            </a>` : ''}
+            <button class="icon-btn view"
+                    onclick="viewLead('${lead.id}')"
+                    title="View">
               <i class="fas fa-eye"></i>
             </button>
-            <button class="icon-btn edit" onclick="editLead('${lead.id}')" title="Edit">
+            <button class="icon-btn edit"
+                    onclick="editLead('${lead.id}')"
+                    title="Edit">
               <i class="fas fa-edit"></i>
             </button>
-            <button class="icon-btn delete" onclick="deleteLead('${lead.id}')" title="Delete">
+            <button class="icon-btn delete"
+                    onclick="deleteLead('${lead.id}')"
+                    title="Delete">
               <i class="fas fa-trash"></i>
             </button>
           </div>
@@ -934,16 +546,14 @@
     `).join('');
   }
 
-  // ─── RENDER MOBILE CARDS ───
   function renderMobileCards() {
     const container = document.getElementById('mobileCards');
-
     if (filteredLeads.length === 0) {
       container.innerHTML = `
         <div class="empty-state">
           <i class="fas fa-user-plus"></i>
           <h3>No Leads Found</h3>
-          <p>Add your first lead or adjust filters</p>
+          <p>Add your first lead!</p>
         </div>`;
       return;
     }
@@ -953,45 +563,86 @@
         <div class="lead-card-header">
           <div>
             <div class="lead-card-name">${lead.name}</div>
-            ${lead.company ? `<div style="font-size:12px; color:var(--subtext)">${lead.company}</div>` : ''}
+            ${lead.company ?
+              `<div style="font-size:12px; color:var(--subtext)">
+                ${lead.company}
+              </div>` : ''}
           </div>
-          <span class="badge ${getBadgeClass(lead.status)}">${lead.status}</span>
+          <span class="badge ${getBadgeClass(lead.status)}">
+            ${lead.status}
+          </span>
         </div>
         <div class="lead-card-body">
           <div class="lead-card-info">Phone
-            <span><a href="tel:${lead.phone}" style="color:var(--primary); text-decoration:none">${lead.phone}</a></span>
+            <span>
+              <a href="tel:${lead.phone}"
+                 style="color:var(--primary); text-decoration:none">
+                ${lead.phone}
+              </a>
+            </span>
           </div>
-          <div class="lead-card-info">Type<span>${lead.projectType || '-'}</span></div>
-          <div class="lead-card-info">Location<span>${lead.location || '-'}</span></div>
-          <div class="lead-card-info">Budget<span style="color:var(--success)">${formatBudget(lead.budget)}</span></div>
-          <div class="lead-card-info">Source<span>${lead.source || '-'}</span></div>
-          <div class="lead-card-info">Date<span>${formatDate(lead.date)}</span></div>
+          <div class="lead-card-info">Type
+            <span>${lead.projectType || '-'}</span>
+          </div>
+          <div class="lead-card-info">Location
+            <span>${lead.location || '-'}</span>
+          </div>
+          <div class="lead-card-info">Budget
+            <span style="color:var(--success)">
+              ${formatBudget(lead.budget)}
+            </span>
+          </div>
+          <div class="lead-card-info">Assigned To
+            <span>${lead.assignedTo || '-'}</span>
+          </div>
+          <div class="lead-card-info">Date
+            <span>${formatDate(lead.date)}</span>
+          </div>
         </div>
         <div class="lead-card-footer">
-          <button class="icon-btn view" onclick="viewLead('${lead.id}')"><i class="fas fa-eye"></i></button>
-          <button class="icon-btn edit" onclick="editLead('${lead.id}')"><i class="fas fa-edit"></i></button>
-          <button class="icon-btn delete" onclick="deleteLead('${lead.id}')"><i class="fas fa-trash"></i></button>
+          ${lead.phone ? `
+          <a href="https://wa.me/91${lead.phone}"
+             target="_blank"
+             class="icon-btn whatsapp"
+             title="WhatsApp">
+            <i class="fab fa-whatsapp"></i>
+          </a>` : ''}
+          <button class="icon-btn view"
+                  onclick="viewLead('${lead.id}')">
+            <i class="fas fa-eye"></i>
+          </button>
+          <button class="icon-btn edit"
+                  onclick="editLead('${lead.id}')">
+            <i class="fas fa-edit"></i>
+          </button>
+          <button class="icon-btn delete"
+                  onclick="deleteLead('${lead.id}')">
+            <i class="fas fa-trash"></i>
+          </button>
         </div>
       </div>
     `).join('');
   }
 
-  // ─── UPDATE STATS ───
   function updateStats() {
     document.getElementById('ls-total').textContent = leads.length;
-    document.getElementById('ls-new').textContent = leads.filter(l => l.status === 'New').length;
-    document.getElementById('ls-visit').textContent = leads.filter(l => l.status === 'Site Visit').length;
-    document.getElementById('ls-proposal').textContent = leads.filter(l => l.status === 'Proposal Sent').length;
-    document.getElementById('ls-won').textContent = leads.filter(l => l.status === 'Won').length;
-    document.getElementById('ls-lost').textContent = leads.filter(l => l.status === 'Lost').length;
+    document.getElementById('ls-new').textContent =
+      leads.filter(l => l.status === 'New').length;
+    document.getElementById('ls-visit').textContent =
+      leads.filter(l => l.status === 'Site Visit').length;
+    document.getElementById('ls-proposal').textContent =
+      leads.filter(l => l.status === 'Proposal Sent').length;
+    document.getElementById('ls-won').textContent =
+      leads.filter(l => l.status === 'Won').length;
+    document.getElementById('ls-lost').textContent =
+      leads.filter(l => l.status === 'Lost').length;
   }
 
-  // ─── FILTER LEADS ───
   function filterLeads() {
     const search = document.getElementById('searchInput').value.toLowerCase();
     const status = document.getElementById('statusFilter').value;
-    const type = document.getElementById('typeFilter').value;
-    const sort = document.getElementById('sortFilter').value;
+    const type   = document.getElementById('typeFilter').value;
+    const sort   = document.getElementById('sortFilter').value;
 
     filteredLeads = leads.filter(lead => {
       const matchSearch =
@@ -1000,44 +651,40 @@
         (lead.location && lead.location.toLowerCase().includes(search)) ||
         (lead.company && lead.company.toLowerCase().includes(search));
       const matchStatus = !status || lead.status === status;
-      const matchType = !type || lead.projectType === type;
+      const matchType   = !type   || lead.projectType === type;
       return matchSearch && matchStatus && matchType;
     });
 
     if (sort === 'newest') {
-      filteredLeads.sort((a, b) => new Date(b.createdAt || b.date || 0) - new Date(a.createdAt || a.date || 0));
+      filteredLeads.sort((a,b) =>
+        new Date(b.createdAt||0) - new Date(a.createdAt||0));
     } else if (sort === 'oldest') {
-      filteredLeads.sort((a, b) => new Date(a.createdAt || a.date || 0) - new Date(b.createdAt || b.date || 0));
+      filteredLeads.sort((a,b) =>
+        new Date(a.createdAt||0) - new Date(b.createdAt||0));
     } else if (sort === 'name') {
-      filteredLeads.sort((a, b) => a.name.localeCompare(b.name));
+      filteredLeads.sort((a,b) => a.name.localeCompare(b.name));
     }
 
     renderLeads();
   }
 
-  // ─── OPEN ADD MODAL ───
+  // ─── MODAL ───
   function openAddModal() {
     editingId = null;
     document.getElementById('modalTitle').textContent = '➕ Add New Lead';
     clearForm();
+    loadUsersForAssign();
     document.getElementById('leadModal').classList.add('show');
   }
 
-  // ─── CLEAR FORM ───
   function clearForm() {
-    document.getElementById('leadName').value = '';
-    document.getElementById('leadPhone').value = '';
-    document.getElementById('leadEmail').value = '';
-    document.getElementById('leadCompany').value = '';
-    document.getElementById('leadType').value = '';
-    document.getElementById('leadLocation').value = '';
-    document.getElementById('leadBudget').value = '';
-    document.getElementById('leadSource').value = '';
-    document.getElementById('leadStatus').value = 'New';
+    ['leadName','leadPhone','leadEmail','leadCompany',
+     'leadLocation','leadBudget','leadArea','leadNotes']
+    .forEach(id => document.getElementById(id).value = '');
+    document.getElementById('leadType').value     = '';
+    document.getElementById('leadSource').value   = '';
+    document.getElementById('leadStatus').value   = 'New';
     document.getElementById('leadFollowup').value = '';
-    document.getElementById('leadAssigned').value = '';
-    document.getElementById('leadArea').value = '';
-    document.getElementById('leadNotes').value = '';
   }
 
   function closeModal() {
@@ -1045,59 +692,51 @@
     editingId = null;
   }
 
-  // ═══════════════════════════════════════
-  //     SAVE LEAD TO FIREBASE
-  // ═══════════════════════════════════════
+  // ─── SAVE LEAD ───
   async function saveLead() {
-    const name = document.getElementById('leadName').value.trim();
+    const name  = document.getElementById('leadName').value.trim();
     const phone = document.getElementById('leadPhone').value.trim();
 
-    if (!name) { showToast('❌ Please enter a name!', 'danger'); return; }
-    if (!phone) { showToast('❌ Please enter a phone number!', 'danger'); return; }
+    if (!name)  { showToast('❌ Enter name!', 'danger'); return; }
+    if (!phone) { showToast('❌ Enter phone!', 'danger'); return; }
     if (phone.length !== 10 || !/^[0-9]{10}$/.test(phone)) {
-      showToast('❌ Phone must be exactly 10 digits!', 'danger');
+      showToast('❌ Phone must be 10 digits!', 'danger');
       return;
     }
 
     const leadData = {
-      name,
-      phone,
-      email: document.getElementById('leadEmail').value.trim(),
-      company: document.getElementById('leadCompany').value.trim(),
+      name, phone,
+      email:       document.getElementById('leadEmail').value.trim(),
+      company:     document.getElementById('leadCompany').value.trim(),
       projectType: document.getElementById('leadType').value,
-      location: document.getElementById('leadLocation').value.trim(),
-      budget: document.getElementById('leadBudget').value,
-      source: document.getElementById('leadSource').value,
-      status: document.getElementById('leadStatus').value,
-      followupDate: document.getElementById('leadFollowup').value,
-      assignedTo: document.getElementById('leadAssigned').value.trim(),
-      area: document.getElementById('leadArea').value,
-      notes: document.getElementById('leadNotes').value.trim(),
-      updatedAt: new Date().toISOString()
+      location:    document.getElementById('leadLocation').value.trim(),
+      budget:      document.getElementById('leadBudget').value,
+      source:      document.getElementById('leadSource').value,
+      status:      document.getElementById('leadStatus').value,
+      followupDate:document.getElementById('leadFollowup').value,
+      assignedTo:  document.getElementById('leadAssigned').value,
+      area:        document.getElementById('leadArea').value,
+      notes:       document.getElementById('leadNotes').value.trim(),
+      updatedAt:   new Date().toISOString()
     };
 
     showSaving(true);
-
     try {
       if (editingId) {
-        // UPDATE existing lead in Firebase
         await leadsRef.doc(editingId).update(leadData);
-        showToast('✅ Lead updated in database!', 'success');
+        showToast('✅ Lead updated!', 'success');
       } else {
-        // ADD new lead to Firebase
-        leadData.date = new Date().toISOString().split('T')[0];
+        leadData.date      = new Date().toISOString().split('T')[0];
         leadData.createdAt = new Date().toISOString();
         await leadsRef.add(leadData);
-        showToast('✅ Lead saved to database!', 'success');
+        showToast('✅ Lead saved to Firebase!', 'success');
       }
-
       closeModal();
-      await loadLeads(); // Reload from Firebase
+      await loadLeads();
     } catch (error) {
-      console.error('Save error:', error);
-      showToast('❌ Error saving! Check connection.', 'danger');
+      console.error(error);
+      showToast('❌ Error! Check connection.', 'danger');
     }
-
     showSaving(false);
   }
 
@@ -1105,23 +744,21 @@
   function editLead(id) {
     const lead = leads.find(l => l.id === id);
     if (!lead) return;
-
     editingId = id;
     document.getElementById('modalTitle').textContent = '✏️ Edit Lead';
-    document.getElementById('leadName').value = lead.name || '';
-    document.getElementById('leadPhone').value = lead.phone || '';
-    document.getElementById('leadEmail').value = lead.email || '';
-    document.getElementById('leadCompany').value = lead.company || '';
-    document.getElementById('leadType').value = lead.projectType || '';
-    document.getElementById('leadLocation').value = lead.location || '';
-    document.getElementById('leadBudget').value = lead.budget || '';
-    document.getElementById('leadSource').value = lead.source || '';
-    document.getElementById('leadStatus').value = lead.status || 'New';
-    document.getElementById('leadFollowup').value = lead.followupDate || '';
-    document.getElementById('leadAssigned').value = lead.assignedTo || '';
-    document.getElementById('leadArea').value = lead.area || '';
-    document.getElementById('leadNotes').value = lead.notes || '';
-
+    document.getElementById('leadName').value        = lead.name || '';
+    document.getElementById('leadPhone').value       = lead.phone || '';
+    document.getElementById('leadEmail').value       = lead.email || '';
+    document.getElementById('leadCompany').value     = lead.company || '';
+    document.getElementById('leadType').value        = lead.projectType || '';
+    document.getElementById('leadLocation').value    = lead.location || '';
+    document.getElementById('leadBudget').value      = lead.budget || '';
+    document.getElementById('leadSource').value      = lead.source || '';
+    document.getElementById('leadStatus').value      = lead.status || 'New';
+    document.getElementById('leadFollowup').value    = lead.followupDate || '';
+    document.getElementById('leadArea').value        = lead.area || '';
+    document.getElementById('leadNotes').value       = lead.notes || '';
+    loadUsersForAssign(lead.assignedTo || '');
     closeViewModal();
     document.getElementById('leadModal').classList.add('show');
   }
@@ -1133,19 +770,37 @@
 
     document.getElementById('viewDetails').innerHTML = `
       <div class="detail-item">
-        <div class="detail-label">Full Name</div>
+        <div class="detail-label">Name</div>
         <div class="detail-value">${lead.name}</div>
       </div>
       <div class="detail-item">
-        <div class="detail-label">Phone</div>
-        <div class="detail-value">
-          <a href="tel:${lead.phone}" style="color:var(--primary); text-decoration:none">📞 ${lead.phone}</a>
+        <div class="detail-label">Phone & WhatsApp</div>
+        <div class="detail-value"
+             style="display:flex; gap:10px; align-items:center; flex-wrap:wrap">
+          <a href="tel:${lead.phone}"
+             style="color:var(--primary); text-decoration:none">
+            📞 ${lead.phone}
+          </a>
+          ${lead.phone ? `
+          <a href="https://wa.me/91${lead.phone}"
+             target="_blank"
+             style="background:rgba(37,211,102,0.15);
+                    color:#25d366; text-decoration:none;
+                    padding:5px 12px; border-radius:8px;
+                    font-size:13px; display:flex;
+                    align-items:center; gap:5px">
+            <i class="fab fa-whatsapp"></i> WhatsApp
+          </a>` : ''}
         </div>
       </div>
       <div class="detail-item">
         <div class="detail-label">Email</div>
         <div class="detail-value">
-          ${lead.email ? `<a href="mailto:${lead.email}" style="color:var(--primary); text-decoration:none">${lead.email}</a>` : '-'}
+          ${lead.email ?
+            `<a href="mailto:${lead.email}"
+               style="color:var(--primary); text-decoration:none">
+               ${lead.email}
+             </a>` : '-'}
         </div>
       </div>
       <div class="detail-item">
@@ -1162,40 +817,46 @@
       </div>
       <div class="detail-item">
         <div class="detail-label">Budget</div>
-        <div class="detail-value" style="color:var(--success)">${formatBudget(lead.budget)}</div>
+        <div class="detail-value" style="color:var(--success)">
+          ${formatBudget(lead.budget)}
+        </div>
       </div>
       <div class="detail-item">
         <div class="detail-label">Area</div>
-        <div class="detail-value">${lead.area ? lead.area + ' sq ft' : '-'}</div>
+        <div class="detail-value">
+          ${lead.area ? lead.area + ' sq ft' : '-'}
+        </div>
       </div>
       <div class="detail-item">
         <div class="detail-label">Status</div>
-        <div class="detail-value"><span class="badge ${getBadgeClass(lead.status)}">${lead.status}</span></div>
+        <div class="detail-value">
+          <span class="badge ${getBadgeClass(lead.status)}">
+            ${lead.status}
+          </span>
+        </div>
       </div>
       <div class="detail-item">
-        <div class="detail-label">Lead Source</div>
+        <div class="detail-label">Source</div>
         <div class="detail-value">${lead.source || '-'}</div>
-      </div>
-      <div class="detail-item">
-        <div class="detail-label">Follow-up Date</div>
-        <div class="detail-value">${formatDate(lead.followupDate)}</div>
       </div>
       <div class="detail-item">
         <div class="detail-label">Assigned To</div>
         <div class="detail-value">${lead.assignedTo || '-'}</div>
       </div>
       <div class="detail-item">
-        <div class="detail-label">Added Date</div>
-        <div class="detail-value">${formatDate(lead.date)}</div>
+        <div class="detail-label">Follow-up Date</div>
+        <div class="detail-value">${formatDate(lead.followupDate)}</div>
       </div>
       <div class="detail-item">
-        <div class="detail-label">Last Updated</div>
-        <div class="detail-value">${lead.updatedAt ? new Date(lead.updatedAt).toLocaleString('en-IN') : '-'}</div>
+        <div class="detail-label">Date Added</div>
+        <div class="detail-value">${formatDate(lead.date)}</div>
       </div>
       ${lead.notes ? `
       <div class="detail-item full">
         <div class="detail-label">Notes</div>
-        <div class="detail-value" style="font-size:14px; line-height:1.6">${lead.notes}</div>
+        <div class="detail-value" style="font-size:14px; line-height:1.6">
+          ${lead.notes}
+        </div>
       </div>` : ''}
     `;
 
@@ -1207,9 +868,7 @@
     document.getElementById('viewModal').classList.remove('show');
   }
 
-  // ═══════════════════════════════════════
-  //     DELETE LEAD FROM FIREBASE
-  // ═══════════════════════════════════════
+  // ─── DELETE ───
   function deleteLead(id) {
     deletingId = id;
     document.getElementById('deleteModal').classList.add('show');
@@ -1222,81 +881,67 @@
 
   async function confirmDelete() {
     if (!deletingId) return;
-
     showSaving(true);
-
     try {
       await leadsRef.doc(deletingId).delete();
       closeDeleteModal();
       await loadLeads();
-      showToast('🗑️ Lead deleted from database!', 'danger');
+      showToast('🗑️ Lead deleted!', 'danger');
     } catch (error) {
-      console.error('Delete error:', error);
-      showToast('❌ Error deleting! Check connection.', 'danger');
+      showToast('❌ Error deleting!', 'danger');
     }
-
     showSaving(false);
   }
 
-  // ─── EXPORT CSV ───
+  // ─── EXPORT ───
   function exportLeads() {
     if (leads.length === 0) {
-      showToast('❌ No leads to export!', 'danger');
+      showToast('❌ No leads!', 'danger');
       return;
     }
-
     const headers = [
       'Name','Phone','Email','Company',
       'Project Type','Location','Budget',
-      'Area (sqft)','Source','Status',
-      'Follow-up Date','Assigned To',
-      'Notes','Date Added'
+      'Status','Source','Assigned To','Date'
     ];
-
     const rows = leads.map(l => [
       l.name, l.phone, l.email, l.company,
       l.projectType, l.location, l.budget,
-      l.area, l.source, l.status,
-      l.followupDate, l.assignedTo,
-      l.notes, l.date
+      l.status, l.source, l.assignedTo, l.date
     ]);
-
-    const csvContent = [headers, ...rows]
-      .map(r => r.map(cell =>
-        '"' + (cell || '').toString().replace(/"/g, '""') + '"'
+    const csv = [headers,...rows]
+      .map(r => r.map(c =>
+        '"'+(c||'').toString().replace(/"/g,'""')+'"'
       ).join(','))
       .join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'TurnkeyCRM_Leads_' + new Date().toISOString().split('T')[0] + '.csv';
+    const blob = new Blob([csv], {type:'text/csv'});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = 'Leads_'+new Date().toISOString().split('T')[0]+'.csv';
     a.click();
-    URL.revokeObjectURL(url);
-    showToast('✅ Leads exported to CSV!', 'success');
+    showToast('✅ Exported!', 'success');
   }
 
-  // ─── SAVING INDICATOR ───
+  // ─── HELPERS ───
   function showSaving(show) {
     document.getElementById('savingIndicator').style.display =
       show ? 'block' : 'none';
   }
 
-  // ─── TOAST ───
   function showToast(message, type = 'success') {
     const toast = document.getElementById('toast');
     toast.textContent = message;
     toast.style.display = 'block';
-    toast.style.background = type === 'danger'
-      ? 'var(--danger)' : type === 'warning'
-      ? 'var(--warning)' : 'var(--success)';
+    toast.style.background =
+      type === 'danger'  ? 'var(--danger)'  :
+      type === 'warning' ? 'var(--warning)' :
+      'var(--success)';
     setTimeout(() => { toast.style.display = 'none'; }, 3000);
   }
 
-  // ─── CLOSE ON OUTSIDE CLICK ───
   document.querySelectorAll('.modal-overlay').forEach(overlay => {
-    overlay.addEventListener('click', function (e) {
+    overlay.addEventListener('click', function(e) {
       if (e.target === this) {
         this.classList.remove('show');
         editingId = null;
@@ -1305,8 +950,9 @@
     });
   });
 
-  // ─── INIT: LOAD FROM FIREBASE ───
+  // ─── INIT ───
   loadLeads();
+  loadUsersForAssign();
 </script>
 </body>
 </html>
