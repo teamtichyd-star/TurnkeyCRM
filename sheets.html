@@ -5,767 +5,113 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Sheets Sync - Turnkey CRM</title>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: 'Segoe UI', sans-serif;
-    }
-
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
     :root {
-      --primary: #c8a96e;
-      --dark: #1a1a2e;
-      --darker: #12121f;
-      --card: #16213e;
-      --text: #ffffff;
-      --subtext: #a0a0b0;
-      --success: #4caf50;
-      --warning: #ff9800;
-      --danger: #f44336;
-      --info: #2196f3;
-      --sheets: #34a853;
+      --primary: #c8a96e; --dark: #1a1a2e; --darker: #12121f;
+      --card: #16213e; --text: #ffffff; --subtext: #a0a0b0;
+      --success: #4caf50; --warning: #ff9800; --danger: #f44336;
+      --info: #2196f3; --sheets: #34a853;
     }
-
-    body {
-      background: var(--darker);
-      color: var(--text);
-      min-height: 100vh;
-    }
-
-    .page {
-      padding: 25px;
-      animation: fadeIn 0.3s ease;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* ─── TOP ACTIONS ─── */
-    .top-actions {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-
-    .top-actions h2 {
-      font-size: 20px;
-      font-weight: 700;
-      color: var(--primary);
-    }
-
-    .top-actions h2 span {
-      font-size: 13px;
-      color: var(--subtext);
-      font-weight: 400;
-      margin-left: 8px;
-    }
-
-    /* ─── BUTTONS ─── */
-    .btn {
-      padding: 10px 18px;
-      border-radius: 10px;
-      border: none;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 500;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      transition: 0.2s;
-    }
-
-    .btn-primary {
-      background: linear-gradient(135deg, var(--primary), #a07840);
-      color: white;
-    }
-
+    body { background: var(--darker); color: var(--text); min-height: 100vh; }
+    .page { padding: 25px; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .top-actions { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+    .top-actions h2 { font-size: 20px; font-weight: 700; color: var(--primary); }
+    .btn { padding: 10px 18px; border-radius: 10px; border: none; cursor: pointer; font-size: 14px; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; }
+    .btn-primary { background: linear-gradient(135deg, var(--primary), #a07840); color: white; }
     .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
-
-    .btn-sheets {
-      background: rgba(52,168,83,0.15);
-      color: var(--sheets);
-      border: 1px solid rgba(52,168,83,0.3);
-    }
-
+    .btn-sheets { background: rgba(52,168,83,0.15); color: var(--sheets); border: 1px solid rgba(52,168,83,0.3); }
     .btn-sheets:hover { background: rgba(52,168,83,0.25); }
-
-    .btn-danger {
-      background: rgba(244,67,54,0.15);
-      color: var(--danger);
-      border: 1px solid rgba(244,67,54,0.3);
-    }
-
-    .btn-danger:hover { background: rgba(244,67,54,0.25); }
-
-    .btn-info {
-      background: rgba(33,150,243,0.15);
-      color: var(--info);
-      border: 1px solid rgba(33,150,243,0.3);
-    }
-
-    .btn-warning {
-      background: rgba(255,152,0,0.15);
-      color: var(--warning);
-      border: 1px solid rgba(255,152,0,0.3);
-    }
-
-    .btn-success {
-      background: rgba(76,175,80,0.15);
-      color: var(--success);
-      border: 1px solid rgba(76,175,80,0.3);
-    }
-
-    /* ─── TABS ─── */
-    .main-tabs {
-      display: flex;
-      gap: 4px;
-      background: var(--card);
-      padding: 5px;
-      border-radius: 12px;
-      margin-bottom: 25px;
-      border: 1px solid rgba(255,255,255,0.05);
-      flex-wrap: wrap;
-    }
-
-    .main-tab {
-      flex: 1;
-      min-width: 120px;
-      padding: 11px 16px;
-      border-radius: 8px;
-      border: none;
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 500;
-      background: transparent;
-      color: var(--subtext);
-      transition: 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 7px;
-    }
-
+    .btn-danger { background: rgba(244,67,54,0.15); color: var(--danger); border: 1px solid rgba(244,67,54,0.3); }
+    .btn-info { background: rgba(33,150,243,0.15); color: var(--info); border: 1px solid rgba(33,150,243,0.3); }
+    .btn-warning { background: rgba(255,152,0,0.15); color: var(--warning); border: 1px solid rgba(255,152,0,0.3); }
+    .btn-success { background: rgba(76,175,80,0.15); color: var(--success); border: 1px solid rgba(76,175,80,0.3); }
+    .main-tabs { display: flex; gap: 4px; background: var(--card); padding: 5px; border-radius: 12px; margin-bottom: 25px; border: 1px solid rgba(255,255,255,0.05); flex-wrap: wrap; }
+    .main-tab { flex: 1; min-width: 100px; padding: 11px 16px; border-radius: 8px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; background: transparent; color: var(--subtext); transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 7px; }
     .main-tab:hover { color: var(--text); }
-
-    .main-tab.active {
-      background: rgba(200,169,110,0.15);
-      color: var(--primary);
-    }
-
-    /* ─── TAB CONTENT ─── */
+    .main-tab.active { background: rgba(200,169,110,0.15); color: var(--primary); }
     .tab-content { display: none; }
     .tab-content.active { display: block; }
-
-    /* ─── SECTION CARD ─── */
-    .section-card {
-      background: var(--card);
-      border-radius: 16px;
-      border: 1px solid rgba(255,255,255,0.05);
-      margin-bottom: 20px;
-      overflow: hidden;
-    }
-
-    .section-card-header {
-      padding: 18px 22px;
-      border-bottom: 1px solid rgba(255,255,255,0.05);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-
-    .section-card-header h3 {
-      font-size: 15px;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
+    .section-card { background: var(--card); border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 20px; overflow: hidden; }
+    .section-card-header { padding: 18px 22px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+    .section-card-header h3 { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
     .section-card-body { padding: 22px; }
-
-    /* ─── SETUP STEPS ─── */
-    .setup-steps {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .setup-step {
-      display: flex;
-      gap: 16px;
-      align-items: flex-start;
-    }
-
-    .step-number {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      background: rgba(200,169,110,0.15);
-      border: 2px solid rgba(200,169,110,0.3);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-      font-weight: 700;
-      color: var(--primary);
-      flex-shrink: 0;
-    }
-
-    .step-number.done {
-      background: rgba(76,175,80,0.15);
-      border-color: rgba(76,175,80,0.3);
-      color: var(--success);
-    }
-
-    .step-content { flex: 1; }
-
-    .step-title {
-      font-size: 14px;
-      font-weight: 600;
-      margin-bottom: 5px;
-    }
-
-    .step-desc {
-      font-size: 13px;
-      color: var(--subtext);
-      line-height: 1.6;
-      margin-bottom: 10px;
-    }
-
-    /* ─── INPUT GROUP ─── */
-    .input-group {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-
-    .input-group input,
-    .input-group select {
-      flex: 1;
-      min-width: 200px;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 10px;
-      padding: 11px 14px;
-      color: var(--text);
-      font-size: 14px;
-      outline: none;
-      transition: 0.3s;
-    }
-
-    .input-group input:focus,
-    .input-group select:focus {
-      border-color: var(--primary);
-      background: rgba(200,169,110,0.05);
-    }
-
-    .input-group select option { background: var(--dark); }
-
-    /* ─── STATUS INDICATOR ─── */
-    .status-indicator {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 16px;
-      border-radius: 10px;
-      font-size: 13px;
-      font-weight: 500;
-    }
-
-    .status-indicator.connected {
-      background: rgba(76,175,80,0.1);
-      border: 1px solid rgba(76,175,80,0.2);
-      color: var(--success);
-    }
-
-    .status-indicator.disconnected {
-      background: rgba(244,67,54,0.1);
-      border: 1px solid rgba(244,67,54,0.2);
-      color: var(--danger);
-    }
-
-    .status-indicator.pending {
-      background: rgba(255,152,0,0.1);
-      border: 1px solid rgba(255,152,0,0.2);
-      color: var(--warning);
-    }
-
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-
-    .status-dot.green { background: var(--success); }
-    .status-dot.red { background: var(--danger); }
-    .status-dot.orange { background: var(--warning); }
-
-    /* ─── IMPORT AREA ─── */
-    .import-area {
-      border: 2px dashed rgba(200,169,110,0.3);
-      border-radius: 14px;
-      padding: 40px 20px;
-      text-align: center;
-      cursor: pointer;
-      transition: 0.3s;
-      background: rgba(200,169,110,0.02);
-    }
-
-    .import-area:hover {
-      border-color: var(--primary);
-      background: rgba(200,169,110,0.05);
-    }
-
-    .import-area.dragover {
-      border-color: var(--primary);
-      background: rgba(200,169,110,0.08);
-    }
-
-    .import-area i {
-      font-size: 48px;
-      color: var(--primary);
-      opacity: 0.5;
-      margin-bottom: 15px;
-      display: block;
-    }
-
-    .import-area h3 {
-      font-size: 16px;
-      margin-bottom: 8px;
-    }
-
-    .import-area p {
-      font-size: 13px;
-      color: var(--subtext);
-      margin-bottom: 15px;
-    }
-
-    /* ─── PREVIEW TABLE ─── */
-    .preview-section {
-      display: none;
-      margin-top: 20px;
-    }
-
-    .preview-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 12px;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-
-    .preview-header h4 {
-      font-size: 14px;
-      font-weight: 600;
-    }
-
-    .preview-count {
-      font-size: 13px;
-      color: var(--subtext);
-    }
-
-    .table-wrapper {
-      overflow-x: auto;
-      border-radius: 10px;
-      border: 1px solid rgba(255,255,255,0.05);
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
-    table th {
-      padding: 12px 15px;
-      text-align: left;
-      font-size: 12px;
-      color: var(--subtext);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      background: rgba(255,255,255,0.03);
-      white-space: nowrap;
-    }
-
-    table td {
-      padding: 12px 15px;
-      font-size: 13px;
-      border-top: 1px solid rgba(255,255,255,0.03);
-    }
-
+    .sync-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .sync-stat { background: rgba(255,255,255,0.03); border-radius: 12px; padding: 15px; text-align: center; border: 1px solid rgba(255,255,255,0.05); transition: 0.3s; }
+    .sync-stat:hover { border-color: rgba(200,169,110,0.2); transform: translateY(-2px); }
+    .sync-stat h3 { font-size: 24px; font-weight: 700; color: var(--primary); }
+    .sync-stat p { font-size: 12px; color: var(--subtext); margin-top: 4px; }
+    .import-area { border: 2px dashed rgba(200,169,110,0.3); border-radius: 14px; padding: 40px 20px; text-align: center; cursor: pointer; transition: 0.3s; background: rgba(200,169,110,0.02); }
+    .import-area:hover { border-color: var(--primary); background: rgba(200,169,110,0.05); }
+    .import-area.dragover { border-color: var(--primary); background: rgba(200,169,110,0.08); }
+    .import-area i { font-size: 48px; color: var(--primary); opacity: 0.5; margin-bottom: 15px; display: block; }
+    .import-area h3 { font-size: 16px; margin-bottom: 8px; }
+    .import-area p { font-size: 13px; color: var(--subtext); margin-bottom: 15px; }
+    .import-progress { display: none; margin-top: 15px; }
+    .import-progress-bar { height: 8px; background: rgba(255,255,255,0.05); border-radius: 10px; overflow: hidden; margin-bottom: 8px; }
+    .import-progress-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--success)); border-radius: 10px; transition: width 0.3s ease; width: 0%; }
+    .import-progress-text { font-size: 13px; color: var(--subtext); text-align: center; }
+    .preview-section { display: none; margin-top: 20px; }
+    .preview-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 10px; }
+    .preview-header h4 { font-size: 14px; font-weight: 600; }
+    .preview-count { font-size: 13px; color: var(--subtext); }
+    .table-wrapper { overflow-x: auto; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); }
+    table { width: 100%; border-collapse: collapse; }
+    table th { padding: 12px 15px; text-align: left; font-size: 12px; color: var(--subtext); text-transform: uppercase; letter-spacing: 0.5px; background: rgba(255,255,255,0.03); white-space: nowrap; }
+    table td { padding: 12px 15px; font-size: 13px; border-top: 1px solid rgba(255,255,255,0.03); }
     table tr:hover td { background: rgba(255,255,255,0.02); }
-
-    /* ─── COLUMN MAPPER ─── */
-    .column-mapper {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-top: 15px;
-    }
-
-    .map-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      background: rgba(255,255,255,0.03);
-      padding: 12px 14px;
-      border-radius: 10px;
-      border: 1px solid rgba(255,255,255,0.05);
-    }
-
-    .map-row label {
-      font-size: 12px;
-      color: var(--subtext);
-      min-width: 80px;
-    }
-
-    .map-row select {
-      flex: 1;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 8px;
-      padding: 7px 10px;
-      color: var(--text);
-      font-size: 13px;
-      outline: none;
-    }
-
+    .column-mapper { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 15px; }
+    .map-row { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.03); padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); }
+    .map-row label { font-size: 12px; color: var(--subtext); min-width: 90px; }
+    .map-row select { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 7px 10px; color: var(--text); font-size: 13px; outline: none; }
     .map-row select option { background: var(--dark); }
-
-    /* ─── INFO BOX ─── */
-    .info-box {
-      background: rgba(33,150,243,0.08);
-      border: 1px solid rgba(33,150,243,0.2);
-      border-radius: 12px;
-      padding: 15px 18px;
-      margin-bottom: 18px;
-      display: flex;
-      gap: 12px;
-      align-items: flex-start;
-    }
-
-    .info-box i {
-      font-size: 18px;
-      color: var(--info);
-      flex-shrink: 0;
-      margin-top: 2px;
-    }
-
-    .info-box-text h4 {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--info);
-      margin-bottom: 4px;
-    }
-
-    .info-box-text p {
-      font-size: 13px;
-      color: var(--subtext);
-      line-height: 1.6;
-    }
-
-    .info-box-text a {
-      color: var(--primary);
-      text-decoration: none;
-    }
-
-    /* ─── SUCCESS BOX ─── */
-    .success-box {
-      background: rgba(76,175,80,0.08);
-      border: 1px solid rgba(76,175,80,0.2);
-      border-radius: 12px;
-      padding: 15px 18px;
-      margin-top: 15px;
-      display: none;
-    }
-
+    .info-box { background: rgba(33,150,243,0.08); border: 1px solid rgba(33,150,243,0.2); border-radius: 12px; padding: 15px 18px; margin-bottom: 18px; display: flex; gap: 12px; align-items: flex-start; }
+    .info-box i { font-size: 18px; color: var(--info); flex-shrink: 0; margin-top: 2px; }
+    .info-box-text h4 { font-size: 13px; font-weight: 600; color: var(--info); margin-bottom: 4px; }
+    .info-box-text p { font-size: 13px; color: var(--subtext); line-height: 1.6; }
+    .success-box { background: rgba(76,175,80,0.08); border: 1px solid rgba(76,175,80,0.2); border-radius: 12px; padding: 15px 18px; margin-top: 15px; display: none; }
     .success-box.show { display: flex; gap: 12px; align-items: flex-start; }
-
     .success-box i { color: var(--success); font-size: 18px; flex-shrink: 0; }
-
-    .success-box-text h4 {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--success);
-      margin-bottom: 4px;
-    }
-
-    .success-box-text p {
-      font-size: 13px;
-      color: var(--subtext);
-    }
-
-    /* ─── SYNC LOG ─── */
-    .sync-log {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      max-height: 300px;
-      overflow-y: auto;
-    }
-
-    .log-item {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      padding: 12px 14px;
-      background: rgba(255,255,255,0.03);
-      border-radius: 10px;
-      border: 1px solid rgba(255,255,255,0.05);
-    }
-
-    .log-icon {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-      flex-shrink: 0;
-    }
-
+    .success-box-text h4 { font-size: 13px; font-weight: 600; color: var(--success); margin-bottom: 4px; }
+    .success-box-text p { font-size: 13px; color: var(--subtext); }
+    .manual-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+    .manual-table th { padding: 10px 12px; text-align: left; font-size: 12px; color: var(--subtext); background: rgba(255,255,255,0.03); border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .manual-table td { padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.03); }
+    .manual-table input, .manual-table select { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 7px 10px; color: var(--text); font-size: 13px; outline: none; }
+    .manual-table input:focus, .manual-table select:focus { border-color: var(--primary); }
+    .manual-table select option { background: var(--dark); }
+    .export-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; }
+    .export-option { background: rgba(255,255,255,0.03); border-radius: 14px; padding: 22px; border: 1px solid rgba(255,255,255,0.05); text-align: center; transition: 0.3s; cursor: pointer; }
+    .export-option:hover { border-color: rgba(200,169,110,0.3); transform: translateY(-2px); }
+    .export-option-icon { font-size: 36px; margin-bottom: 12px; }
+    .export-option h4 { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+    .export-option p { font-size: 12px; color: var(--subtext); margin-bottom: 15px; line-height: 1.5; }
+    .instruction-steps { display: flex; flex-direction: column; gap: 12px; }
+    .instruction-step { display: flex; gap: 14px; align-items: flex-start; padding: 14px; background: rgba(255,255,255,0.02); border-radius: 10px; border: 1px solid rgba(255,255,255,0.04); }
+    .instruction-step .step-icon { font-size: 22px; flex-shrink: 0; }
+    .instruction-step-content h4 { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+    .instruction-step-content p { font-size: 12px; color: var(--subtext); line-height: 1.6; }
+    .instruction-step-content code { background: rgba(200,169,110,0.1); color: var(--primary); padding: 2px 6px; border-radius: 4px; font-size: 12px; font-family: monospace; }
+    .badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+    .badge-green { background: rgba(76,175,80,0.15); color: var(--success); }
+    .badge-blue { background: rgba(33,150,243,0.15); color: var(--info); }
+    .badge-orange { background: rgba(255,152,0,0.15); color: var(--warning); }
+    .sync-log { display: flex; flex-direction: column; gap: 10px; max-height: 300px; overflow-y: auto; }
+    .log-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; background: rgba(255,255,255,0.03); border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); }
+    .log-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
     .log-icon.success { background: rgba(76,175,80,0.15); color: var(--success); }
     .log-icon.error { background: rgba(244,67,54,0.15); color: var(--danger); }
     .log-icon.info { background: rgba(33,150,243,0.15); color: var(--info); }
     .log-icon.warning { background: rgba(255,152,0,0.15); color: var(--warning); }
-
     .log-content { flex: 1; }
-
-    .log-message {
-      font-size: 13px;
-      font-weight: 500;
-      margin-bottom: 3px;
-    }
-
-    .log-time {
-      font-size: 11px;
-      color: var(--subtext);
-    }
-
-    /* ─── STATS GRID ─── */
-    .sync-stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-
-    .sync-stat {
-      background: rgba(255,255,255,0.03);
-      border-radius: 12px;
-      padding: 15px;
-      text-align: center;
-      border: 1px solid rgba(255,255,255,0.05);
-    }
-
-    .sync-stat h3 {
-      font-size: 24px;
-      font-weight: 700;
-      color: var(--primary);
-    }
-
-    .sync-stat p {
-      font-size: 12px;
-      color: var(--subtext);
-      margin-top: 4px;
-    }
-
-    /* ─── EXPORT SECTION ─── */
-    .export-options {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 16px;
-    }
-
-    .export-option {
-      background: rgba(255,255,255,0.03);
-      border-radius: 14px;
-      padding: 22px;
-      border: 1px solid rgba(255,255,255,0.05);
-      text-align: center;
-      transition: 0.3s;
-      cursor: pointer;
-    }
-
-    .export-option:hover {
-      border-color: rgba(200,169,110,0.3);
-      transform: translateY(-2px);
-    }
-
-    .export-option-icon {
-      font-size: 36px;
-      margin-bottom: 12px;
-    }
-
-    .export-option h4 {
-      font-size: 15px;
-      font-weight: 600;
-      margin-bottom: 6px;
-    }
-
-    .export-option p {
-      font-size: 12px;
-      color: var(--subtext);
-      margin-bottom: 15px;
-      line-height: 1.5;
-    }
-
-    /* ─── BADGE ─── */
-    .badge {
-      padding: 3px 10px;
-      border-radius: 20px;
-      font-size: 11px;
-      font-weight: 500;
-    }
-
-    .badge-green { background: rgba(76,175,80,0.15); color: var(--success); }
-    .badge-blue { background: rgba(33,150,243,0.15); color: var(--info); }
-    .badge-orange { background: rgba(255,152,0,0.15); color: var(--warning); }
-
-    /* ─── PROGRESS BAR ─── */
-    .import-progress {
-      display: none;
-      margin-top: 15px;
-    }
-
-    .import-progress-bar {
-      height: 8px;
-      background: rgba(255,255,255,0.05);
-      border-radius: 10px;
-      overflow: hidden;
-      margin-bottom: 8px;
-    }
-
-    .import-progress-fill {
-      height: 100%;
-      background: linear-gradient(90deg, var(--primary), var(--success));
-      border-radius: 10px;
-      transition: width 0.3s ease;
-      width: 0%;
-    }
-
-    .import-progress-text {
-      font-size: 13px;
-      color: var(--subtext);
-      text-align: center;
-    }
-
-    /* ─── MANUAL ENTRY TABLE ─── */
-    .manual-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 15px;
-    }
-
-    .manual-table th {
-      padding: 10px 12px;
-      text-align: left;
-      font-size: 12px;
-      color: var(--subtext);
-      background: rgba(255,255,255,0.03);
-      border-bottom: 1px solid rgba(255,255,255,0.05);
-    }
-
-    .manual-table td {
-      padding: 8px;
-      border-bottom: 1px solid rgba(255,255,255,0.03);
-    }
-
-    .manual-table input,
-    .manual-table select {
-      width: 100%;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 6px;
-      padding: 7px 10px;
-      color: var(--text);
-      font-size: 13px;
-      outline: none;
-    }
-
-    .manual-table input:focus,
-    .manual-table select:focus {
-      border-color: var(--primary);
-    }
-
-    .manual-table select option { background: var(--dark); }
-
-    /* ─── GOOGLE SHEET INSTRUCTIONS ─── */
-    .instruction-steps {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .instruction-step {
-      display: flex;
-      gap: 14px;
-      align-items: flex-start;
-      padding: 14px;
-      background: rgba(255,255,255,0.02);
-      border-radius: 10px;
-      border: 1px solid rgba(255,255,255,0.04);
-    }
-
-    .instruction-step .step-icon {
-      font-size: 22px;
-      flex-shrink: 0;
-    }
-
-    .instruction-step-content h4 {
-      font-size: 13px;
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
-
-    .instruction-step-content p {
-      font-size: 12px;
-      color: var(--subtext);
-      line-height: 1.6;
-    }
-
-    .instruction-step-content code {
-      background: rgba(200,169,110,0.1);
-      color: var(--primary);
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-size: 12px;
-      font-family: monospace;
-    }
-
-    /* ─── TOAST ─── */
-    .toast {
-      position: fixed;
-      bottom: 90px;
-      right: 20px;
-      background: var(--success);
-      color: white;
-      padding: 12px 20px;
-      border-radius: 10px;
-      font-size: 14px;
-      z-index: 9999;
-      display: none;
-      animation: slideIn 0.3s ease;
-      box-shadow: 0 5px 20px rgba(0,0,0,0.3);
-    }
-
-    @keyframes slideIn {
-      from { transform: translateX(100px); opacity: 0; }
-      to { transform: translateX(0); opacity: 1; }
-    }
-
-    /* ─── RESPONSIVE ─── */
+    .log-message { font-size: 13px; font-weight: 500; margin-bottom: 3px; }
+    .log-time { font-size: 11px; color: var(--subtext); }
+    .saving-indicator { position: fixed; top: 10px; right: 10px; background: rgba(200,169,110,0.2); color: var(--primary); padding: 8px 16px; border-radius: 8px; font-size: 13px; z-index: 9999; display: none; }
+    .toast { position: fixed; bottom: 90px; right: 20px; background: var(--success); color: white; padding: 12px 20px; border-radius: 10px; font-size: 14px; z-index: 9999; display: none; animation: slideIn 0.3s ease; box-shadow: 0 5px 20px rgba(0,0,0,0.3); }
+    @keyframes slideIn { from { transform: translateX(100px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
     @media (max-width: 768px) {
       .page { padding: 15px; padding-bottom: 80px; }
       .main-tabs { flex-direction: column; }
@@ -773,34 +119,29 @@
       .column-mapper { grid-template-columns: 1fr; }
       .export-options { grid-template-columns: 1fr; }
       .top-actions { flex-direction: column; align-items: flex-start; }
-      .input-group { flex-direction: column; }
-      .input-group input,
-      .input-group select { width: 100%; min-width: unset; }
       .section-card-header { flex-direction: column; align-items: flex-start; }
     }
   </style>
 </head>
 <body>
 
-<!-- ─── TOAST ─── -->
+<div class="saving-indicator" id="savingIndicator">⏳ Saving to Firebase...</div>
 <div class="toast" id="toast"></div>
 
-<!-- ═══════════════════════════════════ -->
-<!--      SHEETS SYNC PAGE CONTENT      -->
-<!-- ═══════════════════════════════════ -->
 <div class="page">
 
-  <!-- TOP ACTIONS -->
   <div class="top-actions">
     <h2>🔄 Google Sheets Sync
-      <span>Import & Export Data</span>
+      <span style="font-size:13px; color:var(--subtext); font-weight:400; margin-left:8px">
+        Import & Export Firebase Data
+      </span>
     </h2>
   </div>
 
   <!-- MAIN TABS -->
   <div class="main-tabs">
     <button class="main-tab active" onclick="switchTab('import')" id="tab-import">
-      <i class="fas fa-file-import"></i> Import from CSV/Sheets
+      <i class="fas fa-file-import"></i> Import CSV
     </button>
     <button class="main-tab" onclick="switchTab('manual')" id="tab-manual">
       <i class="fas fa-keyboard"></i> Manual Entry
@@ -816,38 +157,33 @@
     </button>
   </div>
 
-  <!-- ═══════════════════════════ -->
-  <!--    TAB 1: IMPORT           -->
-  <!-- ═══════════════════════════ -->
+  <!-- ═══ TAB 1: IMPORT ═══ -->
   <div class="tab-content active" id="content-import">
 
     <div class="info-box">
       <i class="fas fa-info-circle"></i>
       <div class="info-box-text">
-        <h4>How to Import from Google Sheets</h4>
+        <h4>Import CSV → Saves Directly to Firebase!</h4>
         <p>
           In Google Sheets → <strong>File → Download → CSV</strong>.
-          Then upload the CSV here. Your data will be imported directly into the CRM!
-          Make sure your sheet has columns: Name, Phone, Email, Project Type, Location, Budget, Status.
+          Upload here → Data saves to Firebase instantly!
+          All team members see imported data immediately! ✅
         </p>
       </div>
     </div>
 
-    <!-- IMPORT TYPE -->
+    <!-- IMPORT SETTINGS -->
     <div class="section-card" style="margin-bottom:20px">
       <div class="section-card-header">
         <h3><i class="fas fa-cogs" style="color:var(--primary)"></i> Import Settings</h3>
       </div>
       <div class="section-card-body">
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; flex-wrap:wrap">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px">
           <div>
             <label style="font-size:13px; color:var(--subtext); display:block; margin-bottom:8px">
               Import Into
             </label>
-            <select id="importTarget" style="
-              width:100%; background:rgba(255,255,255,0.05);
-              border:1px solid rgba(255,255,255,0.1); border-radius:10px;
-              padding:11px 14px; color:var(--text); font-size:14px; outline:none">
+            <select id="importTarget" style="width:100%; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:11px 14px; color:var(--text); font-size:14px; outline:none">
               <option value="leads">📥 Leads</option>
               <option value="tasks">✅ Tasks</option>
               <option value="projects">🏗️ Projects</option>
@@ -858,13 +194,9 @@
             <label style="font-size:13px; color:var(--subtext); display:block; margin-bottom:8px">
               Duplicate Handling
             </label>
-            <select id="duplicateHandling" style="
-              width:100%; background:rgba(255,255,255,0.05);
-              border:1px solid rgba(255,255,255,0.1); border-radius:10px;
-              padding:11px 14px; color:var(--text); font-size:14px; outline:none">
+            <select id="duplicateHandling" style="width:100%; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:11px 14px; color:var(--text); font-size:14px; outline:none">
               <option value="skip">Skip Duplicates</option>
-              <option value="overwrite">Overwrite Duplicates</option>
-              <option value="add">Add All (Allow Duplicates)</option>
+              <option value="add">Add All</option>
             </select>
           </div>
         </div>
@@ -884,7 +216,6 @@
         <input type="file" id="csvFile" accept=".csv"
                style="display:none" onchange="handleFileUpload(event)"/>
 
-        <!-- DROP ZONE -->
         <div class="import-area" id="dropZone"
              onclick="document.getElementById('csvFile').click()"
              ondragover="handleDragOver(event)"
@@ -892,7 +223,7 @@
              ondrop="handleDrop(event)">
           <i class="fas fa-cloud-upload-alt"></i>
           <h3>Drop CSV file here or click to browse</h3>
-          <p>Supports .csv files exported from Google Sheets or Excel</p>
+          <p>Supports .csv files from Google Sheets or Excel</p>
           <button class="btn btn-sheets"
                   onclick="event.stopPropagation();
                   document.getElementById('csvFile').click()">
@@ -900,58 +231,50 @@
           </button>
         </div>
 
-        <!-- IMPORT PROGRESS -->
         <div class="import-progress" id="importProgress">
           <div class="import-progress-bar">
             <div class="import-progress-fill" id="importProgressFill"></div>
           </div>
-          <div class="import-progress-text" id="importProgressText">
-            Processing...
-          </div>
+          <div class="import-progress-text" id="importProgressText">Processing...</div>
         </div>
 
-        <!-- PREVIEW SECTION -->
+        <!-- PREVIEW -->
         <div class="preview-section" id="previewSection">
-
-          <!-- COLUMN MAPPING -->
           <div style="margin-bottom:20px">
             <h4 style="font-size:14px; font-weight:600; margin-bottom:12px">
               🗂️ Map Your Columns
             </h4>
             <p style="font-size:13px; color:var(--subtext); margin-bottom:12px">
-              Match your CSV columns to CRM fields:
+              Match CSV columns to CRM fields:
             </p>
             <div class="column-mapper" id="columnMapper"></div>
           </div>
 
-          <!-- DATA PREVIEW -->
           <div class="preview-header">
-            <h4>👁️ Data Preview</h4>
+            <h4>👁️ Data Preview (First 5 rows)</h4>
             <span class="preview-count" id="previewCount"></span>
           </div>
           <div class="table-wrapper">
-            <table id="previewTable">
+            <table>
               <thead id="previewHead"></thead>
               <tbody id="previewBody"></tbody>
             </table>
           </div>
 
-          <!-- IMPORT BUTTONS -->
           <div style="display:flex; gap:10px; margin-top:15px; flex-wrap:wrap">
-            <button class="btn btn-sheets" onclick="importData()">
-              <i class="fas fa-download"></i> Import to CRM
+            <button class="btn btn-sheets" onclick="importToFirebase()">
+              <i class="fas fa-fire"></i> Import to Firebase
             </button>
             <button class="btn btn-warning" onclick="resetImport()">
               <i class="fas fa-redo"></i> Reset
             </button>
           </div>
 
-          <!-- SUCCESS BOX -->
           <div class="success-box" id="successBox">
             <i class="fas fa-check-circle"></i>
             <div class="success-box-text">
               <h4 id="successTitle">Import Successful!</h4>
-              <p id="successText">Records imported successfully.</p>
+              <p id="successText">Records imported to Firebase.</p>
             </div>
           </div>
 
@@ -961,27 +284,20 @@
 
   </div>
 
-  <!-- ═══════════════════════════ -->
-  <!--    TAB 2: MANUAL ENTRY     -->
-  <!-- ═══════════════════════════ -->
+  <!-- ═══ TAB 2: MANUAL ENTRY ═══ -->
   <div class="tab-content" id="content-manual">
 
     <div class="info-box">
       <i class="fas fa-info-circle"></i>
       <div class="info-box-text">
-        <h4>Manual Lead Entry</h4>
-        <p>
-          Add multiple leads at once using the table below.
-          Fill in each row and click <strong>Save All</strong> to import!
-        </p>
+        <h4>Manual Bulk Lead Entry → Saves to Firebase!</h4>
+        <p>Add multiple leads at once. Click <strong>Save All to Firebase</strong> to save! ✅</p>
       </div>
     </div>
 
     <div class="section-card">
       <div class="section-card-header">
-        <h3><i class="fas fa-table" style="color:var(--primary)"></i>
-          Bulk Lead Entry
-        </h3>
+        <h3><i class="fas fa-table" style="color:var(--primary)"></i> Bulk Lead Entry</h3>
         <div style="display:flex; gap:8px">
           <button class="btn btn-info" onclick="addManualRow()">
             <i class="fas fa-plus"></i> Add Row
@@ -989,8 +305,8 @@
           <button class="btn btn-danger" onclick="clearManualRows()">
             <i class="fas fa-trash"></i> Clear All
           </button>
-          <button class="btn btn-primary" onclick="saveManualEntries()">
-            <i class="fas fa-save"></i> Save All
+          <button class="btn btn-primary" onclick="saveManualToFirebase()">
+            <i class="fas fa-fire"></i> Save All to Firebase
           </button>
         </div>
       </div>
@@ -1025,117 +341,96 @@
 
   </div>
 
-  <!-- ═══════════════════════════ -->
-  <!--    TAB 3: EXPORT           -->
-  <!-- ═══════════════════════════ -->
+  <!-- ═══ TAB 3: EXPORT ═══ -->
   <div class="tab-content" id="content-export">
 
-    <!-- STATS -->
     <div class="sync-stats">
       <div class="sync-stat">
         <h3 id="export-leads-count">0</h3>
-        <p>Total Leads</p>
+        <p>Leads in Firebase</p>
       </div>
       <div class="sync-stat">
         <h3 id="export-tasks-count">0</h3>
-        <p>Total Tasks</p>
+        <p>Tasks in Firebase</p>
       </div>
       <div class="sync-stat">
         <h3 id="export-projects-count">0</h3>
-        <p>Total Projects</p>
+        <p>Projects in Firebase</p>
       </div>
       <div class="sync-stat">
         <h3 id="export-followups-count">0</h3>
-        <p>Total Follow-ups</p>
+        <p>Follow-ups in Firebase</p>
       </div>
     </div>
 
-    <!-- EXPORT OPTIONS -->
     <div class="export-options">
 
-      <!-- LEADS -->
-      <div class="export-option" onclick="exportData('leads')">
+      <div class="export-option" onclick="exportFromFirebase('leads')">
         <div class="export-option-icon">👥</div>
         <h4>Export Leads</h4>
-        <p>Download all leads with contact info,
-           project type, budget and status</p>
+        <p>Download all leads from Firebase as CSV</p>
         <button class="btn btn-sheets" style="width:100%">
           <i class="fas fa-file-csv"></i> Download Leads CSV
         </button>
       </div>
 
-      <!-- TASKS -->
-      <div class="export-option" onclick="exportData('tasks')">
+      <div class="export-option" onclick="exportFromFirebase('tasks')">
         <div class="export-option-icon">✅</div>
         <h4>Export Tasks</h4>
-        <p>Download all tasks with priority,
-           status, due dates and assignments</p>
+        <p>Download all tasks from Firebase as CSV</p>
         <button class="btn btn-sheets" style="width:100%">
           <i class="fas fa-file-csv"></i> Download Tasks CSV
         </button>
       </div>
 
-      <!-- PROJECTS -->
-      <div class="export-option" onclick="exportData('projects')">
+      <div class="export-option" onclick="exportFromFirebase('projects')">
         <div class="export-option-icon">🏗️</div>
         <h4>Export Projects</h4>
-        <p>Download all projects with status,
-           progress, value and deadlines</p>
+        <p>Download all projects from Firebase as CSV</p>
         <button class="btn btn-sheets" style="width:100%">
           <i class="fas fa-file-csv"></i> Download Projects CSV
         </button>
       </div>
 
-      <!-- FOLLOWUPS -->
-      <div class="export-option" onclick="exportData('followups')">
+      <div class="export-option" onclick="exportFromFirebase('followups')">
         <div class="export-option-icon">💬</div>
         <h4>Export Follow-ups</h4>
-        <p>Download all follow-up notes with
-           outcomes and next actions</p>
+        <p>Download all follow-ups from Firebase as CSV</p>
         <button class="btn btn-sheets" style="width:100%">
           <i class="fas fa-file-csv"></i> Download Follow-ups CSV
         </button>
       </div>
 
-      <!-- ALL DATA -->
-      <div class="export-option" onclick="exportAllData()"
-           style="border-color:rgba(200,169,110,0.2);
-           background:rgba(200,169,110,0.03)">
+      <div class="export-option" onclick="exportAllFromFirebase()"
+           style="border-color:rgba(200,169,110,0.2); background:rgba(200,169,110,0.03)">
         <div class="export-option-icon">📦</div>
         <h4>Export Everything</h4>
-        <p>Download all CRM data in separate CSV files
-           — Leads, Tasks, Projects & Follow-ups</p>
+        <p>Download ALL Firebase data as separate CSV files</p>
         <button class="btn btn-primary" style="width:100%">
           <i class="fas fa-download"></i> Download All Data
         </button>
       </div>
 
-      <!-- GOOGLE SHEETS FORMAT -->
       <div class="export-option" onclick="exportForSheets()">
         <div class="export-option-icon">📊</div>
         <h4>Export for Google Sheets</h4>
-        <p>Export leads formatted specifically
-           for easy upload to Google Sheets</p>
+        <p>Export leads formatted for Google Sheets</p>
         <button class="btn btn-sheets" style="width:100%">
           <i class="fab fa-google"></i> Export for Sheets
         </button>
       </div>
 
     </div>
-
   </div>
 
-  <!-- ═══════════════════════════ -->
-  <!--    TAB 4: SETUP GUIDE      -->
-  <!-- ═══════════════════════════ -->
+  <!-- ═══ TAB 4: SETUP GUIDE ═══ -->
   <div class="tab-content" id="content-setup">
 
-    <!-- METHOD 1 -->
     <div class="section-card" style="margin-bottom:20px">
       <div class="section-card-header">
         <h3>
           <span style="font-size:20px">📊</span>
-          Method 1: Google Sheets → Download → Import
+          Method 1: Google Sheets → Download → Import to Firebase
           <span class="badge badge-green">Easiest</span>
         </h3>
       </div>
@@ -1145,25 +440,18 @@
             <div class="step-icon">1️⃣</div>
             <div class="instruction-step-content">
               <h4>Open Your Google Sheet</h4>
-              <p>Go to sheets.google.com and open the sheet with your leads/data</p>
+              <p>Go to sheets.google.com and open your sheet</p>
             </div>
           </div>
           <div class="instruction-step">
             <div class="step-icon">2️⃣</div>
             <div class="instruction-step-content">
-              <h4>Format Your Columns</h4>
-              <p>Make sure your sheet has these column headers in Row 1:
-                <br><br>
-                <code>Name</code> &nbsp;
-                <code>Phone</code> &nbsp;
-                <code>Email</code> &nbsp;
-                <code>Company</code> &nbsp;
-                <code>Project Type</code> &nbsp;
-                <code>Location</code> &nbsp;
-                <code>Budget</code> &nbsp;
-                <code>Status</code> &nbsp;
-                <code>Source</code> &nbsp;
-                <code>Notes</code>
+              <h4>Format Columns</h4>
+              <p>Make sure Row 1 has headers:
+                <code>Name</code> <code>Phone</code> <code>Email</code>
+                <code>Company</code> <code>Project Type</code>
+                <code>Location</code> <code>Budget</code>
+                <code>Status</code> <code>Source</code> <code>Notes</code>
               </p>
             </div>
           </div>
@@ -1171,119 +459,14 @@
             <div class="step-icon">3️⃣</div>
             <div class="instruction-step-content">
               <h4>Download as CSV</h4>
-              <p>Click <strong>File → Download → Comma Separated Values (.csv)</strong></p>
+              <p>Click <strong>File → Download → CSV</strong></p>
             </div>
           </div>
           <div class="instruction-step">
             <div class="step-icon">4️⃣</div>
             <div class="instruction-step-content">
-              <h4>Import to CRM</h4>
-              <p>Go to <strong>Import tab</strong> above → Upload the CSV file → Map columns → Click Import!</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- METHOD 2 -->
-    <div class="section-card" style="margin-bottom:20px">
-      <div class="section-card-header">
-        <h3>
-          <span style="font-size:20px">🔄</span>
-          Method 2: Google Forms → Sheets → CRM
-          <span class="badge badge-blue">Auto Capture</span>
-        </h3>
-      </div>
-      <div class="section-card-body">
-        <div class="instruction-steps">
-          <div class="instruction-step">
-            <div class="step-icon">1️⃣</div>
-            <div class="instruction-step-content">
-              <h4>Create Google Form</h4>
-              <p>Go to forms.google.com → Create a lead capture form with fields:
-                Name, Phone, Email, Project Type, Location, Budget, Message</p>
-            </div>
-          </div>
-          <div class="instruction-step">
-            <div class="step-icon">2️⃣</div>
-            <div class="instruction-step-content">
-              <h4>Link Form to Sheets</h4>
-              <p>In Google Form → Click <strong>Responses tab</strong> →
-                Click <strong>Google Sheets icon</strong> → Create new spreadsheet</p>
-            </div>
-          </div>
-          <div class="instruction-step">
-            <div class="step-icon">3️⃣</div>
-            <div class="instruction-step-content">
-              <h4>Embed Form on Website</h4>
-              <p>In Google Form → Click <strong>Send → Embed</strong> →
-                Copy the HTML code → Paste on your website contact page</p>
-            </div>
-          </div>
-          <div class="instruction-step">
-            <div class="step-icon">4️⃣</div>
-            <div class="instruction-step-content">
-              <h4>Export & Import Periodically</h4>
-              <p>Every few days → Download CSV from Sheets → Import here to keep CRM updated!</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- METHOD 3 -->
-    <div class="section-card">
-      <div class="section-card-header">
-        <h3>
-          <span style="font-size:20px">⚡</span>
-          Method 3: Zapier Auto Sync (Advanced)
-          <span class="badge badge-orange">Auto Sync</span>
-        </h3>
-      </div>
-      <div class="section-card-body">
-        <div class="info-box">
-          <i class="fas fa-bolt"></i>
-          <div class="info-box-text">
-            <h4>Zapier connects Google Sheets to your CRM automatically!</h4>
-            <p>When a new row is added to Google Sheets, Zapier automatically sends
-               the data to your CRM via webhook — no manual export needed!
-               Free plan available at
-               <a href="https://zapier.com" target="_blank">zapier.com</a>
-            </p>
-          </div>
-        </div>
-        <div class="instruction-steps">
-          <div class="instruction-step">
-            <div class="step-icon">1️⃣</div>
-            <div class="instruction-step-content">
-              <h4>Create Zapier Account</h4>
-              <p>Go to zapier.com → Sign up free → Create new Zap</p>
-            </div>
-          </div>
-          <div class="instruction-step">
-            <div class="step-icon">2️⃣</div>
-            <div class="instruction-step-content">
-              <h4>Set Trigger: Google Sheets</h4>
-              <p>Choose <strong>Google Sheets</strong> as trigger →
-                Select event: <strong>New Spreadsheet Row</strong> →
-                Connect your Google account → Select your sheet</p>
-            </div>
-          </div>
-          <div class="instruction-step">
-            <div class="step-icon">3️⃣</div>
-            <div class="instruction-step-content">
-              <h4>Set Action: Webhook</h4>
-              <p>Choose <strong>Webhooks by Zapier</strong> as action →
-                Select: <strong>POST</strong> → Enter your CRM URL →
-                Map the fields</p>
-            </div>
-          </div>
-          <div class="instruction-step">
-            <div class="step-icon">4️⃣</div>
-            <div class="instruction-step-content">
-              <h4>Test & Activate</h4>
-              <p>Test the Zap → Turn it ON →
-                Now every new Sheet row auto-syncs to your CRM! 🎉</p>
+              <h4>Import to Firebase</h4>
+              <p>Go to <strong>Import CSV tab</strong> → Upload → Map columns → Import!</p>
             </div>
           </div>
         </div>
@@ -1292,11 +475,8 @@
 
   </div>
 
-  <!-- ═══════════════════════════ -->
-  <!--    TAB 5: SYNC LOG         -->
-  <!-- ═══════════════════════════ -->
+  <!-- ═══ TAB 5: SYNC LOG ═══ -->
   <div class="tab-content" id="content-log">
-
     <div class="section-card">
       <div class="section-card-header">
         <h3><i class="fas fa-history" style="color:var(--primary)"></i> Import/Export Log</h3>
@@ -1306,63 +486,62 @@
       </div>
       <div class="section-card-body">
         <div class="sync-log" id="syncLog">
-          <div style="text-align:center; color:var(--subtext);
-               padding:30px; font-size:14px">
-            <i class="fas fa-history"
-               style="font-size:40px; opacity:0.2;
-                      display:block; margin-bottom:10px"></i>
+          <div style="text-align:center; color:var(--subtext); padding:30px; font-size:14px">
+            <i class="fas fa-history" style="font-size:40px; opacity:0.2; display:block; margin-bottom:10px"></i>
             No sync activity yet.
-            Import or export data to see logs here!
           </div>
         </div>
       </div>
     </div>
-
   </div>
 
 </div>
 
 <script>
-  // ─── STORAGE KEYS ───
-  const LEADS_KEY = 'crm_leads';
-  const TASKS_KEY = 'crm_tasks';
-  const PROJ_KEY  = 'crm_projects';
-  const FU_KEY    = 'crm_followups';
-  const LOG_KEY   = 'crm_sync_log';
+  // ─── FIREBASE ───
+  const firebaseConfig = {
+    apiKey: "AIzaSyBLQhUZA-VN4_A9FhQWmlRSQZC2D95KoE8",
+    authDomain: "turnkeycrm-ce7b8.firebaseapp.com",
+    projectId: "turnkeycrm-ce7b8",
+    storageBucket: "turnkeycrm-ce7b8.firebasestorage.app",
+    messagingSenderId: "487224108102",
+    appId: "1:487224108102:web:dbe9d4ea6abdb2db581647"
+  };
+
+  if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
+  const db = firebase.firestore();
 
   // ─── STATE ───
-  let csvData = [];
+  let csvData    = [];
   let csvHeaders = [];
   let manualRowCount = 0;
+  const LOG_KEY = 'crm_sync_log';
 
-  // ─── SWITCH MAIN TAB ───
+  // ─── SWITCH TAB ───
   function switchTab(tab) {
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     document.querySelectorAll('.main-tab').forEach(t => t.classList.remove('active'));
     document.getElementById('content-' + tab).classList.add('active');
     document.getElementById('tab-' + tab).classList.add('active');
-
     if (tab === 'export') updateExportCounts();
     if (tab === 'log') renderLog();
     if (tab === 'manual') {
       if (document.getElementById('manualTableBody').children.length === 0) {
-        addManualRow();
-        addManualRow();
-        addManualRow();
+        addManualRow(); addManualRow(); addManualRow();
       }
     }
   }
 
-  // ─── DRAG AND DROP ───
+  // ─── DRAG DROP ───
   function handleDragOver(e) {
     e.preventDefault();
     document.getElementById('dropZone').classList.add('dragover');
   }
-
   function handleDragLeave(e) {
     document.getElementById('dropZone').classList.remove('dragover');
   }
-
   function handleDrop(e) {
     e.preventDefault();
     document.getElementById('dropZone').classList.remove('dragover');
@@ -1374,7 +553,7 @@
     }
   }
 
-  // ─── HANDLE FILE UPLOAD ───
+  // ─── FILE UPLOAD ───
   function handleFileUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -1387,7 +566,7 @@
 
   // ─── PROCESS CSV ───
   function processCSV(file) {
-    const progress = document.getElementById('importProgress');
+    const progress     = document.getElementById('importProgress');
     const progressFill = document.getElementById('importProgressFill');
     const progressText = document.getElementById('importProgressText');
 
@@ -1399,29 +578,22 @@
     reader.onload = function(e) {
       progressFill.style.width = '30%';
       progressText.textContent = 'Parsing CSV...';
-
       setTimeout(() => {
-        const text = e.target.result;
-        const rows = parseCSV(text);
-
+        const rows = parseCSV(e.target.result);
         if (rows.length < 2) {
-          showToast('❌ CSV file is empty or invalid!', 'danger');
+          showToast('❌ CSV file is empty!', 'danger');
           progress.style.display = 'none';
           return;
         }
-
         csvHeaders = rows[0];
-        csvData = rows.slice(1).filter(row =>
+        csvData    = rows.slice(1).filter(row =>
           row.some(cell => cell.trim() !== '')
         );
-
         progressFill.style.width = '70%';
         progressText.textContent = 'Generating preview...';
-
         setTimeout(() => {
           progressFill.style.width = '100%';
           progressText.textContent = 'Done!';
-
           setTimeout(() => {
             progress.style.display = 'none';
             showPreview();
@@ -1429,7 +601,6 @@
         }, 300);
       }, 200);
     };
-
     reader.readAsText(file);
   }
 
@@ -1437,13 +608,11 @@
   function parseCSV(text) {
     const rows = [];
     const lines = text.split('\n');
-
     for (let line of lines) {
       if (!line.trim()) continue;
       const row = [];
       let inQuotes = false;
-      let current = '';
-
+      let current  = '';
       for (let i = 0; i < line.length; i++) {
         const ch = line[i];
         if (ch === '"') {
@@ -1466,12 +635,10 @@
     const preview = document.getElementById('previewSection');
     preview.style.display = 'block';
 
-    // Count
     document.getElementById('previewCount').textContent =
       csvData.length + ' records found';
 
-    // Column Mapper
-    const target = document.getElementById('importTarget').value;
+    const target    = document.getElementById('importTarget').value;
     const crmFields = getCRMFields(target);
 
     const mapper = document.getElementById('columnMapper');
@@ -1491,7 +658,6 @@
       </div>
     `).join('');
 
-    // Preview Table (first 5 rows)
     const thead = document.getElementById('previewHead');
     const tbody = document.getElementById('previewBody');
 
@@ -1499,80 +665,94 @@
       ${csvHeaders.map(h => `<th>${h}</th>`).join('')}
     </tr>`;
 
-    const previewRows = csvData.slice(0, 5);
-    tbody.innerHTML = previewRows.map(row => `
-      <tr>
-        ${csvHeaders.map((_, i) => `<td>${row[i] || '-'}</td>`).join('')}
-      </tr>
+    tbody.innerHTML = csvData.slice(0, 5).map(row => `
+      <tr>${csvHeaders.map((_,i) =>
+        `<td>${row[i] || '-'}</td>`
+      ).join('')}</tr>
     `).join('');
 
-    showToast(
-      `✅ ${csvData.length} records loaded! Check mapping & import.`,
-      'success'
-    );
+    showToast(`✅ ${csvData.length} records loaded!`, 'success');
   }
 
-  // ─── GET CRM FIELDS ───
+  // ─── CRM FIELDS ───
   function getCRMFields(target) {
     const fields = {
       leads: [
-        { key: 'name', label: 'Name *', alt: 'contact' },
-        { key: 'phone', label: 'Phone', alt: 'mobile' },
-        { key: 'email', label: 'Email', alt: 'mail' },
-        { key: 'company', label: 'Company', alt: 'org' },
+        { key: 'name',        label: 'Name *',       alt: 'contact' },
+        { key: 'phone',       label: 'Phone',        alt: 'mobile' },
+        { key: 'email',       label: 'Email',        alt: 'mail' },
+        { key: 'company',     label: 'Company',      alt: 'org' },
         { key: 'projectType', label: 'Project Type', alt: 'project' },
-        { key: 'location', label: 'Location', alt: 'city' },
-        { key: 'budget', label: 'Budget (₹)', alt: 'amount' },
-        { key: 'status', label: 'Status', alt: 'stage' },
-        { key: 'source', label: 'Source', alt: 'channel' },
-        { key: 'notes', label: 'Notes', alt: 'remarks' }
+        { key: 'location',    label: 'Location',     alt: 'city' },
+        { key: 'budget',      label: 'Budget (₹)',   alt: 'amount' },
+        { key: 'status',      label: 'Status',       alt: 'stage' },
+        { key: 'source',      label: 'Source',       alt: 'channel' },
+        { key: 'notes',       label: 'Notes',        alt: 'remarks' }
       ],
       tasks: [
-        { key: 'title', label: 'Title *', alt: 'task' },
-        { key: 'category', label: 'Category', alt: 'type' },
-        { key: 'priority', label: 'Priority', alt: 'urgency' },
-        { key: 'status', label: 'Status', alt: 'stage' },
-        { key: 'dueDate', label: 'Due Date', alt: 'date' },
+        { key: 'title',      label: 'Title *',     alt: 'task' },
+        { key: 'category',   label: 'Category',    alt: 'type' },
+        { key: 'priority',   label: 'Priority',    alt: 'urgency' },
+        { key: 'status',     label: 'Status',      alt: 'stage' },
+        { key: 'dueDate',    label: 'Due Date',    alt: 'date' },
         { key: 'assignedTo', label: 'Assigned To', alt: 'assignee' },
-        { key: 'notes', label: 'Notes', alt: 'desc' }
+        { key: 'notes',      label: 'Notes',       alt: 'desc' }
       ],
       projects: [
-        { key: 'name', label: 'Project Name *', alt: 'project' },
-        { key: 'client', label: 'Client *', alt: 'contact' },
-        { key: 'phone', label: 'Phone', alt: 'mobile' },
-        { key: 'type', label: 'Type', alt: 'category' },
-        { key: 'location', label: 'Location', alt: 'city' },
-        { key: 'value', label: 'Value (₹)', alt: 'amount' },
-        { key: 'status', label: 'Status', alt: 'stage' },
-        { key: 'deadline', label: 'Deadline', alt: 'date' },
-        { key: 'manager', label: 'Manager', alt: 'assigned' }
+        { key: 'name',     label: 'Project Name *', alt: 'project' },
+        { key: 'client',   label: 'Client *',       alt: 'contact' },
+        { key: 'phone',    label: 'Phone',          alt: 'mobile' },
+        { key: 'type',     label: 'Type',           alt: 'category' },
+        { key: 'location', label: 'Location',       alt: 'city' },
+        { key: 'value',    label: 'Value (₹)',      alt: 'amount' },
+        { key: 'status',   label: 'Status',         alt: 'stage' },
+        { key: 'deadline', label: 'Deadline',       alt: 'date' },
+        { key: 'manager',  label: 'Manager',        alt: 'assigned' }
       ],
       followups: [
-        { key: 'name', label: 'Contact Name *', alt: 'contact' },
-        { key: 'phone', label: 'Phone', alt: 'mobile' },
-        { key: 'company', label: 'Company', alt: 'org' },
-        { key: 'type', label: 'Type', alt: 'method' },
-        { key: 'priority', label: 'Priority', alt: 'urgency' },
-        { key: 'date', label: 'Date', alt: 'followup' },
-        { key: 'notes', label: 'Notes', alt: 'remarks' }
+        { key: 'name',     label: 'Contact Name *', alt: 'contact' },
+        { key: 'phone',    label: 'Phone',          alt: 'mobile' },
+        { key: 'company',  label: 'Company',        alt: 'org' },
+        { key: 'type',     label: 'Type',           alt: 'method' },
+        { key: 'priority', label: 'Priority',       alt: 'urgency' },
+        { key: 'date',     label: 'Date',           alt: 'followup' },
+        { key: 'notes',    label: 'Notes',          alt: 'remarks' }
       ]
     };
     return fields[target] || fields.leads;
   }
 
-  // ─── IMPORT DATA ───
-  function importData() {
-    const target = document.getElementById('importTarget').value;
+  // ═══ IMPORT TO FIREBASE ═══
+  async function importToFirebase() {
+    const target    = document.getElementById('importTarget').value;
     const duplicate = document.getElementById('duplicateHandling').value;
-    const fields = getCRMFields(target);
-    const storageKey = getStorageKey(target);
+    const fields    = getCRMFields(target);
 
-    let existing = JSON.parse(localStorage.getItem(storageKey) || '[]');
+    showSaving(true);
+
     let imported = 0;
-    let skipped = 0;
+    let skipped  = 0;
+
+    const collectionRef = db.collection(target);
+
+    // Get existing names for duplicate check
+    let existingNames = [];
+    if (duplicate === 'skip') {
+      const snap = await collectionRef.get();
+      snap.forEach(doc => {
+        const d = doc.data();
+        if (d.name) existingNames.push(d.name.toLowerCase().trim());
+      });
+    }
+
+    const batch = db.batch();
 
     csvData.forEach(row => {
-      const item = { id: target.slice(0,4) + '_' + Date.now() + Math.random(), createdAt: new Date().toISOString() };
+      const item = {
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        date: new Date().toISOString().split('T')[0]
+      };
 
       fields.forEach(field => {
         const mapEl = document.getElementById('map_' + field.key);
@@ -1581,216 +761,223 @@
         }
       });
 
-      // Check required field
-      const requiredField = target === 'tasks' ? 'title' : target === 'projects' ? ['name', 'client'] : 'name';
-      const isValid = Array.isArray(requiredField)
-        ? requiredField.every(f => item[f])
-        : item[requiredField];
+      // Check required
+      const reqField = target === 'tasks' ? 'title' : 'name';
+      if (!item[reqField]) { skipped++; return; }
 
-      if (!isValid) { skipped++; return; }
-
-      // Handle duplicates
-      if (duplicate === 'skip') {
-        const isDup = existing.some(e =>
-          (e.name && item.name && e.name.toLowerCase() === item.name.toLowerCase()) &&
-          (e.phone && item.phone && e.phone === item.phone)
-        );
-        if (isDup) { skipped++; return; }
-      } else if (duplicate === 'overwrite') {
-        const dupIndex = existing.findIndex(e =>
-          e.name && item.name &&
-          e.name.toLowerCase() === item.name.toLowerCase()
-        );
-        if (dupIndex !== -1) {
-          existing[dupIndex] = { ...existing[dupIndex], ...item };
-          imported++;
-          return;
-        }
+      // Duplicate check
+      if (duplicate === 'skip' && item.name &&
+          existingNames.includes(item.name.toLowerCase().trim())) {
+        skipped++;
+        return;
       }
 
-      existing.unshift(item);
+      const docRef = collectionRef.doc();
+      batch.set(docRef, item);
       imported++;
     });
 
-    localStorage.setItem(storageKey, JSON.stringify(existing));
+    try {
+      await batch.commit();
 
-    // Show success
-    const successBox = document.getElementById('successBox');
-    successBox.classList.add('show');
-    document.getElementById('successTitle').textContent =
-      `✅ Import Successful!`;
-    document.getElementById('successText').textContent =
-      `${imported} records imported, ${skipped} skipped. Go to the ${target} section to see them!`;
+      const successBox = document.getElementById('successBox');
+      successBox.classList.add('show');
+      document.getElementById('successTitle').textContent =
+        '✅ Import to Firebase Successful!';
+      document.getElementById('successText').textContent =
+        `${imported} records saved to Firebase, ${skipped} skipped. Check ${target} section!`;
 
-    // Add to log
-    addLog('success',
-      `Imported ${imported} ${target} (${skipped} skipped)`,
-      `From CSV import · ${new Date().toLocaleString('en-IN')}`
-    );
+      addLog('success',
+        `Imported ${imported} ${target} to Firebase (${skipped} skipped)`,
+        new Date().toLocaleString('en-IN')
+      );
 
-    showToast(`✅ ${imported} records imported successfully!`, 'success');
+      showToast(`✅ ${imported} records saved to Firebase!`, 'success');
+
+    } catch (error) {
+      console.error('Import error:', error);
+      showToast('❌ Error importing to Firebase!', 'danger');
+    }
+
+    showSaving(false);
   }
 
-  // ─── GET STORAGE KEY ───
-  function getStorageKey(target) {
-    const map = {
-      leads: LEADS_KEY,
-      tasks: TASKS_KEY,
-      projects: PROJ_KEY,
-      followups: FU_KEY
-    };
-    return map[target] || LEADS_KEY;
-  }
-
-  // ─── RESET IMPORT ───
+  // ─── RESET ───
   function resetImport() {
-    csvData = [];
-    csvHeaders = [];
+    csvData = []; csvHeaders = [];
     document.getElementById('previewSection').style.display = 'none';
     document.getElementById('successBox').classList.remove('show');
     document.getElementById('csvFile').value = '';
     showToast('🔄 Import reset!', 'warning');
   }
 
-  // ─── UPDATE EXPORT COUNTS ───
-  function updateExportCounts() {
-    const leads = JSON.parse(localStorage.getItem(LEADS_KEY) || '[]');
-    const tasks = JSON.parse(localStorage.getItem(TASKS_KEY) || '[]');
-    const projects = JSON.parse(localStorage.getItem(PROJ_KEY) || '[]');
-    const followups = JSON.parse(localStorage.getItem(FU_KEY) || '[]');
-
-    document.getElementById('export-leads-count').textContent = leads.length;
-    document.getElementById('export-tasks-count').textContent = tasks.length;
-    document.getElementById('export-projects-count').textContent = projects.length;
-    document.getElementById('export-followups-count').textContent = followups.length;
+  // ─── EXPORT COUNTS ───
+  async function updateExportCounts() {
+    try {
+      const [l,t,p,f] = await Promise.all([
+        db.collection('leads').get(),
+        db.collection('tasks').get(),
+        db.collection('projects').get(),
+        db.collection('followups').get()
+      ]);
+      document.getElementById('export-leads-count').textContent    = l.size;
+      document.getElementById('export-tasks-count').textContent    = t.size;
+      document.getElementById('export-projects-count').textContent = p.size;
+      document.getElementById('export-followups-count').textContent= f.size;
+    } catch(e) { console.error(e); }
   }
 
-  // ─── EXPORT DATA ───
-  function exportData(type) {
-    const storageKey = getStorageKey(type);
-    const data = JSON.parse(localStorage.getItem(storageKey) || '[]');
+  // ═══ EXPORT FROM FIREBASE ═══
+  async function exportFromFirebase(type) {
+    showSaving(true);
+    try {
+      const snapshot = await db.collection(type).get();
+      const data = [];
+      snapshot.forEach(doc => data.push({ id: doc.id, ...doc.data() }));
 
-    if (data.length === 0) {
-      showToast(`❌ No ${type} to export!`, 'danger');
-      return;
-    }
-
-    const configs = {
-      leads: {
-        headers: ['Name','Phone','Email','Company','Project Type','Location','Budget','Status','Source','Notes','Date'],
-        row: l => [l.name,l.phone,l.email,l.company,l.projectType,l.location,l.budget,l.status,l.source,l.notes,l.date]
-      },
-      tasks: {
-        headers: ['Title','Category','Priority','Status','Due Date','Assigned To','Related','Notes'],
-        row: t => [t.title,t.category,t.priority,t.status,t.dueDate,t.assignedTo,t.related,t.notes]
-      },
-      projects: {
-        headers: ['Name','Client','Phone','Type','Location','Value','Area','Status','Progress %','Start Date','Deadline','Manager','Notes'],
-        row: p => [p.name,p.client,p.phone,p.type,p.location,p.value,p.area,p.status,p.progress,p.startDate,p.deadline,p.manager,p.notes]
-      },
-      followups: {
-        headers: ['Name','Phone','Company','Type','Priority','Date','Time','Assigned To','Lead Status','Notes','Outcome','Next Action','Done'],
-        row: f => [f.name,f.phone,f.company,f.type,f.priority,f.date,f.time,f.assignedTo,f.leadStatus,f.notes,f.outcome,f.nextAction,f.done?'Yes':'No']
+      if (data.length === 0) {
+        showToast(`❌ No ${type} in Firebase!`, 'danger');
+        showSaving(false);
+        return;
       }
-    };
 
-    const config = configs[type];
-    const csvContent = [config.headers, ...data.map(config.row)]
-      .map(r => r.map(cell =>
-        '"' + (cell || '').toString().replace(/"/g, '""') + '"'
-      ).join(','))
-      .join('\n');
+      const configs = {
+        leads: {
+          headers: ['Name','Phone','Email','Company',
+            'Project Type','Location','Budget','Status',
+            'Source','Assigned To','Notes','Date'],
+          row: l => [l.name,l.phone,l.email,l.company,
+            l.projectType,l.location,l.budget,l.status,
+            l.source,l.assignedTo,l.notes,l.date]
+        },
+        tasks: {
+          headers: ['Title','Category','Priority','Status',
+            'Due Date','Assigned To','Notes'],
+          row: t => [t.title,t.category,t.priority,t.status,
+            t.dueDate,t.assignedTo,t.notes]
+        },
+        projects: {
+          headers: ['Name','Client','Phone','Type',
+            'Location','Value (₹)','Status','Progress %',
+            'Deadline','Manager','Notes'],
+          row: p => [p.name,p.client,p.phone,p.type,
+            p.location,p.value,p.status,p.progress,
+            p.deadline,p.manager,p.notes]
+        },
+        followups: {
+          headers: ['Name','Phone','Company','Type',
+            'Priority','Date','Notes','Outcome','Done'],
+          row: f => [f.name,f.phone,f.company,f.type,
+            f.priority,f.date,f.notes,f.outcome,
+            f.done ? 'Yes' : 'No']
+        }
+      };
 
-    downloadCSV(csvContent, `TurnkeyCRM_${type}_${new Date().toISOString().split('T')[0]}.csv`);
+      const config = configs[type];
+      const csvContent = [config.headers, ...data.map(config.row)]
+        .map(r => r.map(cell =>
+          '"' + (cell || '').toString().replace(/"/g, '""') + '"'
+        ).join(','))
+        .join('\n');
 
-    addLog('success',
-      `Exported ${data.length} ${type}`,
-      `CSV downloaded · ${new Date().toLocaleString('en-IN')}`
-    );
+      downloadCSV(csvContent,
+        `TurnkeyCRM_${type}_${new Date().toISOString().split('T')[0]}.csv`);
 
-    showToast(`✅ ${data.length} ${type} exported!`, 'success');
-  }
+      addLog('success',
+        `Exported ${data.length} ${type} from Firebase`,
+        new Date().toLocaleString('en-IN')
+      );
 
-  // ─── EXPORT ALL DATA ───
-  function exportAllData() {
-    ['leads', 'tasks', 'projects', 'followups'].forEach((type, i) => {
-      setTimeout(() => exportData(type), i * 500);
-    });
-    showToast('✅ All data export started!', 'success');
-  }
+      showToast(`✅ ${data.length} ${type} exported!`, 'success');
 
-  // ─── EXPORT FOR SHEETS ───
-  function exportForSheets() {
-    const leads = JSON.parse(localStorage.getItem(LEADS_KEY) || '[]');
-
-    if (leads.length === 0) {
-      showToast('❌ No leads to export!', 'danger');
-      return;
+    } catch (error) {
+      console.error(error);
+      showToast('❌ Error exporting!', 'danger');
     }
-
-    const headers = [
-      'Lead ID', 'Full Name', 'Phone', 'Email',
-      'Company', 'Project Type', 'Location',
-      'Budget (₹)', 'Lead Source', 'Status',
-      'Assigned To', 'Area (sq ft)',
-      'Follow-up Date', 'Notes', 'Date Added'
-    ];
-
-    const rows = leads.map(l => [
-      l.id, l.name, l.phone, l.email,
-      l.company, l.projectType, l.location,
-      l.budget, l.source, l.status,
-      l.assignedTo, l.area,
-      l.followupDate, l.notes, l.date
-    ]);
-
-    const csvContent = [headers, ...rows]
-      .map(r => r.map(cell =>
-        '"' + (cell || '').toString().replace(/"/g, '""') + '"'
-      ).join(','))
-      .join('\n');
-
-    downloadCSV(csvContent, `TurnkeyCRM_ForGoogleSheets_${new Date().toISOString().split('T')[0]}.csv`);
-
-    addLog('success',
-      `Exported ${leads.length} leads for Google Sheets`,
-      `Sheets-formatted CSV · ${new Date().toLocaleString('en-IN')}`
-    );
-
-    showToast('✅ Google Sheets export ready!', 'success');
+    showSaving(false);
   }
 
-  // ─── DOWNLOAD CSV ───
+  async function exportAllFromFirebase() {
+    showToast('⏳ Exporting all data...', 'warning');
+    const types = ['leads','tasks','projects','followups'];
+    for (let i = 0; i < types.length; i++) {
+      await new Promise(r => setTimeout(r, i * 700));
+      await exportFromFirebase(types[i]);
+    }
+  }
+
+  async function exportForSheets() {
+    showSaving(true);
+    try {
+      const snapshot = await db.collection('leads').get();
+      const leads = [];
+      snapshot.forEach(doc => leads.push({ id: doc.id, ...doc.data() }));
+
+      if (leads.length === 0) {
+        showToast('❌ No leads in Firebase!', 'danger');
+        showSaving(false);
+        return;
+      }
+
+      const headers = [
+        'Lead ID','Full Name','Phone','Email',
+        'Company','Project Type','Location',
+        'Budget (₹)','Lead Source','Status',
+        'Assigned To','Notes','Date Added'
+      ];
+
+      const rows = leads.map(l => [
+        l.id, l.name, l.phone, l.email,
+        l.company, l.projectType, l.location,
+        l.budget, l.source, l.status,
+        l.assignedTo, l.notes, l.date
+      ]);
+
+      const csvContent = [headers, ...rows]
+        .map(r => r.map(cell =>
+          '"' + (cell || '').toString().replace(/"/g, '""') + '"'
+        ).join(','))
+        .join('\n');
+
+      downloadCSV(csvContent,
+        `TurnkeyCRM_ForGoogleSheets_${new Date().toISOString().split('T')[0]}.csv`);
+
+      showToast('✅ Google Sheets export ready!', 'success');
+
+    } catch (error) {
+      showToast('❌ Error exporting!', 'danger');
+    }
+    showSaving(false);
+  }
+
   function downloadCSV(content, filename) {
     const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
     a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
   }
 
-  // ─── MANUAL ENTRY ───
+  // ═══ MANUAL ENTRY ═══
   function addManualRow() {
     manualRowCount++;
     const tbody = document.getElementById('manualTableBody');
-    const row = document.createElement('tr');
+    const row   = document.createElement('tr');
     row.id = 'manual-row-' + manualRowCount;
     row.innerHTML = `
       <td style="color:var(--subtext);text-align:center">${manualRowCount}</td>
       <td><input type="text" placeholder="Full Name" class="m-name"/></td>
-      <td><input type="tel" placeholder="Phone" class="m-phone"/></td>
+      <td><input type="tel" placeholder="Phone" class="m-phone"
+           maxlength="10"
+           oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)"/></td>
       <td><input type="email" placeholder="Email" class="m-email"/></td>
       <td><input type="text" placeholder="Company" class="m-company"/></td>
       <td>
         <select class="m-type">
-          <option value="Office Interior">Office Interior</option>
-          <option value="Commercial Fit-out">Commercial Fit-out</option>
-          <option value="Restaurant">Restaurant</option>
-          <option value="Retail">Retail</option>
-          <option value="Renovation">Renovation</option>
-          <option value="Other">Other</option>
+          <option value="Commercial">Commercial</option>
+          <option value="Residential">Residential</option>
         </select>
       </td>
       <td><input type="text" placeholder="Location" class="m-location"/></td>
@@ -1828,106 +1015,102 @@
     tbody.appendChild(row);
   }
 
-  // ─── REMOVE ROW ───
   function removeManualRow(id) {
     const row = document.getElementById(id);
     if (row) row.remove();
   }
 
-  // ─── CLEAR MANUAL ROWS ───
   function clearManualRows() {
     if (confirm('Clear all rows?')) {
       document.getElementById('manualTableBody').innerHTML = '';
       manualRowCount = 0;
-      addManualRow();
-      addManualRow();
-      addManualRow();
+      addManualRow(); addManualRow(); addManualRow();
     }
   }
 
-  // ─── SAVE MANUAL ENTRIES ───
-  function saveManualEntries() {
+  async function saveManualToFirebase() {
     const rows = document.querySelectorAll('#manualTableBody tr');
-    let leads = JSON.parse(localStorage.getItem(LEADS_KEY) || '[]');
-    let added = 0;
+    let added  = 0;
     let errors = 0;
 
+    showSaving(true);
+
+    const batch    = db.batch();
+    const leadsRef = db.collection('leads');
+
     rows.forEach(row => {
-      const name = row.querySelector('.m-name')?.value.trim();
+      const name  = row.querySelector('.m-name')?.value.trim();
       const phone = row.querySelector('.m-phone')?.value.trim();
 
       if (!name && !phone) return;
-
-      if (!name || !phone) {
+      if (!name || !phone) { errors++; return; }
+      if (phone.length !== 10 || !/^[0-9]{10}$/.test(phone)) {
         errors++;
         return;
       }
 
       const lead = {
-        id: 'lead_' + Date.now() + Math.random(),
-        name,
-        phone,
-        email: row.querySelector('.m-email')?.value.trim() || '',
-        company: row.querySelector('.m-company')?.value.trim() || '',
-        projectType: row.querySelector('.m-type')?.value || '',
-        location: row.querySelector('.m-location')?.value.trim() || '',
-        budget: row.querySelector('.m-budget')?.value || '',
-        status: row.querySelector('.m-status')?.value || 'New',
-        source: row.querySelector('.m-source')?.value || '',
-        date: new Date().toISOString().split('T')[0],
-        createdAt: new Date().toISOString()
+        name, phone,
+        email:       row.querySelector('.m-email')?.value.trim()    || '',
+        company:     row.querySelector('.m-company')?.value.trim()  || '',
+        projectType: row.querySelector('.m-type')?.value            || '',
+        location:    row.querySelector('.m-location')?.value.trim() || '',
+        budget:      row.querySelector('.m-budget')?.value          || '',
+        status:      row.querySelector('.m-status')?.value          || 'New',
+        source:      row.querySelector('.m-source')?.value          || '',
+        date:        new Date().toISOString().split('T')[0],
+        createdAt:   new Date().toISOString(),
+        updatedAt:   new Date().toISOString()
       };
 
-      leads.unshift(lead);
+      const docRef = leadsRef.doc();
+      batch.set(docRef, lead);
       added++;
     });
 
-    if (added === 0 && errors === 0) {
-      showToast('❌ No data entered!', 'danger');
-      return;
+    try {
+      await batch.commit();
+
+      addLog('success',
+        `Manually saved ${added} leads to Firebase` +
+        (errors > 0 ? ` (${errors} invalid rows)` : ''),
+        new Date().toLocaleString('en-IN')
+      );
+
+      if (errors > 0) {
+        showToast(`✅ ${added} saved · ❌ ${errors} errors`, 'warning');
+      } else {
+        showToast(`✅ ${added} leads saved to Firebase!`, 'success');
+      }
+
+      document.getElementById('manualTableBody').innerHTML = '';
+      manualRowCount = 0;
+      addManualRow(); addManualRow(); addManualRow();
+
+    } catch (error) {
+      console.error(error);
+      showToast('❌ Error saving to Firebase!', 'danger');
     }
 
-    localStorage.setItem(LEADS_KEY, JSON.stringify(leads));
-
-    addLog('success',
-      `Manually added ${added} leads${errors > 0 ? ` (${errors} invalid rows skipped)` : ''}`,
-      `Manual entry · ${new Date().toLocaleString('en-IN')}`
-    );
-
-    if (errors > 0) {
-      showToast(`✅ ${added} saved · ❌ ${errors} rows had missing fields`, 'warning');
-    } else {
-      showToast(`✅ ${added} leads saved successfully!`, 'success');
-    }
-
-    // Clear and reset
-    document.getElementById('manualTableBody').innerHTML = '';
-    manualRowCount = 0;
-    addManualRow();
-    addManualRow();
-    addManualRow();
+    showSaving(false);
   }
 
-  // ─── ADD LOG ───
+  // ─── LOG ───
   function addLog(type, message, time) {
     let log = JSON.parse(localStorage.getItem(LOG_KEY) || '[]');
-    log.unshift({ type, message, time, id: 'log_' + Date.now() });
+    log.unshift({ type, message, time });
     if (log.length > 50) log = log.slice(0, 50);
     localStorage.setItem(LOG_KEY, JSON.stringify(log));
   }
 
-  // ─── RENDER LOG ───
   function renderLog() {
-    const log = JSON.parse(localStorage.getItem(LOG_KEY) || '[]');
+    const log       = JSON.parse(localStorage.getItem(LOG_KEY) || '[]');
     const container = document.getElementById('syncLog');
 
     if (log.length === 0) {
       container.innerHTML = `
-        <div style="text-align:center; color:var(--subtext);
-             padding:30px; font-size:14px">
-          <i class="fas fa-history"
-             style="font-size:40px; opacity:0.2;
-                    display:block; margin-bottom:10px"></i>
+        <div style="text-align:center; color:var(--subtext); padding:30px; font-size:14px">
+          <i class="fas fa-history" style="font-size:40px; opacity:0.2; display:block; margin-bottom:10px"></i>
           No sync activity yet.
         </div>`;
       return;
@@ -1935,8 +1118,8 @@
 
     const icons = {
       success: '<i class="fas fa-check"></i>',
-      error: '<i class="fas fa-times"></i>',
-      info: '<i class="fas fa-info"></i>',
+      error:   '<i class="fas fa-times"></i>',
+      info:    '<i class="fas fa-info"></i>',
       warning: '<i class="fas fa-exclamation"></i>'
     };
 
@@ -1953,7 +1136,6 @@
     `).join('');
   }
 
-  // ─── CLEAR LOG ───
   function clearLog() {
     if (confirm('Clear all sync logs?')) {
       localStorage.removeItem(LOG_KEY);
@@ -1962,13 +1144,18 @@
     }
   }
 
-  // ─── TOAST ───
+  // ─── HELPERS ───
+  function showSaving(show) {
+    document.getElementById('savingIndicator').style.display =
+      show ? 'block' : 'none';
+  }
+
   function showToast(message, type = 'success') {
     const toast = document.getElementById('toast');
-    toast.textContent = message;
-    toast.style.display = 'block';
+    toast.textContent    = message;
+    toast.style.display  = 'block';
     toast.style.background =
-      type === 'danger' ? 'var(--danger)' :
+      type === 'danger'  ? 'var(--danger)'  :
       type === 'warning' ? 'var(--warning)' :
       'var(--success)';
     setTimeout(() => { toast.style.display = 'none'; }, 3500);
