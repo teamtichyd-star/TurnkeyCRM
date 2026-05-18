@@ -437,8 +437,7 @@
   // ─── LOAD LEADS ───
   async function loadLeads() {
     try {
-      const snapshot = await leadsRef
-        .orderBy('createdAt', 'desc').get();
+      const snapshot = await leadsRef.get();;
       leads = [];
       snapshot.forEach(doc => {
         leads.push({ id: doc.id, ...doc.data() });
