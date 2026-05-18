@@ -707,7 +707,7 @@
 
   // ─── SHOW APP ───
   function showApp() {
-    const role = currentUserData?.role || 'manager';
+    const role = 'admin';
     const modules = roleModules[role] || ['leads'];
     const name = currentUserData?.name || currentUser?.email || 'User';
 
@@ -865,7 +865,7 @@
 
   function showPage(page) {
     const role    = currentUserData?.role || 'manager';
-    const modules = roleModules[role] || ['leads'];
+    const modules = roleModules['admin'];
 
     // Check access
     if (page !== 'dashboard' && page !== 'users' && !modules.includes(page)) {
