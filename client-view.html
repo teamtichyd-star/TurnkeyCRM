@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Project Portal - Turnkey Interior Contractors</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+    :root {
+      --primary: #c8a96e; --dark: #1a1a2e; --darker: #12121f;
+      --card: #16213e; --text: #ffffff; --subtext: #a0a0b0;
+      --success: #4caf50; --warning: #ff9800; --danger: #f44336;
+      --info: #2196f3;
+    }
+    body { background: var(--darker); color: var(--text); min-height: 100vh; }
+
+    /* ─── LOADER ─── */
+    .loader { display: flex; align-items: center; justify-content: center; min-height: 100vh; flex-direction: column; gap: 15px; }
+    .spinner { width: 40px; height: 40px; border: 4px solid rgba(200,169,110,0.2); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ─── LOGIN PAGE ─── */
+    .login-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460); padding: 20px; }
+    .login-box { background: var(--card); border-radius: 20px; padding: 40px 35px; width: 100%; max-width: 400px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); border: 1px solid rgba(200,169,110,0.2); }
+    .login-logo { text-align: center; margin-bottom: 30px; }
+    .login-logo .icon { width: 70px; height: 70px; background: linear-gradient(135deg, var(--primary), #a07840); border-radius: 18px; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; font-size: 30px; }
+    .login-logo h1 { font-size: 18px; color: var(--primary); font-weight: 700; }
+    .login-logo p { font-size: 13px; color: var(--subtext); margin-top: 4px; }
+    .project-name-display { background: rgba(200,169,110,0.1); border: 1px solid rgba(200,169,110,0.2); border-radius: 10px; padding: 12px 16px; text-align: center; margin-bottom: 20px; font-size: 15px; font-weight: 600; color: var(--primary); }
+    .form-group { margin-bottom: 18px; }
+    .form-group label { display: block; font-size: 13px; color: var(--subtext); margin-bottom: 8px; }
+    .input-wrap { position: relative; }
+    .input-wrap input { width: 100%; padding: 13px 45px 13px 16px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; color: var(--text); font-size: 15px; outline: none; transition: 0.3s; }
+    .input-wrap input:focus { border-color: var(--primary); }
+    .show-pass { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--subtext); font-size: 16px; background: none; border: none; }
+    .login-btn { width: 100%; padding: 14px; background: linear-gradient(135deg, var(--primary), #a07840); border: none; border-radius: 10px; color: white; font-size: 16px; font-weight: 600; cursor: pointer; }
+    .login-btn:hover { opacity: 0.9; }
+    .login-error { background: rgba(244,67,54,0.1); border: 1px solid rgba(244,67,54,0.3); color: #f44336; padding: 10px 15px; border-radius: 8px; font-size: 13px; margin-bottom: 15px; display: none; }
+
+    /* ─── PORTAL ─── */
+    .portal { display: none; }
+    .portal-header { background: var(--card); padding: 15px 20px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+    .portal-brand { display: flex; align-items: center; gap: 10px; }
+    .portal-brand-icon { width: 36px; height: 36px; background: linear-gradient(135deg, var(--primary), #a07840); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+    .portal-brand-name { font-size: 14px; font-weight: 600; color: var(--primary); }
+    .portal-brand-sub { font-size: 11px; color: var(--subtext); }
+    .portal-content { padding: 20px; max-width: 800px; margin: 0 auto; }
+    .portal-tabs { display: flex; gap: 4px; background: var(--card); padding: 4px; border-radius: 12px; margin-bottom: 20px; overflow-x: auto; border: 1px solid rgba(255,255,255,0.05); }
+    .portal-tab { flex-shrink: 0; padding: 10px 16px; border-radius: 8px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; background: transparent; color: var(--subtext); transition: 0.2s; display: flex; align-items: center; gap: 6px; }
+    .portal-tab:hover { color: var(--text); }
+    .portal-tab.active { background: rgba(200,169,110,0.15); color: var(--primary); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    .badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+    .badge-planning { background: rgba(33,150,243,0.15); color: var(--info); }
+    .badge-design { background: rgba(156,39,176,0.15); color: #ce93d8; }
+    .badge-execution { background: rgba(255,152,0,0.15); color: var(--warning); }
+    .badge-handover { background: rgba(200,169,110,0.15); color: var(--primary); }
+    .badge-completed { background: rgba(76,175,80,0.15); color: var(--success); }
+    .badge-onhold { background: rgba(244,67,54,0.15); color: var(--danger); }
+    .info-card { background: var(--card); border-radius: 14px; padding: 20px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 16px; }
+    .info-card h3 { font-size: 15px; font-weight: 600; color: var(--primary); margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .info-item { background: rgba(255,255,255,0.03); border-radius: 10px; padding: 12px; border: 1px solid rgba(255,255,255,0.05); }
+    .info-label { font-size: 11px; color: var(--subtext); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; }
+    .info-value { font-size: 14px; font-weight: 500; }
+    .progress-bar { height: 12px; background: rgba(255,255,255,0.05); border-radius: 10px; overflow: hidden; margin-top: 8px; }
+    .progress-fill { height: 100%; border-radius: 10px; }
+    .doc-item { background: rgba(255,255,255,0.03); border-radius: 10px; padding: 14px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 10px; display: flex; align-items: center; gap: 12px; }
+    .doc-icon { width: 38px; height: 38px; border-radius: 10px; background: rgba(200,169,110,0.15); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+    .doc-info { flex: 1; }
+    .doc-name { font-size: 14px; font-weight: 500; }
+    .doc-type { font-size: 12px; color: var(--subtext); }
+    .update-item { background: rgba(255,255,255,0.03); border-radius: 12px; padding: 16px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 12px; border-left: 3px solid var(--primary); }
+    .update-date { font-size: 12px; color: var(--primary); font-weight: 600; margin-bottom: 8px; }
+    .update-work { font-size: 14px; line-height: 1.5; margin-bottom: 8px; }
+    .update-link { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; background: rgba(200,169,110,0.1); color: var(--primary); border-radius: 8px; text-decoration: none; font-size: 13px; }
+    .btn-drive { display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; background: rgba(33,150,243,0.15); color: var(--info); border: 1px solid rgba(33,150,243,0.3); border-radius: 10px; text-decoration: none; font-size: 14px; font-weight: 500; transition: 0.2s; margin-bottom: 15px; }
+    .btn-drive:hover { background: rgba(33,150,243,0.25); }
+    .empty-msg { text-align: center; padding: 40px 20px; color: var(--subtext); }
+    .empty-msg i { font-size: 40px; opacity: 0.2; display: block; margin-bottom: 10px; }
+    .logout-btn { background: rgba(244,67,54,0.1); border: 1px solid rgba(244,67,54,0.2); color: var(--danger); padding: 6px 14px; border-radius: 8px; cursor: pointer; font-size: 13px; }
+    @media (max-width: 600px) {
+      .info-grid { grid-template-columns: 1fr; }
+      .portal-content { padding: 15px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ─── LOADER ─── -->
+<div class="loader" id="loader">
+  <div class="spinner"></div>
+  <p style="color:var(--subtext); font-size:14px">Loading project portal...</p>
+</div>
+
+<!-- ─── LOGIN PAGE ─── -->
+<div class="login-page" id="loginPage" style="display:none">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="icon">🏗️</div>
+      <h1>Turnkey Interior Contractors</h1>
+      <p>Client Project Portal</p>
+    </div>
+
+    <div class="project-name-display" id="projectNameDisplay">
+      Loading project...
+    </div>
+
+    <div class="login-error" id="loginError">
+      ❌ Wrong password! Please try again.
+    </div>
+
+    <div class="form-group">
+      <label>Enter Project Password</label>
+      <div class="input-wrap">
+        <input type="password" id="passwordInput"
+               placeholder="Enter password"
+               onkeypress="if(event.key==='Enter') checkPassword()"/>
+        <button class="show-pass"
+                onclick="togglePass()">
+          <i class="fas fa-eye" id="passIcon"></i>
+        </button>
+      </div>
+    </div>
+
+    <button class="login-btn" onclick="checkPassword()">
+      <i class="fas fa-unlock"></i> View My Project
+    </button>
+
+    <div style="text-align:center; margin-top:20px; font-size:12px; color:var(--subtext)">
+      © 2025 Turnkey Interior Contractors · Hyderabad
+    </div>
+  </div>
+</div>
+
+<!-- ─── PORTAL ─── -->
+<div class="portal" id="portal">
+
+  <!-- HEADER -->
+  <div class="portal-header">
+    <div class="portal-brand">
+      <div class="portal-brand-icon">🏗️</div>
+      <div>
+        <div class="portal-brand-name">Turnkey Interior Contractors</div>
+        <div class="portal-brand-sub">Client Project Portal</div>
+      </div>
+    </div>
+    <button class="logout-btn" onclick="logout()">
+      <i class="fas fa-sign-out-alt"></i> Logout
+    </button>
+  </div>
+
+  <div class="portal-content">
+
+    <!-- TABS -->
+    <div class="portal-tabs">
+      <button class="portal-tab active" onclick="switchTab('overview')" id="ptab-overview">
+        <i class="fas fa-home"></i> Overview
+      </button>
+      <button class="portal-tab" onclick="switchTab('documents')" id="ptab-documents">
+        <i class="fas fa-file-alt"></i> Documents
+      </button>
+      <button class="portal-tab" onclick="switchTab('updates')" id="ptab-updates">
+        <i class="fas fa-camera"></i> Daily Updates
+      </button>
+    </div>
+
+    <!-- ─── OVERVIEW TAB ─── -->
+    <div class="tab-content active" id="tab-overview">
+
+      <!-- PROJECT HEADER -->
+      <div class="info-card">
+        <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:15px; flex-wrap:wrap; gap:10px">
+          <div>
+            <h2 style="font-size:20px; font-weight:700" id="projectTitle">-</h2>
+            <p style="font-size:13px; color:var(--subtext); margin-top:4px" id="projectLocation">-</p>
+          </div>
+          <span id="projectStatusBadge">-</span>
+        </div>
+
+        <!-- PROGRESS -->
+        <div style="margin-bottom:15px">
+          <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px">
+            <span style="color:var(--subtext)">Overall Progress</span>
+            <span style="color:var(--primary); font-weight:700" id="progressText">0%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"
+                 style="width:0%; background:var(--primary)"></div>
+          </div>
+        </div>
+
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="info-label">Project Type</div>
+            <div class="info-value" id="projectType">-</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Start Date</div>
+            <div class="info-value" id="projectStart">-</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Expected Completion</div>
+            <div class="info-value" id="projectDeadline">-</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Area</div>
+            <div class="info-value" id="projectArea">-</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DRIVE FOLDER -->
+      <div id="driveLinkSection" style="display:none">
+        <a class="btn-drive" id="driveLinkBtn" target="_blank">
+          <i class="fab fa-google-drive"></i>
+          View Site Photos Folder
+        </a>
+      </div>
+
+      <!-- LATEST UPDATE -->
+      <div class="info-card" id="latestUpdateCard" style="display:none">
+        <h3><i class="fas fa-clock"></i> Latest Update</h3>
+        <div id="latestUpdateContent"></div>
+      </div>
+
+    </div>
+
+    <!-- ─── DOCUMENTS TAB ─── -->
+    <div class="tab-content" id="tab-documents">
+      <div class="info-card">
+        <h3><i class="fas fa-file-alt"></i> Project Documents</h3>
+        <div id="clientDocsList"></div>
+      </div>
+    </div>
+
+    <!-- ─── DAILY UPDATES TAB ─── -->
+    <div class="tab-content" id="tab-updates">
+      <div class="info-card">
+        <h3><i class="fas fa-camera"></i> Daily Progress Updates</h3>
+        <div id="clientUpdatesList"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // ─── FIREBASE ───
+  const firebaseConfig = {
+    apiKey: "AIzaSyBLQhUZA-VN4_A9FhQWmlRSQZC2D95KoE8",
+    authDomain: "turnkeycrm-ce7b8.firebaseapp.com",
+    projectId: "turnkeycrm-ce7b8",
+    storageBucket: "turnkeycrm-ce7b8.firebasestorage.app",
+    messagingSenderId: "487224108102",
+    appId: "1:487224108102:web:dbe9d4ea6abdb2db581647"
+  };
+  if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
+  const db = firebase.firestore();
+
+  // ─── STATE ───
+  let projectData = null;
+  let projectId   = null;
+
+  // ─── GET PROJECT ID FROM URL ───
+  function getProjectId() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('id');
+  }
+
+  // ─── INIT ───
+  async function init() {
+    projectId = getProjectId();
+
+    if (!projectId) {
+      document.getElementById('loader').innerHTML = `
+        <div style="text-align:center; color:var(--danger)">
+          <i class="fas fa-exclamation-triangle"
+             style="font-size:50px; margin-bottom:15px; display:block"></i>
+          <h2>Invalid Link</h2>
+          <p style="color:var(--subtext); margin-top:10px">
+            Please use the link shared by your contractor.
+          </p>
+        </div>`;
+      return;
+    }
+
+    try {
+      const doc = await db.collection('projects').doc(projectId).get();
+
+      if (!doc.exists) {
+        document.getElementById('loader').innerHTML = `
+          <div style="text-align:center; color:var(--danger)">
+            <i class="fas fa-exclamation-triangle"
+               style="font-size:50px; margin-bottom:15px; display:block"></i>
+            <h2>Project Not Found</h2>
+            <p style="color:var(--subtext); margin-top:10px">
+              This project link is invalid or expired.
+            </p>
+          </div>`;
+        return;
+      }
+
+      projectData = { id: doc.id, ...doc.data() };
+
+      // Show login page
+      document.getElementById('loader').style.display = 'none';
+      document.getElementById('loginPage').style.display = 'flex';
+      document.getElementById('projectNameDisplay').textContent =
+        '🏗️ ' + projectData.name;
+
+    } catch (error) {
+      console.error(error);
+      document.getElementById('loader').innerHTML = `
+        <div style="text-align:center; color:var(--danger)">
+          <h2>Error Loading Project</h2>
+          <p style="color:var(--subtext); margin-top:10px">
+            Check internet connection and try again.
+          </p>
+        </div>`;
+    }
+  }
+
+  // ─── CHECK PASSWORD ───
+  function checkPassword() {
+    const input    = document.getElementById('passwordInput').value.trim();
+    const errorEl  = document.getElementById('loginError');
+
+    if (!input) {
+      errorEl.style.display = 'block';
+      errorEl.textContent   = '❌ Please enter password!';
+      return;
+    }
+
+    if (input.toLowerCase() === (projectData.password || '').toLowerCase()) {
+      errorEl.style.display = 'none';
+      document.getElementById('loginPage').style.display = 'none';
+      document.getElementById('portal').style.display    = 'block';
+      loadPortal();
+    } else {
+      errorEl.style.display = 'block';
+      errorEl.textContent   = '❌ Wrong password! Please try again.';
+      document.getElementById('passwordInput').value = '';
+    }
+  }
+
+  function togglePass() {
+    const input = document.getElementById('passwordInput');
+    const icon  = document.getElementById('passIcon');
+    if (input.type === 'password') {
+      input.type  = 'text';
+      icon.className = 'fas fa-eye-slash';
+    } else {
+      input.type  = 'password';
+      icon.className = 'fas fa-eye';
+    }
+  }
+
+  // ─── LOAD PORTAL ───
+  function loadPortal() {
+    const p = projectData;
+
+    // Overview
+    document.getElementById('projectTitle').textContent = p.name;
+    document.getElementById('projectLocation').textContent =
+      p.location || '';
+
+    const badgeMap = {
+      'Planning':'badge-planning','Design':'badge-design',
+      'Execution':'badge-execution','Handover':'badge-handover',
+      'Completed':'badge-completed','On Hold':'badge-onhold'
+    };
+    document.getElementById('projectStatusBadge').innerHTML =
+      `<span class="badge ${badgeMap[p.status] || 'badge-planning'}">${p.status}</span>`;
+
+    const progress = p.progress || 0;
+    document.getElementById('progressText').textContent  = progress + '%';
+    document.getElementById('progressFill').style.width  = progress + '%';
+    document.getElementById('progressFill').style.background =
+      progress >= 80 ? 'var(--success)' :
+      progress >= 50 ? 'var(--primary)' :
+      progress >= 25 ? 'var(--warning)' : 'var(--info)';
+
+    document.getElementById('projectType').textContent     = p.type || '-';
+    document.getElementById('projectStart').textContent    = formatDate(p.startDate);
+    document.getElementById('projectDeadline').textContent = formatDate(p.deadline);
+    document.getElementById('projectArea').textContent     =
+      p.area ? p.area + ' sq ft' : '-';
+
+    // Drive link
+    if (p.driveLink) {
+      document.getElementById('driveLinkSection').style.display = 'block';
+      document.getElementById('driveLinkBtn').href = p.driveLink;
+    }
+
+    // Latest update
+    const updates = p.updates || [];
+    if (updates.length > 0) {
+      const latest = [...updates].sort((a,b) =>
+        new Date(b.date) - new Date(a.date))[0];
+      document.getElementById('latestUpdateCard').style.display = 'block';
+      document.getElementById('latestUpdateContent').innerHTML = `
+        <div style="font-size:12px; color:var(--primary); font-weight:600; margin-bottom:8px">
+          📅 ${formatDate(latest.date)}
+          ${latest.supervisor ? ` · 👷 ${latest.supervisor}` : ''}
+        </div>
+        <div style="font-size:14px; line-height:1.5; margin-bottom:8px">
+          ${latest.work}
+        </div>
+        ${latest.photosLink ? `
+        <a href="${latest.photosLink}" target="_blank"
+           class="update-link">
+          <i class="fab fa-google-drive"></i> View Photos
+        </a>` : ''}
+      `;
+    }
+
+    // Documents
+    loadClientDocs(p);
+    loadClientUpdates(p);
+  }
+
+  function loadClientDocs(p) {
+    const list = document.getElementById('clientDocsList');
+    const docs = p.documents || [];
+
+    if (docs.length === 0) {
+      list.innerHTML = `
+        <div class="empty-msg">
+          <i class="fas fa-file-alt"></i>
+          No documents available yet.
+        </div>`;
+      return;
+    }
+
+    const icons = {
+      'Quotation':'📋','Contract':'📝','Design':'🎨',
+      'BOQ':'📊','Invoice':'💰','Other':'📎'
+    };
+
+    list.innerHTML = docs.map(doc => `
+      <div class="doc-item">
+        <div class="doc-icon">${icons[doc.type] || '📎'}</div>
+        <div class="doc-info">
+          <div class="doc-name">${doc.name}</div>
+          <div class="doc-type">${doc.type} · ${doc.addedAt || ''}</div>
+        </div>
+        <a href="${doc.link}" target="_blank"
+           style="background:rgba(200,169,110,0.15); color:var(--primary);
+                  padding:8px 14px; border-radius:8px; text-decoration:none;
+                  font-size:13px; display:flex; align-items:center; gap:6px">
+          <i class="fas fa-external-link-alt"></i> Open
+        </a>
+      </div>
+    `).join('');
+  }
+
+  function loadClientUpdates(p) {
+    const list    = document.getElementById('clientUpdatesList');
+    const updates = (p.updates || []).sort((a,b) =>
+      new Date(b.date) - new Date(a.date));
+
+    if (updates.length === 0) {
+      list.innerHTML = `
+        <div class="empty-msg">
+          <i class="fas fa-camera"></i>
+          No updates yet. Check back soon!
+        </div>`;
+      return;
+    }
+
+    list.innerHTML = updates.map(u => `
+      <div class="update-item">
+        <div class="update-date">
+          📅 ${formatDate(u.date)}
+          ${u.supervisor ? ` · 👷 ${u.supervisor}` : ''}
+        </div>
+        <div class="update-work">
+          <strong>✅ Work Done:</strong><br>${u.work}
+        </div>
+        ${u.nextPlan ? `
+        <div style="font-size:13px; color:var(--subtext); margin-bottom:8px">
+          <strong>📋 Tomorrow:</strong> ${u.nextPlan}
+        </div>` : ''}
+        ${u.photosLink ? `
+        <a href="${u.photosLink}" target="_blank" class="update-link">
+          <i class="fab fa-google-drive"></i> View Today's Photos
+        </a>` : ''}
+      </div>
+    `).join('');
+  }
+
+  // ─── TAB SWITCH ───
+  function switchTab(tab) {
+    document.querySelectorAll('.portal-tab').forEach(t =>
+      t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c =>
+      c.classList.remove('active'));
+    document.getElementById('ptab-' + tab).classList.add('active');
+    document.getElementById('tab-' + tab).classList.add('active');
+  }
+
+  // ─── LOGOUT ───
+  function logout() {
+    document.getElementById('portal').style.display    = 'none';
+    document.getElementById('loginPage').style.display = 'flex';
+    document.getElementById('passwordInput').value     = '';
+  }
+
+  // ─── FORMAT DATE ───
+  function formatDate(d) {
+    if (!d) return '-';
+    return new Date(d).toLocaleDateString('en-IN', {
+      day:'2-digit', month:'short', year:'numeric'
+    });
+  }
+
+  // ─── INIT ───
+  init();
+</script>
+</body>
+</html>
