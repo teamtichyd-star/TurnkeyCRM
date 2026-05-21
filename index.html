@@ -47,13 +47,18 @@
 
         auth.onAuthStateChanged(async (user) => {
             if (user) {
-                const doc = await db.collection("users").doc(user.uid).get();
-                const role = doc.data().role;
+                // Fetch using email as document ID (as per your Firestore)
+                const doc = await db.collection("users").doc(user.email).get();
+                
+                if (doc.exists) {
+                    const role = doc.data().role;
+                    document.getElementById("welcome").innerText = `Welcome ${user.email} (${role})`;
 
-                document.getElementById("welcome").innerText = `Welcome ${user.email} (${role})`;
-
-                if (role === "admin") {
-                    document.getElementById("admin-section").style.display = "block";
+                    if (role === "admin") {
+                        document.getElementById("admin-section").style.display = "block";
+                    }
+                } else {
+                    document.getElementById("welcome").innerText = "User data not found in database";
                 }
             }
         });
