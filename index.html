@@ -405,22 +405,39 @@
     <div class="page active" id="page-dashboard">
       <!-- Admin Section -->
 <div id="admin-section" style="display: none; margin: 25px 0;">
-    <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); max-width: 480px;">
-        <h3 style="margin-bottom: 20px;">Add New User</h3>
+    <div style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.06); max-width: 500px;">
+        <h3 style="margin: 0 0 20px 0; font-size: 18px; color: #1f2937;">Add New User</h3>
+        
         <form id="addUserForm">
-            <input type="text" id="name" placeholder="Full Name" required style="width:100%; padding:10px; margin-bottom:12px; border:1px solid #ccc; border-radius:8px;"><br>
-            <input type="email" id="email" placeholder="Email" required style="width:100%; padding:10px; margin-bottom:12px; border:1px solid #ccc; border-radius:8px;"><br>
-            <input type="password" id="password" placeholder="Password" required style="width:100%; padding:10px; margin-bottom:12px; border:1px solid #ccc; border-radius:8px;"><br>
+            <div style="margin-bottom: 14px;">
+                <label style="display:block; margin-bottom:6px; font-weight:500; color:#374151;">Full Name</label>
+                <input type="text" id="name" required style="width:100%; padding:11px; border:1px solid #d1d5db; border-radius:8px; font-size:15px;">
+            </div>
             
-            <select id="role" required style="width:100%; padding:10px; margin-bottom:20px; border:1px solid #ccc; border-radius:8px;">
-                <option value="">Select Role</option>
-                <option value="admin">Admin</option>
-                <option value="purchase">Purchase</option>
-                <option value="supervisor">Supervisor</option>
-                <option value="design">Design</option>
-            </select>
+            <div style="margin-bottom:14px;">
+                <label style="display:block; margin-bottom:6px; font-weight:500; color:#374151;">Email</label>
+                <input type="email" id="email" required style="width:100%; padding:11px; border:1px solid #d1d5db; border-radius:8px; font-size:15px;">
+            </div>
             
-            <button type="submit" style="background:#2563eb; color:white; padding:12px 25px; border:none; border-radius:8px; cursor:pointer;">Create User</button>
+            <div style="margin-bottom:14px;">
+                <label style="display:block; margin-bottom:6px; font-weight:500; color:#374151;">Password</label>
+                <input type="password" id="password" required style="width:100%; padding:11px; border:1px solid #d1d5db; border-radius:8px; font-size:15px;">
+            </div>
+            
+            <div style="margin-bottom:20px;">
+                <label style="display:block; margin-bottom:6px; font-weight:500; color:#374151;">Role</label>
+                <select id="role" required style="width:100%; padding:11px; border:1px solid #d1d5db; border-radius:8px; font-size:15px;">
+                    <option value="">Select Role</option>
+                    <option value="admin">Admin</option>
+                    <option value="purchase">Purchase</option>
+                    <option value="supervisor">Supervisor</option>
+                    <option value="design">Design</option>
+                </select>
+            </div>
+            
+            <button type="submit" style="background:#2563eb; color:white; border:none; padding:12px 26px; border-radius:8px; font-size:15px; cursor:pointer;">
+                Create User
+            </button>
         </form>
     </div>
 </div>
@@ -1222,13 +1239,12 @@
         await addNewUser(auth, db, name, email, password, role);
         document.getElementById("addUserForm").reset();
     });
-</script>
-<script>
-    // Role check after login
+   <script>
+    // Show Admin section only for Admin role
     auth.onAuthStateChanged(async (user) => {
         if (user) {
             try {
-                const doc = await db.collection("users").doc(user.email).get();
+                const doc = await firebase.firestore().collection("users").doc(user.email).get();
                 if (doc.exists) {
                     const role = doc.data().role;
                     if (role === "admin") {
@@ -1241,7 +1257,7 @@
         }
     });
 
-    // Add User Form Handler
+    // Handle Add User Form
     document.getElementById("addUserForm").addEventListener("submit", async (e) => {
         e.preventDefault();
 
@@ -1254,7 +1270,7 @@
             const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
             const newUser = userCredential.user;
 
-            await db.collection("users").doc(email).set({
+            await firebase.firestore().collection("users").doc(email).set({
                 name: name,
                 email: email,
                 role: role,
@@ -1266,7 +1282,7 @@
             document.getElementById("addUserForm").reset();
 
         } catch (error) {
-            console.error("Error creating user:", error);
+            console.error("Error:", error);
             alert("Error: " + error.message);
         }
     });
