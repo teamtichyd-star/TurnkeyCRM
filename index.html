@@ -404,6 +404,23 @@
     <!-- ═══ DASHBOARD ═══ -->
     <div class="page active" id="page-dashboard">
       <div class="stats-grid">
+        <!-- Admin Section -->
+<div id="admin-section" style="display: none; margin: 30px 0; padding: 20px; background: #f8f9fa; border-radius: 10px;">
+    <h2>Add New User</h2>
+    <form id="addUserForm">
+        <input type="text" id="name" placeholder="Full Name" required><br><br>
+        <input type="email" id="email" placeholder="Email" required><br><br>
+        <input type="password" id="password" placeholder="Password" required><br><br>
+        <select id="role" required>
+            <option value="">Select Role</option>
+            <option value="admin">Admin</option>
+            <option value="purchase">Purchase</option>
+            <option value="supervisor">Supervisor</option>
+            <option value="design">Design</option>
+        </select><br><br>
+        <button type="submit">Create User</button>
+    </form>
+</div>
         <div class="stat-card" onclick="showPage('leads')" id="dash-leads-card">
           <div class="stat-icon gold"><i class="fas fa-user-plus"></i></div>
           <div class="stat-info"><h3 id="stat-leads">0</h3><p>Total Leads</p></div>
@@ -1174,6 +1191,34 @@
       if (e.target === this) this.classList.remove('show');
     });
   });
+</script>
+<script type="module">
+    import { addNewUser } from './js/userManagement.js';
+
+    // Role checking after login
+    auth.onAuthStateChanged(async (user) => {
+        if (user) {
+            const docSnap = await db.collection("users").doc(user.email).get();
+            if (docSnap.exists) {
+                const role = docSnap.data().role;
+                if (role === "admin") {
+                    document.getElementById("admin-section").style.display = "block";
+                }
+            }
+        }
+    });
+
+    // Add User Form
+    document.getElementById("addUserForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const name = document.getElementById("name").value;
+        const email = document.getElementById("email").value;
+        const password = document.getElementById("password").value;
+        const role = document.getElementById("role").value;
+
+        await addNewUser(auth, db, name, email, password, role);
+        document.getElementById("addUserForm").reset();
+    });
 </script>
 </body>
 </html>
