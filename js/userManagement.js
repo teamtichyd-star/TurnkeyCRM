@@ -1,22 +1,25 @@
+import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
 export async function addNewUser(auth, db, name, email, password, role) {
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
+        const newUser = userCredential.user;
 
-        await setDoc(doc(db, "users", user.email), {
+        await setDoc(doc(db, "users", email), {
             name: name,
             email: email,
             role: role,
             createdAt: serverTimestamp()
         });
 
-        // Sign out the newly created user so admin stays logged in
         await auth.signOut();
 
         alert("User created successfully!");
         return true;
+
     } catch (error) {
-        console.error("Error creating user:", error);
+        console.error("Error:", error);
         alert("Error: " + error.message);
         return false;
     }
