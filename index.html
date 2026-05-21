@@ -1,35 +1,14 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Turnkey CRM</title>
+    <title>Test</title>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"></script>
 </head>
 <body>
-    <h1>Turnkey CRM</h1>
-    <p id="welcome">Loading...</p>
-
-    <div id="admin-section" style="display: none;">
-        <h2>Add New User</h2>
-        <form id="addUserForm">
-            <input type="text" id="name" placeholder="Name" required><br><br>
-            <input type="email" id="email" placeholder="Email" required><br><br>
-            <input type="password" id="password" placeholder="Password" required><br><br>
-            <select id="role" required>
-                <option value="admin">Admin</option>
-                <option value="purchase">Purchase</option>
-                <option value="supervisor">Supervisor</option>
-                <option value="design">Design</option>
-            </select><br><br>
-            <button type="submit">Create User</button>
-        </form>
-    </div>
-
-    <button onclick="location.href='leads.html'">Leads</button>
-    <button onclick="location.href='projects.html'">Projects</button>
-    <button onclick="location.href='tasks.html'">Tasks</button>
+    <h2>Test Page</h2>
+    <p id="status">Checking login status...</p>
 
     <script>
         const firebaseConfig = {
@@ -45,21 +24,11 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        auth.onAuthStateChanged(async (user) => {
+        auth.onAuthStateChanged((user) => {
             if (user) {
-                // Fetch using email as document ID (as per your Firestore)
-                const doc = await db.collection("users").doc(user.email).get();
-                
-                if (doc.exists) {
-                    const role = doc.data().role;
-                    document.getElementById("welcome").innerText = `Welcome ${user.email} (${role})`;
-
-                    if (role === "admin") {
-                        document.getElementById("admin-section").style.display = "block";
-                    }
-                } else {
-                    document.getElementById("welcome").innerText = "User data not found in database";
-                }
+                document.getElementById("status").innerText = "Logged in as: " + user.email;
+            } else {
+                document.getElementById("status").innerText = "Not logged in";
             }
         });
     </script>
