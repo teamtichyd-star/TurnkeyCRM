@@ -1,36 +1,1179 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Test</title>
-    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Turnkey CRM</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+    :root {
+      --primary: #c8a96e; --dark: #1a1a2e; --darker: #12121f;
+      --card: #16213e; --text: #ffffff; --subtext: #a0a0b0;
+      --success: #4caf50; --warning: #ff9800; --danger: #f44336; --info: #2196f3;
+    }
+    body { background: var(--darker); color: var(--text); min-height: 100vh; }
+
+    /* ─── LOADING ─── */
+    .loading-overlay {
+      position: fixed; inset: 0; background: var(--darker);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 9999; flex-direction: column; gap: 15px;
+    }
+    .loading-overlay.hide { display: none; }
+    .spinner { width: 40px; height: 40px; border: 4px solid rgba(200,169,110,0.2); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { font-size: 14px; color: var(--subtext); }
+
+    /* ─── LOGIN PAGE ─── */
+    .login-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460); padding: 20px; }
+    .login-box { background: var(--card); border-radius: 20px; padding: 40px 35px; width: 100%; max-width: 420px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); border: 1px solid rgba(200,169,110,0.2); }
+    .login-logo { text-align: center; margin-bottom: 30px; }
+    .login-logo .icon { width: 70px; height: 70px; background: linear-gradient(135deg, var(--primary), #a07840); border-radius: 18px; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; font-size: 30px; }
+    .login-logo h1 { font-size: 20px; color: var(--primary); font-weight: 700; }
+    .login-logo p { font-size: 13px; color: var(--subtext); margin-top: 4px; }
+    .form-group { margin-bottom: 18px; }
+    .form-group label { display: block; font-size: 13px; color: var(--subtext); margin-bottom: 8px; }
+    .input-wrap { position: relative; }
+    .input-wrap input { width: 100%; padding: 13px 45px 13px 16px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; color: var(--text); font-size: 15px; outline: none; transition: 0.3s; }
+    .input-wrap input:focus { border-color: var(--primary); background: rgba(200,169,110,0.05); }
+    .show-pass { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--subtext); font-size: 16px; background: none; border: none; }
+    .show-pass:hover { color: var(--primary); }
+    .login-btn { width: 100%; padding: 14px; background: linear-gradient(135deg, var(--primary), #a07840); border: none; border-radius: 10px; color: white; font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.3s; margin-top: 5px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .login-btn:hover { opacity: 0.9; }
+    .login-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .login-error { background: rgba(244,67,54,0.1); border: 1px solid rgba(244,67,54,0.3); color: #f44336; padding: 10px 15px; border-radius: 8px; font-size: 13px; margin-bottom: 15px; display: none; }
+    .forgot-pass { text-align: right; margin-top: 8px; }
+    .forgot-pass a { font-size: 12px; color: var(--primary); text-decoration: none; cursor: pointer; }
+    .forgot-pass a:hover { text-decoration: underline; }
+    .login-footer { text-align: center; margin-top: 25px; font-size: 12px; color: var(--subtext); }
+
+    /* ─── RESET PASSWORD ─── */
+    .reset-box { display: none; }
+    .back-link { font-size: 13px; color: var(--primary); cursor: pointer; margin-bottom: 20px; display: inline-flex; align-items: center; gap: 6px; }
+    .back-link:hover { text-decoration: underline; }
+
+    /* ─── MAIN APP ─── */
+    .app { display: none; min-height: 100vh; }
+
+    /* ─── SIDEBAR ─── */
+    .sidebar { position: fixed; left: 0; top: 0; height: 100vh; width: 250px; background: var(--card); border-right: 1px solid rgba(255,255,255,0.05); z-index: 1000; transition: 0.3s; overflow-y: auto; }
+    .sidebar-header { padding: 25px 20px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-icon { width: 42px; height: 42px; background: linear-gradient(135deg, var(--primary), #a07840); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    .brand-name { font-size: 13px; font-weight: 700; color: var(--primary); line-height: 1.3; }
+    .brand-sub { font-size: 11px; color: var(--subtext); }
+    .sidebar-menu { padding: 15px 0; }
+    .menu-label { font-size: 10px; color: var(--subtext); text-transform: uppercase; letter-spacing: 1px; padding: 10px 20px 5px; }
+    .menu-item { display: flex; align-items: center; gap: 12px; padding: 12px 20px; cursor: pointer; transition: 0.2s; border-left: 3px solid transparent; font-size: 14px; color: var(--subtext); }
+    .menu-item:hover { background: rgba(200,169,110,0.05); color: var(--text); }
+    .menu-item.active { background: rgba(200,169,110,0.1); color: var(--primary); border-left-color: var(--primary); }
+    .menu-item i { width: 20px; text-align: center; }
+    .menu-item.hidden { display: none; }
+    .sidebar-footer { padding: 20px; border-top: 1px solid rgba(255,255,255,0.05); position: absolute; bottom: 0; width: 100%; }
+    .user-info { background: rgba(255,255,255,0.03); border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+    .user-info-name { font-size: 13px; font-weight: 600; color: var(--text); }
+    .user-info-role { font-size: 11px; color: var(--primary); margin-top: 2px; }
+    .user-info-email { font-size: 11px; color: var(--subtext); margin-top: 2px; }
+    .logout-btn { display: flex; align-items: center; gap: 10px; padding: 10px 15px; background: rgba(244,67,54,0.1); border: 1px solid rgba(244,67,54,0.2); border-radius: 8px; color: #f44336; cursor: pointer; font-size: 14px; width: 100%; transition: 0.2s; }
+    .logout-btn:hover { background: rgba(244,67,54,0.2); }
+
+    /* ─── MAIN CONTENT ─── */
+    .main-content { margin-left: 250px; min-height: 100vh; transition: 0.3s; }
+    .topbar { background: var(--card); padding: 15px 25px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.05); position: sticky; top: 0; z-index: 100; }
+    .topbar-left { display: flex; align-items: center; gap: 15px; }
+    .menu-toggle { display: none; background: none; border: none; color: var(--text); font-size: 20px; cursor: pointer; }
+    .page-title { font-size: 18px; font-weight: 600; }
+    .topbar-right { display: flex; align-items: center; gap: 15px; }
+    .topbar-date { font-size: 13px; color: var(--subtext); }
+    .user-badge { display: flex; align-items: center; gap: 8px; background: rgba(200,169,110,0.1); padding: 7px 14px; border-radius: 20px; font-size: 13px; color: var(--primary); }
+
+    /* ─── PAGES ─── */
+    .page { display: none; padding: 25px; animation: fadeIn 0.3s ease; }
+    .page.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ─── DASHBOARD STATS ─── */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+    .stat-card { background: var(--card); border-radius: 15px; padding: 22px; display: flex; align-items: center; gap: 18px; border: 1px solid rgba(255,255,255,0.05); transition: 0.3s; cursor: pointer; }
+    .stat-card:hover { transform: translateY(-3px); border-color: rgba(200,169,110,0.3); }
+    .stat-icon { width: 55px; height: 55px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+    .stat-icon.gold { background: rgba(200,169,110,0.15); color: var(--primary); }
+    .stat-icon.green { background: rgba(76,175,80,0.15); color: var(--success); }
+    .stat-icon.orange { background: rgba(255,152,0,0.15); color: var(--warning); }
+    .stat-icon.blue { background: rgba(33,150,243,0.15); color: var(--info); }
+    .stat-icon.red { background: rgba(244,67,54,0.15); color: var(--danger); }
+    .stat-info h3 { font-size: 28px; font-weight: 700; }
+    .stat-info p { font-size: 13px; color: var(--subtext); margin-top: 3px; }
+
+    /* ─── DASHBOARD GRID ─── */
+    .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px; }
+    .quick-actions { background: var(--card); border-radius: 15px; padding: 22px; border: 1px solid rgba(255,255,255,0.05); }
+    .quick-actions h3 { font-size: 15px; font-weight: 600; margin-bottom: 18px; }
+    .action-buttons { display: flex; flex-direction: column; gap: 10px; }
+    .action-btn { display: flex; align-items: center; gap: 12px; padding: 13px 16px; border-radius: 10px; cursor: pointer; font-size: 14px; border: none; width: 100%; text-align: left; transition: 0.2s; }
+    .action-btn.gold { background: rgba(200,169,110,0.1); color: var(--primary); border: 1px solid rgba(200,169,110,0.2); }
+    .action-btn.green { background: rgba(76,175,80,0.1); color: var(--success); border: 1px solid rgba(76,175,80,0.2); }
+    .action-btn.blue { background: rgba(33,150,243,0.1); color: var(--info); border: 1px solid rgba(33,150,243,0.2); }
+    .action-btn.orange { background: rgba(255,152,0,0.1); color: var(--warning); border: 1px solid rgba(255,152,0,0.2); }
+    .action-btn:hover { transform: translateX(4px); }
+    .action-btn.hidden { display: none; }
+
+    /* ─── PIPELINE ─── */
+    .pipeline-card { background: var(--card); border-radius: 15px; padding: 22px; border: 1px solid rgba(255,255,255,0.05); }
+    .pipeline-card h3 { font-size: 15px; font-weight: 600; margin-bottom: 18px; }
+    .pipeline-item { margin-bottom: 18px; }
+    .pipeline-label { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px; }
+    .pipeline-label span:first-child { color: var(--subtext); }
+    .pipeline-bar { height: 8px; background: rgba(255,255,255,0.05); border-radius: 10px; overflow: hidden; }
+    .pipeline-fill { height: 100%; border-radius: 10px; transition: width 1s ease; }
+
+    /* ─── TABLE ─── */
+    .table-card { background: var(--card); border-radius: 15px; border: 1px solid rgba(255,255,255,0.05); overflow: hidden; margin-bottom: 25px; }
+    .table-card-header { padding: 18px 22px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: space-between; }
+    .table-card-header h3 { font-size: 15px; font-weight: 600; }
+    .badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+    .badge-gold { background: rgba(200,169,110,0.15); color: var(--primary); }
+    .badge-green { background: rgba(76,175,80,0.15); color: var(--success); }
+    .badge-orange { background: rgba(255,152,0,0.15); color: var(--warning); }
+    .badge-blue { background: rgba(33,150,243,0.15); color: var(--info); }
+    .badge-red { background: rgba(244,67,54,0.15); color: var(--danger); }
+    .table-wrapper { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    table th { padding: 12px 22px; text-align: left; font-size: 12px; color: var(--subtext); text-transform: uppercase; letter-spacing: 0.5px; background: rgba(255,255,255,0.02); }
+    table td { padding: 14px 22px; font-size: 14px; border-top: 1px solid rgba(255,255,255,0.03); }
+    table tr:hover td { background: rgba(255,255,255,0.02); }
+
+    /* ─── COMING SOON ─── */
+    .coming-soon { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; text-align: center; }
+    .coming-soon i { font-size: 60px; color: var(--primary); margin-bottom: 20px; opacity: 0.5; }
+    .coming-soon h2 { font-size: 22px; margin-bottom: 10px; }
+    .coming-soon p { color: var(--subtext); font-size: 14px; }
+
+    /* ─── ACCESS DENIED ─── */
+    .access-denied { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; text-align: center; }
+    .access-denied i { font-size: 60px; color: var(--danger); margin-bottom: 20px; opacity: 0.5; }
+    .access-denied h2 { font-size: 22px; margin-bottom: 10px; color: var(--danger); }
+    .access-denied p { color: var(--subtext); font-size: 14px; }
+
+    /* ─── USER MANAGEMENT ─── */
+    .users-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 20px; }
+    .user-card { background: var(--card); border-radius: 14px; padding: 18px; border: 1px solid rgba(255,255,255,0.05); transition: 0.3s; }
+    .user-card:hover { border-color: rgba(200,169,110,0.2); }
+    .user-card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .user-avatar { width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), #a07840); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+    .user-card-name { font-size: 15px; font-weight: 600; }
+    .user-card-email { font-size: 12px; color: var(--subtext); }
+    .user-card-role { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; margin-top: 4px; }
+    .role-superadmin { background: rgba(200,169,110,0.15); color: var(--primary); }
+    .role-admin { background: rgba(33,150,243,0.15); color: var(--info); }
+    .role-manager { background: rgba(76,175,80,0.15); color: var(--success); }
+    .role-projectmanager { background: rgba(255,152,0,0.15); color: var(--warning); }
+    .role-accounts { background: rgba(156,39,176,0.15); color: #ce93d8; }
+    .role-designer { background: rgba(244,67,54,0.15); color: var(--danger); }
+    .user-modules { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .module-tag { padding: 2px 8px; border-radius: 6px; font-size: 11px; background: rgba(255,255,255,0.05); color: var(--subtext); }
+
+    /* ─── MODAL ─── */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 2000; display: none; align-items: center; justify-content: center; padding: 20px; }
+    .modal-overlay.show { display: flex; }
+    .modal { background: var(--dark); border-radius: 20px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; border: 1px solid rgba(200,169,110,0.2); animation: slideUp 0.3s ease; }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .modal-header { padding: 22px 25px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--dark); z-index: 1; }
+    .modal-header h3 { font-size: 17px; font-weight: 600; color: var(--primary); }
+    .modal-close { width: 34px; height: 34px; background: rgba(255,255,255,0.05); border: none; border-radius: 8px; color: var(--text); cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+    .modal-close:hover { background: rgba(244,67,54,0.2); color: var(--danger); }
+    .modal-body { padding: 25px; }
+    .modal-footer { padding: 15px 25px; border-top: 1px solid rgba(255,255,255,0.05); display: flex; gap: 10px; justify-content: flex-end; }
+    .mform-group { display: flex; flex-direction: column; gap: 7px; margin-bottom: 15px; }
+    .mform-group label { font-size: 13px; color: var(--subtext); }
+    .mform-group input, .mform-group select { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 11px 14px; color: var(--text); font-size: 14px; outline: none; transition: 0.3s; width: 100%; }
+    .mform-group input:focus, .mform-group select:focus { border-color: var(--primary); }
+    .mform-group select option { background: var(--dark); }
+    .btn { padding: 10px 18px; border-radius: 10px; border: none; cursor: pointer; font-size: 14px; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; }
+    .btn-primary { background: linear-gradient(135deg, var(--primary), #a07840); color: white; }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-danger { background: rgba(244,67,54,0.15); color: var(--danger); border: 1px solid rgba(244,67,54,0.3); }
+    .btn-success { background: rgba(76,175,80,0.15); color: var(--success); border: 1px solid rgba(76,175,80,0.3); }
+    .btn-info { background: rgba(33,150,243,0.15); color: var(--info); border: 1px solid rgba(33,150,243,0.3); }
+
+    /* ─── OVERLAY & BOTTOM NAV ─── */
+    .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 999; }
+    .bottom-nav { display: none; position: fixed; bottom: 0; left: 0; right: 0; background: var(--card); border-top: 1px solid rgba(255,255,255,0.05); padding: 8px 0; z-index: 1000; }
+    .bottom-nav-items { display: flex; justify-content: space-around; }
+    .bottom-nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 5px 10px; cursor: pointer; color: var(--subtext); font-size: 11px; transition: 0.2s; }
+    .bottom-nav-item i { font-size: 18px; }
+    .bottom-nav-item.active { color: var(--primary); }
+    .bottom-nav-item.hidden { display: none; }
+
+    /* ─── TOAST ─── */
+    .toast { position: fixed; bottom: 90px; right: 20px; background: var(--success); color: white; padding: 12px 20px; border-radius: 10px; font-size: 14px; z-index: 9999; display: none; animation: slideIn 0.3s ease; box-shadow: 0 5px 20px rgba(0,0,0,0.3); }
+    @keyframes slideIn { from { transform: translateX(100px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 768px) {
+      .sidebar { left: -250px; }
+      .sidebar.open { left: 0; }
+      .sidebar-overlay.show { display: block; }
+      .main-content { margin-left: 0; padding-bottom: 70px; }
+      .menu-toggle { display: block; }
+      .bottom-nav { display: block; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+      .dashboard-grid { grid-template-columns: 1fr; }
+      .stat-card { padding: 15px; }
+      .stat-icon { width: 45px; height: 45px; font-size: 18px; }
+      .stat-info h3 { font-size: 22px; }
+      .page { padding: 15px; }
+      .topbar-date { display: none; }
+      .users-grid { grid-template-columns: 1fr; }
+    }
+  </style>
 </head>
 <body>
-    <h2>Test Page</h2>
-    <p id="status">Checking login status...</p>
 
-    <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyBLQhUZA-VN4_A9FhQWmlRSQZC2D95KoE8",
-            authDomain: "turnkeycrm-ce7b8.firebaseapp.com",
-            projectId: "turnkeycrm-ce7b8",
-            storageBucket: "turnkeycrm-ce7b8.firebasestorage.app",
-            messagingSenderId: "487224108102",
-            appId: "1:487224108102:web:dbe9d4ea6abdb2db581647"
+<!-- ─── LOADING ─── -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-text">Loading CRM...</div>
+</div>
+
+<!-- ─── TOAST ─── -->
+<div class="toast" id="toast"></div>
+
+<!-- ═══════════════════════════════ -->
+<!--          LOGIN PAGE            -->
+<!-- ═══════════════════════════════ -->
+<div class="login-page" id="loginPage" style="display:none">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="icon">🏗️</div>
+      <h1>Turnkey Interior Contractors</h1>
+      <p>CRM Management System</p>
+    </div>
+
+    <!-- LOGIN FORM -->
+    <div id="loginForm">
+      <div class="login-error" id="loginError"></div>
+
+      <div class="form-group">
+        <label>Email Address</label>
+        <div class="input-wrap">
+          <input type="email" id="loginEmail"
+                 placeholder="Enter your email"
+                 onkeypress="if(event.key==='Enter') login()"/>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Password</label>
+        <div class="input-wrap">
+          <input type="password" id="loginPassword"
+                 placeholder="Enter your password"
+                 onkeypress="if(event.key==='Enter') login()"/>
+          <button class="show-pass" onclick="togglePassword('loginPassword', this)">
+            <i class="fas fa-eye"></i>
+          </button>
+        </div>
+        <div class="forgot-pass">
+          <a onclick="showResetForm()">Forgot Password?</a>
+        </div>
+      </div>
+
+      <button class="login-btn" id="loginBtn" onclick="login()">
+        <i class="fas fa-sign-in-alt"></i> Login to CRM
+      </button>
+    </div>
+
+    <!-- RESET PASSWORD FORM -->
+    <div id="resetForm" class="reset-box">
+      <div class="login-error" id="resetError"></div>
+      <div id="resetSuccess" style="display:none; background:rgba(76,175,80,0.1); border:1px solid rgba(76,175,80,0.3); color:var(--success); padding:10px 15px; border-radius:8px; font-size:13px; margin-bottom:15px;"></div>
+
+      <p style="color:var(--subtext); font-size:13px; margin-bottom:20px">
+        Enter your email address and we'll send you a password reset link.
+      </p>
+
+      <div class="form-group">
+        <label>Email Address</label>
+        <div class="input-wrap">
+          <input type="email" id="resetEmail" placeholder="Enter your email"/>
+        </div>
+      </div>
+
+      <button class="login-btn" onclick="sendResetEmail()">
+        <i class="fas fa-paper-plane"></i> Send Reset Link
+      </button>
+
+      <div style="text-align:center; margin-top:15px">
+        <a class="back-link" onclick="showLoginForm()">
+          <i class="fas fa-arrow-left"></i> Back to Login
+        </a>
+      </div>
+    </div>
+
+    <div class="login-footer">
+      © 2025 Turnkey Interior Contractors · Hyderabad
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════ -->
+<!--           MAIN APP             -->
+<!-- ═══════════════════════════════ -->
+<div class="app" id="mainApp">
+
+  <div class="sidebar-overlay" id="overlay" onclick="closeSidebar()"></div>
+
+  <!-- ─── SIDEBAR ─── -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="brand">
+        <div class="brand-icon">🏗️</div>
+        <div>
+          <div class="brand-name">Turnkey Interior</div>
+          <div class="brand-sub">Contractors · CRM</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-menu">
+      <div class="menu-label">Main Menu</div>
+      <div class="menu-item active" onclick="showPage('dashboard')" id="menu-dashboard">
+        <i class="fas fa-th-large"></i> Dashboard
+      </div>
+      <div class="menu-item" onclick="showPage('leads')" id="menu-leads">
+        <i class="fas fa-user-plus"></i> Leads
+      </div>
+      <div class="menu-item" onclick="showPage('tasks')" id="menu-tasks">
+        <i class="fas fa-check-square"></i> Tasks
+      </div>
+      <div class="menu-item" onclick="showPage('projects')" id="menu-projects">
+        <i class="fas fa-hard-hat"></i> Projects
+      </div>
+
+      <div class="menu-label">Tools</div>
+      <div class="menu-item" onclick="showPage('followups')" id="menu-followups">
+        <i class="fas fa-comments"></i> Follow-ups
+      </div>
+      <div class="menu-item" onclick="showPage('sheets')" id="menu-sheets">
+        <i class="fas fa-sync"></i> Sheets Sync
+      </div>
+      <div class="menu-item" onclick="showPage('export')" id="menu-export">
+        <i class="fas fa-download"></i> Export CSV
+      </div>
+
+      <div class="menu-label" id="admin-label" style="display:none">Admin</div>
+      <div class="menu-item hidden" onclick="showPage('users')" id="menu-users">
+        <i class="fas fa-users-cog"></i> User Management
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <div class="user-info-name" id="sidebarUserName">-</div>
+        <div class="user-info-role" id="sidebarUserRole">-</div>
+        <div class="user-info-email" id="sidebarUserEmail">-</div>
+      </div>
+      <button class="logout-btn" onclick="logout()">
+        <i class="fas fa-sign-out-alt"></i> Logout
+      </button>
+    </div>
+  </div>
+
+  <!-- ─── MAIN CONTENT ─── -->
+  <div class="main-content">
+    <div class="topbar">
+      <div class="topbar-left">
+        <button class="menu-toggle" onclick="toggleSidebar()">
+          <i class="fas fa-bars"></i>
+        </button>
+        <div class="page-title" id="pageTitle">Dashboard</div>
+      </div>
+      <div class="topbar-right">
+        <div class="topbar-date" id="topDate"></div>
+        <div class="user-badge">
+          <i class="fas fa-user-circle"></i>
+          <span id="userName">-</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ DASHBOARD ═══ -->
+    <div class="page active" id="page-dashboard">
+      <div class="stats-grid">
+        <div class="stat-card" onclick="showPage('leads')" id="dash-leads-card">
+          <div class="stat-icon gold"><i class="fas fa-user-plus"></i></div>
+          <div class="stat-info"><h3 id="stat-leads">0</h3><p>Total Leads</p></div>
+        </div>
+        <div class="stat-card" onclick="showPage('tasks')" id="dash-tasks-card">
+          <div class="stat-icon blue"><i class="fas fa-check-square"></i></div>
+          <div class="stat-info"><h3 id="stat-tasks">0</h3><p>Active Tasks</p></div>
+        </div>
+        <div class="stat-card" onclick="showPage('projects')" id="dash-projects-card">
+          <div class="stat-icon orange"><i class="fas fa-hard-hat"></i></div>
+          <div class="stat-info"><h3 id="stat-projects">0</h3><p>Projects</p></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green"><i class="fas fa-trophy"></i></div>
+          <div class="stat-info"><h3 id="stat-won">0</h3><p>Leads Won</p></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon red"><i class="fas fa-exclamation-circle"></i></div>
+          <div class="stat-info"><h3 id="stat-followup">0</h3><p>Follow-ups Due</p></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon blue"><i class="fas fa-rupee-sign"></i></div>
+          <div class="stat-info"><h3 id="stat-revenue">₹0</h3><p>Est. Revenue</p></div>
+        </div>
+      </div>
+
+      <div class="dashboard-grid">
+        <div class="quick-actions">
+          <h3>⚡ Quick Actions</h3>
+          <div class="action-buttons">
+            <button class="action-btn gold hidden" id="qa-leads" onclick="showPage('leads')">
+              <i class="fas fa-user-plus"></i> Add New Lead
+            </button>
+            <button class="action-btn green hidden" id="qa-tasks" onclick="showPage('tasks')">
+              <i class="fas fa-plus-circle"></i> Create Task
+            </button>
+            <button class="action-btn blue hidden" id="qa-projects" onclick="showPage('projects')">
+              <i class="fas fa-hard-hat"></i> New Project
+            </button>
+            <button class="action-btn orange hidden" id="qa-followups" onclick="showPage('followups')">
+              <i class="fas fa-comments"></i> Add Follow-up
+            </button>
+          </div>
+        </div>
+
+        <div class="pipeline-card">
+          <h3>📊 Lead Pipeline</h3>
+          <div class="pipeline-item">
+            <div class="pipeline-label"><span>New Leads</span><span id="pipe-new">0</span></div>
+            <div class="pipeline-bar"><div class="pipeline-fill" id="fill-new" style="background:var(--primary); width:0%"></div></div>
+          </div>
+          <div class="pipeline-item">
+            <div class="pipeline-label"><span>Site Visit</span><span id="pipe-visit">0</span></div>
+            <div class="pipeline-bar"><div class="pipeline-fill" id="fill-visit" style="background:var(--info); width:0%"></div></div>
+          </div>
+          <div class="pipeline-item">
+            <div class="pipeline-label"><span>Proposal Sent</span><span id="pipe-proposal">0</span></div>
+            <div class="pipeline-bar"><div class="pipeline-fill" id="fill-proposal" style="background:var(--warning); width:0%"></div></div>
+          </div>
+          <div class="pipeline-item">
+            <div class="pipeline-label"><span>Won</span><span id="pipe-won">0</span></div>
+            <div class="pipeline-bar"><div class="pipeline-fill" id="fill-won" style="background:var(--success); width:0%"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <div class="table-card-header">
+          <h3>📋 Recent Leads</h3>
+          <span class="badge badge-gold" onclick="showPage('leads')" style="cursor:pointer">View All →</span>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th><th>Phone</th>
+                <th>Project Type</th><th>Status</th><th>Date</th>
+              </tr>
+            </thead>
+            <tbody id="recentLeadsTable">
+              <tr><td colspan="5" style="text-align:center; color:var(--subtext); padding:30px">
+                Loading...
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ LEADS ═══ -->
+    <div class="page" id="page-leads">
+      <iframe src="leads.html" style="width:100%; height:calc(100vh - 70px); border:none;"></iframe>
+    </div>
+
+    <!-- ═══ TASKS ═══ -->
+    <div class="page" id="page-tasks">
+      <iframe src="tasks.html" style="width:100%; height:calc(100vh - 70px); border:none;"></iframe>
+    </div>
+
+    <!-- ═══ PROJECTS ═══ -->
+    <div class="page" id="page-projects">
+      <iframe src="projects.html" style="width:100%; height:calc(100vh - 70px); border:none;"></iframe>
+    </div>
+
+    <!-- ═══ FOLLOWUPS ═══ -->
+    <div class="page" id="page-followups">
+      <iframe src="followups.html" style="width:100%; height:calc(100vh - 70px); border:none;"></iframe>
+    </div>
+
+    <!-- ═══ SHEETS ═══ -->
+    <div class="page" id="page-sheets">
+      <iframe src="sheets.html" style="width:100%; height:calc(100vh - 70px); border:none;"></iframe>
+    </div>
+
+    <!-- ═══ EXPORT ═══ -->
+    <div class="page" id="page-export">
+      <iframe src="export.html" style="width:100%; height:calc(100vh - 70px); border:none;"></iframe>
+    </div>
+
+    <!-- ═══ USER MANAGEMENT ═══ -->
+    <div class="page" id="page-users">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+        <h2 style="font-size:20px; font-weight:700; color:var(--primary)">
+          👥 User Management
+        </h2>
+        <button class="btn btn-primary" onclick="openAddUserModal()">
+          <i class="fas fa-user-plus"></i> Add User
+        </button>
+      </div>
+      <div class="users-grid" id="usersGrid">
+        <div style="text-align:center; color:var(--subtext); padding:40px">
+          Loading users...
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ─── BOTTOM NAV ─── -->
+  <div class="bottom-nav">
+    <div class="bottom-nav-items">
+      <div class="bottom-nav-item active" onclick="showPage('dashboard')">
+        <i class="fas fa-th-large"></i><span>Home</span>
+      </div>
+      <div class="bottom-nav-item hidden" onclick="showPage('leads')" id="bnav-leads">
+        <i class="fas fa-user-plus"></i><span>Leads</span>
+      </div>
+      <div class="bottom-nav-item hidden" onclick="showPage('tasks')" id="bnav-tasks">
+        <i class="fas fa-check-square"></i><span>Tasks</span>
+      </div>
+      <div class="bottom-nav-item hidden" onclick="showPage('projects')" id="bnav-projects">
+        <i class="fas fa-hard-hat"></i><span>Projects</span>
+      </div>
+      <div class="bottom-nav-item" onclick="toggleSidebar()">
+        <i class="fas fa-ellipsis-h"></i><span>More</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ─── ADD USER MODAL ─── -->
+<div class="modal-overlay" id="addUserModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>➕ Add New User</h3>
+      <button class="modal-close" onclick="closeAddUserModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div id="addUserError" style="display:none; background:rgba(244,67,54,0.1); border:1px solid rgba(244,67,54,0.3); color:var(--danger); padding:10px 15px; border-radius:8px; font-size:13px; margin-bottom:15px;"></div>
+
+      <div class="mform-group">
+        <label>Full Name</label>
+        <input type="text" id="newUserName" placeholder="e.g. Rahul Kumar"/>
+      </div>
+      <div class="mform-group">
+        <label>Email Address</label>
+        <input type="email" id="newUserEmail" placeholder="e.g. rahul@sbinteriorsolutions.net"/>
+      </div>
+      <div class="mform-group">
+        <label>Password</label>
+        <div class="input-wrap">
+          <input type="password" id="newUserPassword" placeholder="Min 6 characters"/>
+          <button class="show-pass" onclick="togglePassword('newUserPassword', this)">
+            <i class="fas fa-eye"></i>
+          </button>
+        </div>
+      </div>
+      <div class="mform-group">
+        <label>Role</label>
+        <select id="newUserRole">
+          <option value="manager">👥 Manager (Leads Only)</option>
+          <option value="projectmanager">🏗️ Project Manager (Projects & Tasks)</option>
+          <option value="accounts">💰 Accounts (No Leads)</option>
+          <option value="designer">🎨 Designer (No Leads)</option>
+          <option value="admin">👤 Admin (All Access)</option>
+          <option value="superadmin">👑 Super Admin (Full Access)</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" onclick="closeAddUserModal()">
+        <i class="fas fa-times"></i> Cancel
+      </button>
+      <button class="btn btn-primary" onclick="addNewUser()">
+        <i class="fas fa-user-plus"></i> Add User
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ═══════════════════════════════════════
+  //        FIREBASE CONFIGURATION
+  // ═══════════════════════════════════════
+  const firebaseConfig = {
+    apiKey: "AIzaSyBLQhUZA-VN4_A9FhQWmlRSQZC2D95KoE8",
+    authDomain: "turnkeycrm-ce7b8.firebaseapp.com",
+    projectId: "turnkeycrm-ce7b8",
+    storageBucket: "turnkeycrm-ce7b8.firebasestorage.app",
+    messagingSenderId: "487224108102",
+    appId: "1:487224108102:web:dbe9d4ea6abdb2db581647"
+  };
+
+  if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
+
+  const auth = firebase.auth();
+  const db   = firebase.firestore();
+
+  // ─── KEEP USER LOGGED IN ───
+  auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+
+  // ─── ROLE MODULES ───
+  const roleModules = {
+    superadmin:     ['leads','tasks','projects','followups','sheets','export','users'],
+    admin:          ['leads','tasks','projects','followups','sheets','export'],
+    manager:        ['leads'],
+    projectmanager: ['tasks','projects'],
+    accounts:       ['tasks','projects','followups','sheets','export'],
+    designer:       ['tasks','projects','followups','sheets','export']
+  };
+
+  const roleNames = {
+    superadmin:     '👑 Super Admin',
+    admin:          '👤 Admin',
+    manager:        '👥 Manager',
+    projectmanager: '🏗️ Project Manager',
+    accounts:       '💰 Accounts',
+    designer:       '🎨 Designer'
+  };
+
+  // ─── CURRENT USER DATA ───
+  let currentUser = null;
+  let currentUserData = null;
+
+  // ═══════════════════════════════════════
+  //     AUTH STATE LISTENER
+  //     (Keeps user logged in!)
+  // ═══════════════════════════════════════
+  auth.onAuthStateChanged(async (user) => {
+    if (user) {
+      // User is logged in!
+      currentUser = user;
+      await loadUserData(user.email);
+    } else {
+      // User is NOT logged in
+      showLoginPage();
+    }
+    document.getElementById('loadingOverlay').classList.add('hide');
+  });
+
+  // ─── LOAD USER DATA FROM FIRESTORE ───
+  async function loadUserData(email) {
+    try {
+      const userDoc = await db.collection('users').doc(email).get();
+
+      if (userDoc.exists) {
+        currentUserData = userDoc.data();
+      } else {
+        // Create default user data if not found
+        currentUserData = {
+          name: email.split('@')[0],
+          email: email,
+          role: 'admin',
+          active: true
         };
+        await db.collection('users').doc(email).set(currentUserData);
+      }
 
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
+      showApp();
 
-        auth.onAuthStateChanged((user) => {
-            if (user) {
-                document.getElementById("status").innerText = "Logged in as: " + user.email;
-            } else {
-                document.getElementById("status").innerText = "Not logged in";
-            }
-        });
-    </script>
+    } catch (error) {
+      console.error('Error loading user:', error);
+      showApp();
+    }
+  }
+
+  // ─── SHOW APP ───
+  function showApp() {
+    const role = 'admin';
+    const modules = roleModules[role] || ['leads'];
+    const name = currentUserData?.name || currentUser?.email || 'User';
+
+    // Update UI
+    document.getElementById('userName').textContent = name;
+    document.getElementById('sidebarUserName').textContent = name;
+    document.getElementById('sidebarUserRole').textContent = roleNames[role] || role;
+    document.getElementById('sidebarUserEmail').textContent = currentUser?.email || '';
+
+    // Show/Hide menu items based on role
+    const allMenus = ['leads','tasks','projects','followups','sheets','export'];
+    allMenus.forEach(module => {
+      const menuItem = document.getElementById('menu-' + module);
+      if (menuItem) {
+        menuItem.classList.toggle('hidden', !modules.includes(module));
+      }
+    });
+
+    // Show User Management for superadmin only
+    if (role === 'superadmin') {
+      document.getElementById('menu-users').classList.remove('hidden');
+      document.getElementById('admin-label').style.display = 'block';
+    }
+
+    // Show/Hide bottom nav
+    ['leads','tasks','projects'].forEach(m => {
+      const bnav = document.getElementById('bnav-' + m);
+      if (bnav) bnav.classList.toggle('hidden', !modules.includes(m));
+    });
+
+    // Show/Hide quick actions
+    ['leads','tasks','projects','followups'].forEach(m => {
+      const qa = document.getElementById('qa-' + m);
+      if (qa) qa.classList.toggle('hidden', !modules.includes(m));
+    });
+
+    // Hide login, show app
+    document.getElementById('loginPage').style.display = 'none';
+    document.getElementById('mainApp').style.display   = 'block';
+
+    setDate();
+    loadDashboard();
+  }
+
+  // ─── SHOW LOGIN PAGE ───
+  function showLoginPage() {
+    document.getElementById('loginPage').style.display = 'flex';
+    document.getElementById('mainApp').style.display   = 'none';
+  }
+
+  // ─── TOGGLE PASSWORD VISIBILITY ───
+  function togglePassword(inputId, btn) {
+    const input = document.getElementById(inputId);
+    const icon  = btn.querySelector('i');
+    if (input.type === 'password') {
+      input.type = 'text';
+      icon.className = 'fas fa-eye-slash';
+    } else {
+      input.type = 'password';
+      icon.className = 'fas fa-eye';
+    }
+  }
+
+  // ─── LOGIN ───
+  async function login() {
+    const email    = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const errorEl  = document.getElementById('loginError');
+    const btn      = document.getElementById('loginBtn');
+
+    errorEl.style.display = 'none';
+
+    if (!email)    { errorEl.textContent = '❌ Please enter email!'; errorEl.style.display = 'block'; return; }
+    if (!password) { errorEl.textContent = '❌ Please enter password!'; errorEl.style.display = 'block'; return; }
+
+    btn.disabled = true;
+    btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:3px"></div> Logging in...';
+
+    try {
+      await auth.signInWithEmailAndPassword(email, password);
+      // Auth state listener will handle the rest!
+    } catch (error) {
+      let msg = '❌ Login failed!';
+      if (error.code === 'auth/user-not-found')  msg = '❌ Email not found!';
+      if (error.code === 'auth/wrong-password')   msg = '❌ Wrong password!';
+      if (error.code === 'auth/invalid-email')    msg = '❌ Invalid email!';
+      if (error.code === 'auth/too-many-requests') msg = '❌ Too many attempts! Try later.';
+      errorEl.textContent = msg;
+      errorEl.style.display = 'block';
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login to CRM';
+    }
+  }
+
+  // ─── LOGOUT ───
+  async function logout() {
+    if (confirm('Are you sure you want to logout?')) {
+      await auth.signOut();
+      currentUser = null;
+      currentUserData = null;
+    }
+  }
+
+  // ─── FORGOT PASSWORD ───
+  function showResetForm() {
+    document.getElementById('loginForm').style.display = 'none';
+    document.getElementById('resetForm').style.display = 'block';
+  }
+
+  function showLoginForm() {
+    document.getElementById('loginForm').style.display = 'block';
+    document.getElementById('resetForm').style.display = 'none';
+    document.getElementById('resetError').style.display = 'none';
+    document.getElementById('resetSuccess').style.display = 'none';
+  }
+
+  async function sendResetEmail() {
+    const email   = document.getElementById('resetEmail').value.trim();
+    const errorEl = document.getElementById('resetError');
+    const successEl = document.getElementById('resetSuccess');
+
+    errorEl.style.display   = 'none';
+    successEl.style.display = 'none';
+
+    if (!email) {
+      errorEl.textContent = '❌ Please enter your email!';
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    try {
+      await auth.sendPasswordResetEmail(email);
+      successEl.textContent = '✅ Reset link sent to ' + email + '! Check your inbox.';
+      successEl.style.display = 'block';
+    } catch (error) {
+      let msg = '❌ Failed to send reset email!';
+      if (error.code === 'auth/user-not-found') msg = '❌ Email not registered!';
+      if (error.code === 'auth/invalid-email')  msg = '❌ Invalid email address!';
+      errorEl.textContent = msg;
+      errorEl.style.display = 'block';
+    }
+  }
+
+  // ─── PAGE NAVIGATION ───
+  const pageTitles = {
+    dashboard:  '🏠 Dashboard',
+    leads:      '👥 Leads Management',
+    tasks:      '✅ Task Tracker',
+    projects:   '🏗️ Projects',
+    followups:  '💬 Follow-ups',
+    sheets:     '🔄 Google Sheets Sync',
+    export:     '📤 Export CSV',
+    users:      '👥 User Management'
+  };
+
+  function showPage(page) {
+    const role    = currentUserData?.role || 'manager';
+    const modules = roleModules['admin'];
+
+    // Check access
+    if (page !== 'dashboard' && page !== 'users' && !modules.includes(page)) {
+      showAccessDenied(page);
+      return;
+    }
+
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+    document.querySelectorAll('.bottom-nav-item').forEach(b => b.classList.remove('active'));
+
+    const target = document.getElementById('page-' + page);
+    if (target) target.classList.add('active');
+
+    document.getElementById('pageTitle').textContent = pageTitles[page] || page;
+
+    const menuItem = document.getElementById('menu-' + page);
+    if (menuItem) menuItem.classList.add('active');
+
+    closeSidebar();
+
+    if (page === 'dashboard') loadDashboard();
+    if (page === 'users')     loadUsers();
+  }
+
+  function showAccessDenied(page) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    const target = document.getElementById('page-' + page);
+    if (target) {
+      target.classList.add('active');
+      target.innerHTML = `
+        <div class="access-denied">
+          <i class="fas fa-lock"></i>
+          <h2>Access Denied</h2>
+          <p>You don't have permission to access this module.</p>
+          <p style="margin-top:8px">Contact your Super Admin for access.</p>
+        </div>`;
+    }
+  }
+
+  // ─── SIDEBAR ───
+  function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('overlay').classList.toggle('show');
+  }
+
+  function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('overlay').classList.remove('show');
+  }
+
+  // ─── DATE ───
+  function setDate() {
+    document.getElementById('topDate').textContent =
+      new Date().toLocaleDateString('en-IN', {
+        weekday: 'short', year: 'numeric', month: 'short', day: 'numeric'
+      });
+  }
+
+  // ─── LOAD DASHBOARD ───
+  async function loadDashboard() {
+    try {
+      const [leadsSnap, tasksSnap, projSnap, fuSnap] = await Promise.all([
+        db.collection('leads').get(),
+        db.collection('tasks').get(),
+        db.collection('projects').get(),
+        db.collection('followups').get()
+      ]);
+
+      const leads    = [];
+      const tasks    = [];
+      const projects = [];
+      const followups= [];
+
+      leadsSnap.forEach(doc  => leads.push(doc.data()));
+      tasksSnap.forEach(doc  => tasks.push(doc.data()));
+      projSnap.forEach(doc   => projects.push(doc.data()));
+      fuSnap.forEach(doc     => followups.push(doc.data()));
+
+      // Stats
+      document.getElementById('stat-leads').textContent    = leads.length;
+      document.getElementById('stat-tasks').textContent    = tasks.filter(t => t.status !== 'Done').length;
+      document.getElementById('stat-projects').textContent = projects.length;
+      document.getElementById('stat-won').textContent      = leads.filter(l => l.status === 'Won').length;
+
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      document.getElementById('stat-followup').textContent =
+        followups.filter(f => f.date && !f.done && new Date(f.date) <= today).length;
+
+      const revenue = projects.reduce((s,p) => s + (parseInt(p.value)||0), 0);
+      document.getElementById('stat-revenue').textContent =
+        revenue > 0 ? '₹' + revenue.toLocaleString('en-IN') : '₹0';
+
+      // Pipeline
+      const total = leads.length || 1;
+      ['New','Site Visit','Proposal Sent','Won'].forEach((status, i) => {
+        const ids = ['new','visit','proposal','won'];
+        const count = leads.filter(l => l.status === status).length;
+        document.getElementById('pipe-' + ids[i]).textContent = count;
+        setTimeout(() => {
+          document.getElementById('fill-' + ids[i]).style.width =
+            (count/total*100) + '%';
+        }, 100);
+      });
+
+      // Recent Leads
+      const tbody = document.getElementById('recentLeadsTable');
+      if (leads.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--subtext); padding:30px">No leads yet!</td></tr>`;
+      } else {
+        const recent = [...leads]
+          .sort((a,b) => new Date(b.createdAt||0) - new Date(a.createdAt||0))
+          .slice(0, 5);
+        const colors = {
+          'New':'badge-gold','Site Visit':'badge-blue',
+          'Proposal Sent':'badge-orange','Won':'badge-green',
+          'Lost':'badge-red','Follow-up':'badge-orange'
+        };
+        tbody.innerHTML = recent.map(lead => `
+          <tr>
+            <td><strong>${lead.name||'-'}</strong></td>
+            <td>${lead.phone||'-'}</td>
+            <td>${lead.projectType||'-'}</td>
+            <td><span class="badge ${colors[lead.status]||'badge-gold'}">${lead.status||'New'}</span></td>
+            <td style="color:var(--subtext)">${lead.date||'-'}</td>
+          </tr>
+        `).join('');
+      }
+
+    } catch (error) {
+      console.error('Dashboard error:', error);
+    }
+  }
+
+  // ═══════════════════════════════════════
+  //     USER MANAGEMENT
+  // ═══════════════════════════════════════
+  async function loadUsers() {
+    const grid = document.getElementById('usersGrid');
+    grid.innerHTML = '<div style="text-align:center; color:var(--subtext); padding:40px">Loading...</div>';
+
+    try {
+      const snapshot = await db.collection('users').get();
+      const users = [];
+      snapshot.forEach(doc => users.push({ id: doc.id, ...doc.data() }));
+
+      if (users.length === 0) {
+        grid.innerHTML = '<div style="text-align:center; color:var(--subtext); padding:40px">No users found</div>';
+        return;
+      }
+
+      grid.innerHTML = users.map(user => {
+        const modules = roleModules[user.role] || [];
+        return `
+          <div class="user-card">
+            <div class="user-card-header">
+              <div class="user-avatar">👤</div>
+              <div>
+                <div class="user-card-name">${user.name || '-'}</div>
+                <div class="user-card-email">${user.email || '-'}</div>
+                <div>
+                  <span class="user-card-role role-${user.role}">
+                    ${roleNames[user.role] || user.role}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div class="user-modules">
+              ${modules.map(m =>
+                `<span class="module-tag">${m}</span>`
+              ).join('')}
+            </div>
+            <div style="display:flex; gap:8px; margin-top:12px">
+              <button class="btn btn-info" style="font-size:12px; padding:6px 12px"
+                      onclick="changeUserRole('${user.email}', '${user.role}')">
+                <i class="fas fa-edit"></i> Change Role
+              </button>
+              ${user.email !== currentUser?.email ? `
+              <button class="btn btn-danger" style="font-size:12px; padding:6px 12px"
+                      onclick="deleteUser('${user.email}')">
+                <i class="fas fa-trash"></i> Remove
+              </button>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+    } catch (error) {
+      grid.innerHTML = '<div style="text-align:center; color:var(--danger); padding:40px">Error loading users!</div>';
+    }
+  }
+
+  // ─── CHANGE ROLE ───
+  async function changeUserRole(email, currentRole) {
+    const roles = Object.keys(roleNames);
+    const roleOptions = roles.map(r =>
+      `${r === currentRole ? '✅ ' : ''}${roleNames[r]} (${r})`
+    ).join('\n');
+
+    const newRole = prompt(
+      `Change role for ${email}\n\nAvailable roles:\n${roles.map((r,i) => `${i+1}. ${roleNames[r]}`).join('\n')}\n\nEnter role name:`,
+      currentRole
+    );
+
+    if (!newRole || !roleModules[newRole]) {
+      if (newRole) showToast('❌ Invalid role!', 'danger');
+      return;
+    }
+
+    try {
+      await db.collection('users').doc(email).update({ role: newRole });
+      showToast('✅ Role updated!', 'success');
+      loadUsers();
+    } catch (error) {
+      showToast('❌ Error updating role!', 'danger');
+    }
+  }
+
+  // ─── DELETE USER ───
+  async function deleteUser(email) {
+    if (!confirm(`Remove user ${email} from CRM?\nThey will lose access!`)) return;
+
+    try {
+      await db.collection('users').doc(email).delete();
+      showToast('✅ User removed!', 'success');
+      loadUsers();
+    } catch (error) {
+      showToast('❌ Error removing user!', 'danger');
+    }
+  }
+
+  // ─── ADD NEW USER ───
+  function openAddUserModal() {
+    document.getElementById('addUserModal').classList.add('show');
+    document.getElementById('addUserError').style.display = 'none';
+    document.getElementById('newUserName').value = '';
+    document.getElementById('newUserEmail').value = '';
+    document.getElementById('newUserPassword').value = '';
+    document.getElementById('newUserRole').value = 'manager';
+  }
+
+  function closeAddUserModal() {
+    document.getElementById('addUserModal').classList.remove('show');
+  }
+
+  async function addNewUser() {
+    const name     = document.getElementById('newUserName').value.trim();
+    const email    = document.getElementById('newUserEmail').value.trim();
+    const password = document.getElementById('newUserPassword').value;
+    const role     = document.getElementById('newUserRole').value;
+    const errorEl  = document.getElementById('addUserError');
+
+    errorEl.style.display = 'none';
+
+    if (!name)     { errorEl.textContent = '❌ Enter name!'; errorEl.style.display = 'block'; return; }
+    if (!email)    { errorEl.textContent = '❌ Enter email!'; errorEl.style.display = 'block'; return; }
+    if (!password) { errorEl.textContent = '❌ Enter password!'; errorEl.style.display = 'block'; return; }
+    if (password.length < 6) { errorEl.textContent = '❌ Password min 6 characters!'; errorEl.style.display = 'block'; return; }
+
+    try {
+      // Create secondary app to avoid logging out current user
+      const secondaryApp = firebase.initializeApp(firebaseConfig, 'secondary');
+      const secondaryAuth = secondaryApp.auth();
+
+      await secondaryAuth.createUserWithEmailAndPassword(email, password);
+      await secondaryApp.delete();
+
+      // Save user data to Firestore
+      await db.collection('users').doc(email).set({
+        name, email, role,
+        active: true,
+        createdAt: new Date().toISOString(),
+        createdBy: currentUser?.email
+      });
+
+      closeAddUserModal();
+      showToast(`✅ User ${name} added successfully!`, 'success');
+      loadUsers();
+
+    } catch (error) {
+      let msg = '❌ Error creating user!';
+      if (error.code === 'auth/email-already-in-use') msg = '❌ Email already registered!';
+      if (error.code === 'auth/invalid-email')        msg = '❌ Invalid email!';
+      if (error.code === 'auth/weak-password')        msg = '❌ Password too weak!';
+      errorEl.textContent = msg;
+      errorEl.style.display = 'block';
+    }
+  }
+
+  // ─── TOAST ───
+  function showToast(message, type = 'success') {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.style.display = 'block';
+    toast.style.background =
+      type === 'danger'  ? 'var(--danger)'  :
+      type === 'warning' ? 'var(--warning)' :
+      'var(--success)';
+    setTimeout(() => { toast.style.display = 'none'; }, 3000);
+  }
+
+  // ─── CLOSE MODAL ON OUTSIDE CLICK ───
+  document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', function(e) {
+      if (e.target === this) this.classList.remove('show');
+    });
+  });
+</script>
 </body>
 </html>
