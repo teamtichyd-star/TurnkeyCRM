@@ -403,23 +403,26 @@
 
     <!-- ═══ DASHBOARD ═══ -->
     <div class="page active" id="page-dashboard">
-      <div class="stats-grid">
-        <!-- Admin Section -->
-<div id="admin-section" style="display: none; margin: 30px 0; padding: 20px; background: #f8f9fa; border-radius: 10px;">
-    <h2>Add New User</h2>
-    <form id="addUserForm">
-        <input type="text" id="name" placeholder="Full Name" required><br><br>
-        <input type="email" id="email" placeholder="Email" required><br><br>
-        <input type="password" id="password" placeholder="Password" required><br><br>
-        <select id="role" required>
-            <option value="">Select Role</option>
-            <option value="admin">Admin</option>
-            <option value="purchase">Purchase</option>
-            <option value="supervisor">Supervisor</option>
-            <option value="design">Design</option>
-        </select><br><br>
-        <button type="submit">Create User</button>
-    </form>
+      <!-- Admin Section -->
+<div id="admin-section" style="display: none; margin: 25px 0;">
+    <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); max-width: 480px;">
+        <h3 style="margin-bottom: 20px;">Add New User</h3>
+        <form id="addUserForm">
+            <input type="text" id="name" placeholder="Full Name" required style="width:100%; padding:10px; margin-bottom:12px; border:1px solid #ccc; border-radius:8px;"><br>
+            <input type="email" id="email" placeholder="Email" required style="width:100%; padding:10px; margin-bottom:12px; border:1px solid #ccc; border-radius:8px;"><br>
+            <input type="password" id="password" placeholder="Password" required style="width:100%; padding:10px; margin-bottom:12px; border:1px solid #ccc; border-radius:8px;"><br>
+            
+            <select id="role" required style="width:100%; padding:10px; margin-bottom:20px; border:1px solid #ccc; border-radius:8px;">
+                <option value="">Select Role</option>
+                <option value="admin">Admin</option>
+                <option value="purchase">Purchase</option>
+                <option value="supervisor">Supervisor</option>
+                <option value="design">Design</option>
+            </select>
+            
+            <button type="submit" style="background:#2563eb; color:white; padding:12px 25px; border:none; border-radius:8px; cursor:pointer;">Create User</button>
+        </form>
+    </div>
 </div>
         <div class="stat-card" onclick="showPage('leads')" id="dash-leads-card">
           <div class="stat-icon gold"><i class="fas fa-user-plus"></i></div>
@@ -1218,6 +1221,54 @@
 
         await addNewUser(auth, db, name, email, password, role);
         document.getElementById("addUserForm").reset();
+    });
+</script>
+<script>
+    // Role check after login
+    auth.onAuthStateChanged(async (user) => {
+        if (user) {
+            try {
+                const doc = await db.collection("users").doc(user.email).get();
+                if (doc.exists) {
+                    const role = doc.data().role;
+                    if (role === "admin") {
+                        document.getElementById("admin-section").style.display = "block";
+                    }
+                }
+            } catch (error) {
+                console.error("Role check error:", error);
+            }
+        }
+    });
+
+    // Add User Form Handler
+    document.getElementById("addUserForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const name = document.getElementById("name").value;
+        const email = document.getElementById("email").value;
+        const password = document.getElementById("password").value;
+        const role = document.getElementById("role").value;
+
+        try {
+            const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
+            const newUser = userCredential.user;
+
+            await db.collection("users").doc(email).set({
+                name: name,
+                email: email,
+                role: role,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            await firebase.auth().signOut();
+            alert("User created successfully!");
+            document.getElementById("addUserForm").reset();
+
+        } catch (error) {
+            console.error("Error creating user:", error);
+            alert("Error: " + error.message);
+        }
     });
 </script>
 </body>
