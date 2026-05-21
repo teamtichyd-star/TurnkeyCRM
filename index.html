@@ -2,94 +2,60 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Turnkey CRM</title>
-    
-    <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"></script>
-    
-    <script type="module" src="js/userManagement.js"></script>
-    
-    <style>
-        body { font-family: Arial; padding: 30px; background: #f5f5f5; }
-        .container { max-width: 700px; margin: auto; background: white; padding: 30px; border-radius: 10px; }
-        .hidden { display: none; }
-        input, select { width: 100%; padding: 10px; margin: 8px 0; }
-        button { padding: 10px 20px; margin-top: 10px; }
-    </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Turnkey CRM</h1>
-        <p id="welcome">Loading...</p>
+    <h1>Turnkey CRM</h1>
+    <p id="welcome">Loading...</p>
 
-        <!-- Admin Section -->
-        <div id="admin-section" class="hidden">
-            <h2>Add New User</h2>
-            <form id="addUserForm">
-                <input type="text" id="name" placeholder="Full Name" required>
-                <input type="email" id="email" placeholder="Email" required>
-                <input type="password" id="password" placeholder="Password" required>
-                
-                <select id="role" required>
-                    <option value="">Select Role</option>
-                    <option value="admin">Admin</option>
-                    <option value="purchase">Purchase</option>
-                    <option value="supervisor">Supervisor</option>
-                    <option value="design">Design</option>
-                </select>
-                
-                <button type="submit">Create User</button>
-            </form>
-        </div>
-
-        <div style="margin-top: 30px;">
-            <button onclick="location.href='leads.html'">Leads</button>
-            <button onclick="location.href='projects.html'">Projects</button>
-            <button onclick="location.href='tasks.html'">Tasks</button>
-        </div>
+    <div id="admin-section" style="display: none;">
+        <h2>Add New User</h2>
+        <form id="addUserForm">
+            <input type="text" id="name" placeholder="Name" required><br><br>
+            <input type="email" id="email" placeholder="Email" required><br><br>
+            <input type="password" id="password" placeholder="Password" required><br><br>
+            <select id="role" required>
+                <option value="admin">Admin</option>
+                <option value="purchase">Purchase</option>
+                <option value="supervisor">Supervisor</option>
+                <option value="design">Design</option>
+            </select><br><br>
+            <button type="submit">Create User</button>
+        </form>
     </div>
 
-    <script type="module">
-        import { addNewUser } from './js/userManagement.js';
+    <button onclick="location.href='leads.html'">Leads</button>
+    <button onclick="location.href='projects.html'">Projects</button>
+    <button onclick="location.href='tasks.html'">Tasks</button>
 
+    <script>
         const firebaseConfig = {
-            // ← Paste your Firebase config here
+            apiKey: "AIzaSyBLQhUZA-VN4_A9FhQWmlRSQZC2D95KoE8",
+            authDomain: "turnkeycrm-ce7b8.firebaseapp.com",
+            projectId: "turnkeycrm-ce7b8",
+            storageBucket: "turnkeycrm-ce7b8.firebasestorage.app",
+            messagingSenderId: "487224108102",
+            appId: "1:487224108102:web:dbe9d4ea6abdb2db581647"
         };
 
-        const app = firebase.initializeApp(firebaseConfig);
+        firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // Check logged in user and role
         auth.onAuthStateChanged(async (user) => {
             if (user) {
-                const userDoc = await db.collection("users").doc(user.uid).get();
-                const role = userDoc.data()?.role || "user";
+                const doc = await db.collection("users").doc(user.uid).get();
+                const role = doc.data().role;
 
-                document.getElementById("welcome").innerText = `Welcome, ${user.email} (${role})`;
+                document.getElementById("welcome").innerText = `Welcome ${user.email} (${role})`;
 
                 if (role === "admin") {
-                    document.getElementById("admin-section").classList.remove("hidden");
+                    document.getElementById("admin-section").style.display = "block";
                 }
-            } else {
-                window.location.href = "login.html";
             }
-        });
-
-        // Add User Form
-        document.getElementById("addUserForm").addEventListener("submit", async (e) => {
-            e.preventDefault();
-
-            const name = document.getElementById("name").value;
-            const email = document.getElementById("email").value;
-            const password = document.getElementById("password").value;
-            const role = document.getElementById("role").value;
-
-            await addNewUser(auth, db, name, email, password, role);
-            document.getElementById("addUserForm").reset();
         });
     </script>
 </body>
