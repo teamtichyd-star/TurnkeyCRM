@@ -1,19 +1,17 @@
-// js/userManagement.js
-
-import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
 export async function addNewUser(auth, db, name, email, password, role) {
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
-        await setDoc(doc(db, "users", user.uid), {
+        await setDoc(doc(db, "users", user.email), {
             name: name,
             email: email,
             role: role,
             createdAt: serverTimestamp()
         });
+
+        // Sign out the newly created user so admin stays logged in
+        await auth.signOut();
 
         alert("User created successfully!");
         return true;
