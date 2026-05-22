@@ -1,0 +1,1735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Export - Turnkey CRM</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+
+  <!-- ─── FIREBASE SDK ─── -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    :root {
+      --primary: #c8a96e;
+      --dark: #1a1a2e;
+      --darker: #12121f;
+      --card: #16213e;
+      --text: #ffffff;
+      --subtext: #a0a0b0;
+      --success: #4caf50;
+      --warning: #ff9800;
+      --danger: #f44336;
+      --info: #2196f3;
+    }
+
+    body {
+      background: var(--darker);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .page {
+      padding: 25px;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ─── LOADING ─── */
+    .page-loader {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 60px;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .page-loader .spinner {
+      width: 36px;
+      height: 36px;
+      border: 4px solid rgba(200,169,110,0.2);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .page-loader p { font-size: 14px; color: var(--subtext); }
+
+    /* ─── TOP ACTIONS ─── */
+    .top-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .top-actions h2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    /* ─── BUTTONS ─── */
+    .btn {
+      padding: 10px 18px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: 0.2s;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), #a07840);
+      color: white;
+    }
+
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+
+    .btn-danger {
+      background: rgba(244,67,54,0.15);
+      color: var(--danger);
+      border: 1px solid rgba(244,67,54,0.3);
+    }
+
+    .btn-danger:hover { background: rgba(244,67,54,0.25); }
+
+    .btn-info {
+      background: rgba(33,150,243,0.15);
+      color: var(--info);
+      border: 1px solid rgba(33,150,243,0.3);
+    }
+
+    .btn-success {
+      background: rgba(76,175,80,0.15);
+      color: var(--success);
+      border: 1px solid rgba(76,175,80,0.3);
+    }
+
+    .btn-warning {
+      background: rgba(255,152,0,0.15);
+      color: var(--warning);
+      border: 1px solid rgba(255,152,0,0.3);
+    }
+
+    /* ─── STATS GRID ─── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 14px;
+      margin-bottom: 25px;
+    }
+
+    .stat-card {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 20px;
+      text-align: center;
+      border: 1px solid rgba(255,255,255,0.05);
+      transition: 0.3s;
+      cursor: pointer;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(200,169,110,0.3);
+    }
+
+    .stat-icon { font-size: 32px; margin-bottom: 10px; }
+
+    .stat-card h3 {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 5px;
+    }
+
+    .stat-card p { font-size: 12px; color: var(--subtext); }
+
+    /* ─── SECTION CARD ─── */
+    .section-card {
+      background: var(--card);
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.05);
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+
+    .section-card-header {
+      padding: 18px 22px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .section-card-header h3 {
+      font-size: 15px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .section-card-body { padding: 22px; }
+
+    /* ─── EXPORT CARDS ─── */
+    .export-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin-bottom: 25px;
+    }
+
+    .export-card {
+      background: var(--card);
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.05);
+      overflow: hidden;
+      transition: 0.3s;
+    }
+
+    .export-card:hover {
+      border-color: rgba(200,169,110,0.3);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+
+    .export-card-header {
+      padding: 20px 22px 16px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .export-card-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      flex-shrink: 0;
+    }
+
+    .export-card-icon.gold { background: rgba(200,169,110,0.15); }
+    .export-card-icon.green { background: rgba(76,175,80,0.15); }
+    .export-card-icon.blue { background: rgba(33,150,243,0.15); }
+    .export-card-icon.orange { background: rgba(255,152,0,0.15); }
+    .export-card-icon.purple { background: rgba(156,39,176,0.15); }
+
+    .export-card-title h4 {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .export-card-title p { font-size: 12px; color: var(--subtext); }
+
+    .export-card-body { padding: 0 22px 18px; }
+
+    .export-card-stats {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+
+    .export-card-stat {
+      background: rgba(255,255,255,0.03);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      color: var(--subtext);
+    }
+
+    .export-card-stat span {
+      font-weight: 600;
+      color: var(--primary);
+    }
+
+    .export-card-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* ─── FILTER OPTIONS ─── */
+    .filter-options {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-bottom: 15px;
+    }
+
+    .filter-group { display: flex; flex-direction: column; gap: 6px; }
+
+    .filter-group label { font-size: 12px; color: var(--subtext); }
+
+    .filter-group select {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 9px 12px;
+      color: var(--text);
+      font-size: 13px;
+      outline: none;
+      transition: 0.3s;
+    }
+
+    .filter-group select:focus { border-color: var(--primary); }
+    .filter-group select option { background: var(--dark); }
+
+    /* ─── REPORT CARDS ─── */
+    .report-card {
+      background: rgba(255,255,255,0.03);
+      border-radius: 12px;
+      padding: 18px;
+      border: 1px solid rgba(255,255,255,0.05);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      transition: 0.3s;
+    }
+
+    .report-card:hover { border-color: rgba(200,169,110,0.2); }
+
+    .report-card-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .report-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .report-info h4 { font-size: 14px; font-weight: 600; margin-bottom: 3px; }
+    .report-info p { font-size: 12px; color: var(--subtext); }
+
+    /* ─── SUMMARY GRID ─── */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .summary-item {
+      background: rgba(255,255,255,0.03);
+      border-radius: 10px;
+      padding: 15px;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .summary-item-label {
+      font-size: 12px;
+      color: var(--subtext);
+      margin-bottom: 8px;
+    }
+
+    .summary-item-value {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .summary-item-sub {
+      font-size: 12px;
+      color: var(--subtext);
+      margin-top: 4px;
+    }
+
+    /* ─── BACKUP ─── */
+    .backup-options {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .backup-option {
+      background: rgba(255,255,255,0.03);
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid rgba(255,255,255,0.05);
+      text-align: center;
+      transition: 0.3s;
+      cursor: pointer;
+    }
+
+    .backup-option:hover {
+      border-color: rgba(200,169,110,0.3);
+      transform: translateY(-2px);
+    }
+
+    .backup-option i {
+      font-size: 32px;
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    .backup-option h4 { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+
+    .backup-option p {
+      font-size: 12px;
+      color: var(--subtext);
+      margin-bottom: 14px;
+      line-height: 1.5;
+    }
+
+    /* ─── TABLE ─── */
+    .table-wrapper {
+      overflow-x: auto;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    table { width: 100%; border-collapse: collapse; }
+
+    table th {
+      padding: 12px 16px;
+      text-align: left;
+      font-size: 12px;
+      color: var(--subtext);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      background: rgba(255,255,255,0.03);
+      white-space: nowrap;
+    }
+
+    table td {
+      padding: 12px 16px;
+      font-size: 13px;
+      border-top: 1px solid rgba(255,255,255,0.03);
+    }
+
+    table tr:hover td { background: rgba(255,255,255,0.02); }
+
+    /* ─── DANGER ZONE ─── */
+    .danger-zone {
+      background: rgba(244,67,54,0.05);
+      border: 1px solid rgba(244,67,54,0.15);
+      border-radius: 16px;
+      padding: 22px;
+      margin-bottom: 20px;
+    }
+
+    .danger-zone h3 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--danger);
+      margin-bottom: 5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .danger-zone p {
+      font-size: 13px;
+      color: var(--subtext);
+      margin-bottom: 15px;
+      line-height: 1.6;
+    }
+
+    .danger-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    /* ─── SAVING INDICATOR ─── */
+    .saving-indicator {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: rgba(200,169,110,0.2);
+      color: var(--primary);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      z-index: 9999;
+      display: none;
+    }
+
+    /* ─── PREVIEW SECTION ─── */
+    .preview-section {
+      display: none;
+      margin-bottom: 20px;
+    }
+
+    /* ─── TOAST ─── */
+    .toast {
+      position: fixed;
+      bottom: 90px;
+      right: 20px;
+      background: var(--success);
+      color: white;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 14px;
+      z-index: 9999;
+      display: none;
+      animation: slideIn 0.3s ease;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+    }
+
+    @keyframes slideIn {
+      from { transform: translateX(100px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 768px) {
+      .page { padding: 15px; padding-bottom: 80px; }
+      .top-actions { flex-direction: column; align-items: flex-start; }
+      .export-grid { grid-template-columns: 1fr; }
+      .backup-options { grid-template-columns: 1fr; }
+      .filter-options { grid-template-columns: 1fr; }
+      .export-card-actions { flex-direction: column; }
+      .export-card-actions .btn { width: 100%; justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ─── SAVING INDICATOR ─── -->
+<div class="saving-indicator" id="savingIndicator">⏳ Loading from Firebase...</div>
+
+<!-- ─── TOAST ─── -->
+<div class="toast" id="toast"></div>
+
+<!-- ─── LOADING ─── -->
+<div class="page-loader" id="pageLoader">
+  <div class="spinner"></div>
+  <p>Loading data from Firebase...</p>
+</div>
+
+<div class="page" id="mainPage" style="display:none">
+
+  <!-- TOP ACTIONS -->
+  <div class="top-actions">
+    <h2>📤 Export & Reports
+      <span style="font-size:13px; color:var(--subtext);
+             font-weight:400; margin-left:8px">
+        Download Firebase Data
+      </span>
+    </h2>
+    <button class="btn btn-primary" onclick="exportAllData()">
+      <i class="fas fa-download"></i> Export Everything
+    </button>
+  </div>
+
+  <!-- ─── STATS ─── -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon">👥</div>
+      <h3 id="st-leads">0</h3>
+      <p>Leads in Firebase</p>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">✅</div>
+      <h3 id="st-tasks">0</h3>
+      <p>Tasks in Firebase</p>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🏗️</div>
+      <h3 id="st-projects">0</h3>
+      <p>Projects in Firebase</p>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">💬</div>
+      <h3 id="st-followups">0</h3>
+      <p>Follow-ups in Firebase</p>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">💰</div>
+      <h3 id="st-revenue">₹0</h3>
+      <p>Est. Revenue</p>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🏆</div>
+      <h3 id="st-won">0</h3>
+      <p>Leads Won</p>
+    </div>
+  </div>
+
+  <!-- ─── EXPORT CARDS ─── -->
+  <h3 style="font-size:15px; font-weight:600;
+             margin-bottom:15px; color:var(--primary)">
+    📁 Export by Section
+  </h3>
+
+  <div class="export-grid">
+
+    <!-- LEADS -->
+    <div class="export-card">
+      <div class="export-card-header">
+        <div class="export-card-icon gold">👥</div>
+        <div class="export-card-title">
+          <h4>Leads Export</h4>
+          <p>All leads from Firebase</p>
+        </div>
+      </div>
+      <div class="export-card-body">
+        <div class="export-card-stats">
+          <div class="export-card-stat">
+            Total: <span id="leads-total">0</span>
+          </div>
+          <div class="export-card-stat">
+            Won: <span id="leads-won">0</span>
+          </div>
+          <div class="export-card-stat">
+            New: <span id="leads-new">0</span>
+          </div>
+        </div>
+        <div class="filter-options" style="margin-bottom:12px">
+          <div class="filter-group">
+            <label>Filter by Status</label>
+            <select id="export-leads-status">
+              <option value="">All Statuses</option>
+              <option value="New">New</option>
+              <option value="Site Visit">Site Visit</option>
+              <option value="Proposal Sent">Proposal Sent</option>
+              <option value="Won">Won</option>
+              <option value="Lost">Lost</option>
+              <option value="Follow-up">Follow-up</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>Filter by Source</label>
+            <select id="export-leads-source">
+              <option value="">All Sources</option>
+              <option value="Website">Website</option>
+              <option value="Referral">Referral</option>
+              <option value="Social Media">Social Media</option>
+              <option value="Google Ads">Google Ads</option>
+              <option value="Walk-in">Walk-in</option>
+            </select>
+          </div>
+        </div>
+        <div class="export-card-actions">
+          <button class="btn btn-primary" onclick="exportLeads()">
+            <i class="fas fa-file-csv"></i> Export CSV
+          </button>
+          <button class="btn btn-info" onclick="previewData('leads')">
+            <i class="fas fa-eye"></i> Preview
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TASKS -->
+    <div class="export-card">
+      <div class="export-card-header">
+        <div class="export-card-icon blue">✅</div>
+        <div class="export-card-title">
+          <h4>Tasks Export</h4>
+          <p>All tasks from Firebase</p>
+        </div>
+      </div>
+      <div class="export-card-body">
+        <div class="export-card-stats">
+          <div class="export-card-stat">
+            Total: <span id="tasks-total">0</span>
+          </div>
+          <div class="export-card-stat">
+            Done: <span id="tasks-done">0</span>
+          </div>
+          <div class="export-card-stat">
+            Overdue: <span id="tasks-overdue">0</span>
+          </div>
+        </div>
+        <div class="filter-options" style="margin-bottom:12px">
+          <div class="filter-group">
+            <label>Filter by Status</label>
+            <select id="export-tasks-status">
+              <option value="">All</option>
+              <option value="Pending">Pending</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Done">Done</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>Filter by Priority</label>
+            <select id="export-tasks-priority">
+              <option value="">All</option>
+              <option value="High">High</option>
+              <option value="Medium">Medium</option>
+              <option value="Low">Low</option>
+            </select>
+          </div>
+        </div>
+        <div class="export-card-actions">
+          <button class="btn btn-primary" onclick="exportTasks()">
+            <i class="fas fa-file-csv"></i> Export CSV
+          </button>
+          <button class="btn btn-info" onclick="previewData('tasks')">
+            <i class="fas fa-eye"></i> Preview
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROJECTS -->
+    <div class="export-card">
+      <div class="export-card-header">
+        <div class="export-card-icon orange">🏗️</div>
+        <div class="export-card-title">
+          <h4>Projects Export</h4>
+          <p>All projects from Firebase</p>
+        </div>
+      </div>
+      <div class="export-card-body">
+        <div class="export-card-stats">
+          <div class="export-card-stat">
+            Total: <span id="proj-total">0</span>
+          </div>
+          <div class="export-card-stat">
+            Active: <span id="proj-active">0</span>
+          </div>
+          <div class="export-card-stat">
+            Done: <span id="proj-done">0</span>
+          </div>
+        </div>
+        <div class="filter-options" style="margin-bottom:12px">
+          <div class="filter-group">
+            <label>Filter by Status</label>
+            <select id="export-proj-status">
+              <option value="">All</option>
+              <option value="Planning">Planning</option>
+              <option value="Design">Design</option>
+              <option value="Execution">Execution</option>
+              <option value="Handover">Handover</option>
+              <option value="Completed">Completed</option>
+              <option value="On Hold">On Hold</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>Filter by Type</label>
+            <select id="export-proj-type">
+              <option value="">All Types</option>
+              <option value="Office Interior">Office Interior</option>
+              <option value="Commercial Fit-out">Commercial Fit-out</option>
+              <option value="Restaurant">Restaurant</option>
+              <option value="Retail">Retail</option>
+              <option value="Renovation">Renovation</option>
+            </select>
+          </div>
+        </div>
+        <div class="export-card-actions">
+          <button class="btn btn-primary" onclick="exportProjects()">
+            <i class="fas fa-file-csv"></i> Export CSV
+          </button>
+          <button class="btn btn-info" onclick="previewData('projects')">
+            <i class="fas fa-eye"></i> Preview
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- FOLLOW-UPS -->
+    <div class="export-card">
+      <div class="export-card-header">
+        <div class="export-card-icon purple">💬</div>
+        <div class="export-card-title">
+          <h4>Follow-ups Export</h4>
+          <p>All follow-ups from Firebase</p>
+        </div>
+      </div>
+      <div class="export-card-body">
+        <div class="export-card-stats">
+          <div class="export-card-stat">
+            Total: <span id="fu-total">0</span>
+          </div>
+          <div class="export-card-stat">
+            Done: <span id="fu-done">0</span>
+          </div>
+          <div class="export-card-stat">
+            Overdue: <span id="fu-overdue">0</span>
+          </div>
+        </div>
+        <div class="filter-options" style="margin-bottom:12px">
+          <div class="filter-group">
+            <label>Filter by Type</label>
+            <select id="export-fu-type">
+              <option value="">All Types</option>
+              <option value="Call">Call</option>
+              <option value="Meeting">Meeting</option>
+              <option value="WhatsApp">WhatsApp</option>
+              <option value="Email">Email</option>
+              <option value="Site Visit">Site Visit</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>Filter by Status</label>
+            <select id="export-fu-done">
+              <option value="">All</option>
+              <option value="pending">Pending Only</option>
+              <option value="done">Done Only</option>
+            </select>
+          </div>
+        </div>
+        <div class="export-card-actions">
+          <button class="btn btn-primary" onclick="exportFollowups()">
+            <i class="fas fa-file-csv"></i> Export CSV
+          </button>
+          <button class="btn btn-info" onclick="previewData('followups')">
+            <i class="fas fa-eye"></i> Preview
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ─── DATA PREVIEW TABLE ─── -->
+  <div class="section-card preview-section" id="previewSection">
+    <div class="section-card-header">
+      <h3 id="previewTitle">
+        <i class="fas fa-table" style="color:var(--primary)"></i>
+        Data Preview
+      </h3>
+      <div style="display:flex; gap:8px">
+        <button class="btn btn-danger" onclick="closePreview()">
+          <i class="fas fa-times"></i> Close
+        </button>
+      </div>
+    </div>
+    <div class="section-card-body">
+      <div class="table-wrapper">
+        <table>
+          <thead id="previewTableHead"></thead>
+          <tbody id="previewTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── REPORTS SECTION ─── -->
+  <div class="section-card" style="margin-bottom:20px">
+    <div class="section-card-header">
+      <h3>
+        <i class="fas fa-chart-bar" style="color:var(--primary)"></i>
+        Quick Reports
+      </h3>
+      <button class="btn btn-primary" onclick="generateFullReport()">
+        <i class="fas fa-file-alt"></i> Generate Full Report
+      </button>
+    </div>
+    <div class="section-card-body">
+
+      <!-- SUMMARY -->
+      <div class="summary-grid" style="margin-bottom:20px">
+        <div class="summary-item">
+          <div class="summary-item-label">🏆 Conversion Rate</div>
+          <div class="summary-item-value" id="conversion-rate">0%</div>
+          <div class="summary-item-sub">Leads → Won</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-item-label">💰 Total Revenue</div>
+          <div class="summary-item-value" id="total-revenue">₹0</div>
+          <div class="summary-item-sub">From Projects</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-item-label">📊 Avg. Budget</div>
+          <div class="summary-item-value" id="avg-budget">₹0</div>
+          <div class="summary-item-sub">Per Lead</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-item-label">✅ Task Completion</div>
+          <div class="summary-item-value" id="task-completion">0%</div>
+          <div class="summary-item-sub">Tasks Done</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-item-label">🏗️ Active Projects</div>
+          <div class="summary-item-value" id="active-projects">0</div>
+          <div class="summary-item-sub">In Progress</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-item-label">💬 Follow-ups Due</div>
+          <div class="summary-item-value" id="followups-due">0</div>
+          <div class="summary-item-sub">Today & Overdue</div>
+        </div>
+      </div>
+
+      <!-- QUICK REPORTS -->
+      <div class="report-card">
+        <div class="report-card-left">
+          <div class="report-icon" style="background:rgba(200,169,110,0.1)">👥</div>
+          <div class="report-info">
+            <h4>Leads Summary Report</h4>
+            <p>Status breakdown, source analysis & pipeline from Firebase</p>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="exportLeadsReport()">
+          <i class="fas fa-download"></i> Download
+        </button>
+      </div>
+
+      <div class="report-card">
+        <div class="report-card-left">
+          <div class="report-icon" style="background:rgba(255,152,0,0.1)">🏗️</div>
+          <div class="report-info">
+            <h4>Projects Progress Report</h4>
+            <p>All projects with progress, value & deadline from Firebase</p>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="exportProjectsReport()">
+          <i class="fas fa-download"></i> Download
+        </button>
+      </div>
+
+      <div class="report-card">
+        <div class="report-card-left">
+          <div class="report-icon" style="background:rgba(33,150,243,0.1)">✅</div>
+          <div class="report-info">
+            <h4>Tasks Performance Report</h4>
+            <p>Completion rate, overdue & priority breakdown from Firebase</p>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="exportTasksReport()">
+          <i class="fas fa-download"></i> Download
+        </button>
+      </div>
+
+      <div class="report-card">
+        <div class="report-card-left">
+          <div class="report-icon" style="background:rgba(76,175,80,0.1)">📊</div>
+          <div class="report-info">
+            <h4>Full CRM Report</h4>
+            <p>Complete Firebase data export — all sections in one file</p>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="generateFullReport()">
+          <i class="fas fa-download"></i> Download
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ─── BACKUP & RESTORE ─── -->
+  <div class="section-card" style="margin-bottom:20px">
+    <div class="section-card-header">
+      <h3>
+        <i class="fas fa-shield-alt" style="color:var(--success)"></i>
+        Backup & Restore (Firebase Data)
+      </h3>
+    </div>
+    <div class="section-card-body">
+      <div class="backup-options">
+
+        <div class="backup-option" onclick="backupAllData()">
+          <i class="fas fa-cloud-download-alt" style="color:var(--success)"></i>
+          <h4>Backup All Data</h4>
+          <p>Download complete Firebase data backup as JSON file</p>
+          <button class="btn btn-success" style="width:100%">
+            <i class="fas fa-download"></i> Download Backup
+          </button>
+        </div>
+
+        <div class="backup-option">
+          <i class="fas fa-cloud-upload-alt" style="color:var(--warning)"></i>
+          <h4>Restore from Backup</h4>
+          <p>Upload JSON backup to restore all data to Firebase</p>
+          <input type="file" id="restoreFile" accept=".json"
+                 style="display:none" onchange="restoreData(event)"/>
+          <button class="btn btn-warning" style="width:100%"
+                  onclick="document.getElementById('restoreFile').click()">
+            <i class="fas fa-upload"></i> Upload Backup File
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── DANGER ZONE ─── -->
+  <div class="danger-zone">
+    <h3><i class="fas fa-exclamation-triangle"></i> Danger Zone</h3>
+    <p>
+      These actions are <strong>irreversible</strong> and will
+      <strong>permanently delete data from Firebase</strong>.
+      Please backup your data before clearing!
+    </p>
+    <div class="danger-actions">
+      <button class="btn btn-danger" onclick="clearSection('leads')">
+        <i class="fas fa-trash"></i> Clear All Leads
+      </button>
+      <button class="btn btn-danger" onclick="clearSection('tasks')">
+        <i class="fas fa-trash"></i> Clear All Tasks
+      </button>
+      <button class="btn btn-danger" onclick="clearSection('projects')">
+        <i class="fas fa-trash"></i> Clear All Projects
+      </button>
+      <button class="btn btn-danger" onclick="clearSection('followups')">
+        <i class="fas fa-trash"></i> Clear Follow-ups
+      </button>
+      <button class="btn btn-danger"
+              style="background:rgba(244,67,54,0.3)"
+              onclick="clearAllData()">
+        <i class="fas fa-bomb"></i> Clear ALL CRM Data
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ═══════════════════════════════════════
+  //        FIREBASE CONFIGURATION
+  // ═══════════════════════════════════════
+  const firebaseConfig = {
+    apiKey: "AIzaSyBLQhUZA-VN4_A9FhQWmlRSQZC2D95KoE8",
+    authDomain: "turnkeycrm-ce7b8.firebaseapp.com",
+    projectId: "turnkeycrm-ce7b8",
+    storageBucket: "turnkeycrm-ce7b8.firebasestorage.app",
+    messagingSenderId: "487224108102",
+    appId: "1:487224108102:web:dbe9d4ea6abdb2db581647"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  // ─── STATE ───
+  let allLeads    = [];
+  let allTasks    = [];
+  let allProjects = [];
+  let allFollowups= [];
+
+  // ═══════════════════════════════════════
+  //     LOAD ALL DATA FROM FIREBASE
+  // ═══════════════════════════════════════
+  async function loadAllData() {
+    showSaving(true);
+    try {
+      const [leadsSnap, tasksSnap, projSnap, fuSnap] = await Promise.all([
+        db.collection('leads').get(),
+        db.collection('tasks').get(),
+        db.collection('projects').get(),
+        db.collection('followups').get()
+      ]);
+
+      allLeads = [];
+      leadsSnap.forEach(doc => allLeads.push({ id: doc.id, ...doc.data() }));
+
+      allTasks = [];
+      tasksSnap.forEach(doc => allTasks.push({ id: doc.id, ...doc.data() }));
+
+      allProjects = [];
+      projSnap.forEach(doc => allProjects.push({ id: doc.id, ...doc.data() }));
+
+      allFollowups = [];
+      fuSnap.forEach(doc => allFollowups.push({ id: doc.id, ...doc.data() }));
+
+      updateAllStats();
+
+      document.getElementById('pageLoader').style.display = 'none';
+      document.getElementById('mainPage').style.display = 'block';
+
+    } catch (error) {
+      console.error('Load error:', error);
+      document.getElementById('pageLoader').innerHTML = `
+        <div style="text-align:center; color:var(--danger)">
+          <i class="fas fa-exclamation-triangle"
+             style="font-size:40px; margin-bottom:15px; display:block"></i>
+          <h3>Error Loading Data</h3>
+          <p style="color:var(--subtext); margin-top:8px">
+            Check internet connection and refresh
+          </p>
+        </div>`;
+    }
+    showSaving(false);
+  }
+
+  // ─── UPDATE ALL STATS ───
+  function updateAllStats() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Top stats
+    document.getElementById('st-leads').textContent     = allLeads.length;
+    document.getElementById('st-tasks').textContent     = allTasks.length;
+    document.getElementById('st-projects').textContent  = allProjects.length;
+    document.getElementById('st-followups').textContent = allFollowups.length;
+
+    const won = allLeads.filter(l => l.status === 'Won').length;
+    const revenue = allProjects.reduce((s, p) =>
+      s + (parseInt(p.value) || 0), 0);
+
+    document.getElementById('st-won').textContent = won;
+    document.getElementById('st-revenue').textContent =
+      revenue > 0 ? '₹' + revenue.toLocaleString('en-IN') : '₹0';
+
+    // Card stats
+    document.getElementById('leads-total').textContent = allLeads.length;
+    document.getElementById('leads-won').textContent   = won;
+    document.getElementById('leads-new').textContent   =
+      allLeads.filter(l => l.status === 'New').length;
+
+    document.getElementById('tasks-total').textContent   = allTasks.length;
+    document.getElementById('tasks-done').textContent    =
+      allTasks.filter(t => t.status === 'Done').length;
+    document.getElementById('tasks-overdue').textContent =
+      allTasks.filter(t =>
+        t.dueDate && new Date(t.dueDate) < today && t.status !== 'Done'
+      ).length;
+
+    document.getElementById('proj-total').textContent  = allProjects.length;
+    document.getElementById('proj-active').textContent =
+      allProjects.filter(p =>
+        ['Planning','Design','Execution','Handover'].includes(p.status)
+      ).length;
+    document.getElementById('proj-done').textContent   =
+      allProjects.filter(p => p.status === 'Completed').length;
+
+    document.getElementById('fu-total').textContent    = allFollowups.length;
+    document.getElementById('fu-done').textContent     =
+      allFollowups.filter(f => f.done).length;
+    document.getElementById('fu-overdue').textContent  =
+      allFollowups.filter(f => {
+        if (!f.date || f.done) return false;
+        return new Date(f.date) < today;
+      }).length;
+
+    // Summary
+    const convRate = allLeads.length > 0
+      ? Math.round((won / allLeads.length) * 100) : 0;
+    document.getElementById('conversion-rate').textContent = convRate + '%';
+    document.getElementById('total-revenue').textContent =
+      '₹' + revenue.toLocaleString('en-IN');
+
+    const budgets = allLeads
+      .map(l => parseInt(l.budget) || 0)
+      .filter(b => b > 0);
+    const avgBudget = budgets.length > 0
+      ? Math.round(budgets.reduce((a,b) => a+b,0) / budgets.length) : 0;
+    document.getElementById('avg-budget').textContent =
+      avgBudget > 0 ? '₹' + avgBudget.toLocaleString('en-IN') : '₹0';
+
+    const taskCompletion = allTasks.length > 0
+      ? Math.round((allTasks.filter(t =>
+          t.status === 'Done').length / allTasks.length) * 100) : 0;
+    document.getElementById('task-completion').textContent = taskCompletion + '%';
+
+    document.getElementById('active-projects').textContent =
+      allProjects.filter(p =>
+        ['Planning','Design','Execution'].includes(p.status)
+      ).length;
+
+    document.getElementById('followups-due').textContent =
+      allFollowups.filter(f => {
+        if (!f.date || f.done) return false;
+        return new Date(f.date) <= today;
+      }).length;
+  }
+
+  // ─── FORMAT ───
+  function fmt(d) {
+    if (!d) return '-';
+    return new Date(d).toLocaleDateString('en-IN', {
+      day:'2-digit', month:'short', year:'numeric'
+    });
+  }
+
+  function dateStamp() {
+    return new Date().toISOString().split('T')[0];
+  }
+
+  // ─── DOWNLOAD CSV ───
+  function downloadCSV(content, filename) {
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function toCSV(headers, rows) {
+    return [headers, ...rows]
+      .map(r => r.map(cell =>
+        '"' + (cell ?? '').toString().replace(/"/g, '""') + '"'
+      ).join(','))
+      .join('\n');
+  }
+
+  // ═══════════════════════════════════════
+  //     EXPORT FUNCTIONS (FROM FIREBASE)
+  // ═══════════════════════════════════════
+
+  // ─── EXPORT LEADS ───
+  function exportLeads() {
+    let data = [...allLeads];
+    const status = document.getElementById('export-leads-status').value;
+    const source = document.getElementById('export-leads-source').value;
+
+    if (status) data = data.filter(l => l.status === status);
+    if (source) data = data.filter(l => l.source === source);
+
+    if (data.length === 0) {
+      showToast('❌ No leads match the filter!', 'danger');
+      return;
+    }
+
+    const headers = [
+      'Name','Phone','Email','Company',
+      'Project Type','Location','Budget (₹)',
+      'Area (sq ft)','Source','Status',
+      'Follow-up Date','Assigned To',
+      'Notes','Date Added'
+    ];
+
+    const rows = data.map(l => [
+      l.name, l.phone, l.email, l.company,
+      l.projectType, l.location, l.budget,
+      l.area, l.source, l.status,
+      l.followupDate, l.assignedTo,
+      l.notes, l.date
+    ]);
+
+    downloadCSV(toCSV(headers, rows),
+      `TurnkeyCRM_Leads_${dateStamp()}.csv`);
+    showToast(`✅ ${data.length} leads exported from Firebase!`, 'success');
+  }
+
+  // ─── EXPORT TASKS ───
+  function exportTasks() {
+    let data = [...allTasks];
+    const status   = document.getElementById('export-tasks-status').value;
+    const priority = document.getElementById('export-tasks-priority').value;
+
+    if (status)   data = data.filter(t => t.status === status);
+    if (priority) data = data.filter(t => t.priority === priority);
+
+    if (data.length === 0) {
+      showToast('❌ No tasks match the filter!', 'danger');
+      return;
+    }
+
+    const headers = [
+      'Title','Category','Priority','Status',
+      'Due Date','Due Time','Assigned To',
+      'Related','Notes','Created'
+    ];
+
+    const rows = data.map(t => [
+      t.title, t.category, t.priority, t.status,
+      t.dueDate, t.dueTime, t.assignedTo,
+      t.related, t.notes,
+      t.createdAt ? t.createdAt.split('T')[0] : ''
+    ]);
+
+    downloadCSV(toCSV(headers, rows),
+      `TurnkeyCRM_Tasks_${dateStamp()}.csv`);
+    showToast(`✅ ${data.length} tasks exported from Firebase!`, 'success');
+  }
+
+  // ─── EXPORT PROJECTS ───
+  function exportProjects() {
+    let data = [...allProjects];
+    const status = document.getElementById('export-proj-status').value;
+    const type   = document.getElementById('export-proj-type').value;
+
+    if (status) data = data.filter(p => p.status === status);
+    if (type)   data = data.filter(p => p.type === type);
+
+    if (data.length === 0) {
+      showToast('❌ No projects match the filter!', 'danger');
+      return;
+    }
+
+    const headers = [
+      'Project Name','Client','Phone','Type',
+      'Location','Value (₹)','Area (sq ft)',
+      'Status','Progress %','Start Date',
+      'Deadline','Site Manager','Notes'
+    ];
+
+    const rows = data.map(p => [
+      p.name, p.client, p.phone, p.type,
+      p.location, p.value, p.area,
+      p.status, p.progress,
+      p.startDate, p.deadline,
+      p.manager, p.notes
+    ]);
+
+    downloadCSV(toCSV(headers, rows),
+      `TurnkeyCRM_Projects_${dateStamp()}.csv`);
+    showToast(`✅ ${data.length} projects exported from Firebase!`, 'success');
+  }
+
+  // ─── EXPORT FOLLOWUPS ───
+  function exportFollowups() {
+    let data = [...allFollowups];
+    const type  = document.getElementById('export-fu-type').value;
+    const doneF = document.getElementById('export-fu-done').value;
+
+    if (type) data = data.filter(f => f.type === type);
+    if (doneF === 'done')    data = data.filter(f => f.done);
+    if (doneF === 'pending') data = data.filter(f => !f.done);
+
+    if (data.length === 0) {
+      showToast('❌ No follow-ups match the filter!', 'danger');
+      return;
+    }
+
+    const headers = [
+      'Name','Phone','Company','Related',
+      'Type','Priority','Date','Time',
+      'Assigned To','Lead Status',
+      'Notes','Outcome','Next Action','Done'
+    ];
+
+    const rows = data.map(f => [
+      f.name, f.phone, f.company, f.related,
+      f.type, f.priority, f.date, f.time,
+      f.assignedTo, f.leadStatus,
+      f.notes, f.outcome, f.nextAction,
+      f.done ? 'Yes' : 'No'
+    ]);
+
+    downloadCSV(toCSV(headers, rows),
+      `TurnkeyCRM_Followups_${dateStamp()}.csv`);
+    showToast(`✅ ${data.length} follow-ups exported from Firebase!`, 'success');
+  }
+
+  // ─── EXPORT ALL ───
+  function exportAllData() {
+    exportLeads();
+    setTimeout(() => exportTasks(), 600);
+    setTimeout(() => exportProjects(), 1200);
+    setTimeout(() => exportFollowups(), 1800);
+    showToast('✅ All Firebase data export started!', 'success');
+  }
+
+  // ─── PREVIEW DATA ───
+  function previewData(type) {
+    const section = document.getElementById('previewSection');
+    document.getElementById('previewTitle').innerHTML =
+      `<i class="fas fa-table" style="color:var(--primary)"></i>
+       ${type.charAt(0).toUpperCase() + type.slice(1)} Preview (First 10)`;
+
+    let headers = [];
+    let rows = [];
+    let data = type === 'leads' ? allLeads :
+               type === 'tasks' ? allTasks :
+               type === 'projects' ? allProjects : allFollowups;
+
+    if (data.length === 0) {
+      showToast(`❌ No ${type} data in Firebase!`, 'danger');
+      return;
+    }
+
+    const preview = data.slice(0, 10);
+
+    if (type === 'leads') {
+      headers = ['Name','Phone','Project Type','Location','Budget','Status','Source'];
+      rows = preview.map(l => [
+        l.name, l.phone, l.projectType, l.location,
+        l.budget ? '₹'+parseInt(l.budget).toLocaleString('en-IN') : '-',
+        l.status, l.source
+      ]);
+    } else if (type === 'tasks') {
+      headers = ['Title','Category','Priority','Status','Due Date','Assigned To'];
+      rows = preview.map(t => [
+        t.title, t.category, t.priority,
+        t.status, fmt(t.dueDate), t.assignedTo
+      ]);
+    } else if (type === 'projects') {
+      headers = ['Name','Client','Type','Status','Progress','Value','Deadline'];
+      rows = preview.map(p => [
+        p.name, p.client, p.type, p.status,
+        (p.progress||0)+'%',
+        p.value ? '₹'+parseInt(p.value).toLocaleString('en-IN') : '-',
+        fmt(p.deadline)
+      ]);
+    } else {
+      headers = ['Name','Phone','Type','Priority','Date','Done','Notes'];
+      rows = preview.map(f => [
+        f.name, f.phone, f.type, f.priority,
+        fmt(f.date), f.done?'✅ Yes':'⏳ No',
+        f.notes ? f.notes.substring(0,50)+'...' : '-'
+      ]);
+    }
+
+    document.getElementById('previewTableHead').innerHTML =
+      `<tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>`;
+    document.getElementById('previewTableBody').innerHTML =
+      rows.map(row => `
+        <tr>${row.map(cell =>
+          `<td>${cell || '-'}</td>`
+        ).join('')}</tr>
+      `).join('');
+
+    section.style.display = 'block';
+    section.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function closePreview() {
+    document.getElementById('previewSection').style.display = 'none';
+  }
+
+  // ─── REPORTS ───
+  function exportLeadsReport() {
+    if (allLeads.length === 0) {
+      showToast('❌ No leads data in Firebase!', 'danger');
+      return;
+    }
+
+    const won = allLeads.filter(l => l.status === 'Won').length;
+    const statuses = [...new Set(allLeads.map(l => l.status))];
+    const sources  = [...new Set(allLeads.map(l => l.source).filter(Boolean))];
+
+    const rows = [
+      ['=== LEADS SUMMARY REPORT ===', ''],
+      ['Generated On', new Date().toLocaleString('en-IN')],
+      ['Company', 'Turnkey Interior Contractors'],
+      ['', ''],
+      ['=== OVERVIEW ===', ''],
+      ['Total Leads', allLeads.length],
+      ['Leads Won', won],
+      ['Conversion Rate', Math.round((won/allLeads.length)*100)+'%'],
+      ['', ''],
+      ['=== BY STATUS ===', ''],
+      ...statuses.map(s => [s, allLeads.filter(l => l.status === s).length]),
+      ['', ''],
+      ['=== BY SOURCE ===', ''],
+      ...sources.map(s => [s, allLeads.filter(l => l.source === s).length]),
+      ['', ''],
+      ['=== BUDGET ANALYSIS ===', ''],
+      ['Total Budget Value', '₹' + allLeads
+        .reduce((sum, l) => sum + (parseInt(l.budget) || 0), 0)
+        .toLocaleString('en-IN')],
+      ['Average Budget', '₹' + Math.round(
+        allLeads.filter(l => l.budget)
+          .reduce((sum, l) => sum + (parseInt(l.budget) || 0), 0) /
+        (allLeads.filter(l => l.budget).length || 1)
+      ).toLocaleString('en-IN')]
+    ];
+
+    downloadCSV(toCSV(['Metric','Value'], rows),
+      `TurnkeyCRM_LeadsReport_${dateStamp()}.csv`);
+    showToast('✅ Leads report downloaded!', 'success');
+  }
+
+  function exportProjectsReport() {
+    if (allProjects.length === 0) {
+      showToast('❌ No projects data in Firebase!', 'danger');
+      return;
+    }
+
+    const today = new Date();
+    today.setHours(0,0,0,0);
+
+    const headers = [
+      'Project Name','Client','Type','Status',
+      'Progress %','Value (₹)','Deadline','Overdue?','Manager'
+    ];
+
+    const rows = allProjects.map(p => [
+      p.name, p.client, p.type, p.status,
+      (p.progress || 0) + '%',
+      p.value ? '₹' + parseInt(p.value).toLocaleString('en-IN') : '-',
+      fmt(p.deadline),
+      (p.deadline && new Date(p.deadline) < today &&
+        p.status !== 'Completed') ? 'YES ⚠️' : 'No',
+      p.manager || '-'
+    ]);
+
+    downloadCSV(toCSV(headers, rows),
+      `TurnkeyCRM_ProjectsReport_${dateStamp()}.csv`);
+    showToast('✅ Projects report downloaded!', 'success');
+  }
+
+  function exportTasksReport() {
+    if (allTasks.length === 0) {
+      showToast('❌ No tasks data in Firebase!', 'danger');
+      return;
+    }
+
+    const today = new Date();
+    today.setHours(0,0,0,0);
+
+    const headers = [
+      'Title','Category','Priority',
+      'Status','Due Date','Overdue?','Assigned To'
+    ];
+
+    const rows = allTasks.map(t => [
+      t.title, t.category, t.priority, t.status,
+      fmt(t.dueDate),
+      (t.dueDate && new Date(t.dueDate) < today &&
+        t.status !== 'Done') ? 'YES ⚠️' : 'No',
+      t.assignedTo || '-'
+    ]);
+
+    downloadCSV(toCSV(headers, rows),
+      `TurnkeyCRM_TasksReport_${dateStamp()}.csv`);
+    showToast('✅ Tasks report downloaded!', 'success');
+  }
+
+  function generateFullReport() {
+    const today = new Date();
+    today.setHours(0,0,0,0);
+
+    const won     = allLeads.filter(l => l.status === 'Won').length;
+    const revenue = allProjects.reduce((s,p) =>
+      s+(parseInt(p.value)||0), 0);
+    const convRate = allLeads.length > 0
+      ? Math.round((won/allLeads.length)*100) : 0;
+
+    const headers = ['Section', 'Metric', 'Value'];
+    const rows = [
+      ['CRM', 'Report Generated', new Date().toLocaleString('en-IN')],
+      ['CRM', 'Company', 'Turnkey Interior Contractors'],
+      ['CRM', 'Database', 'Firebase Cloud'],
+      ['','',''],
+      ['LEADS', 'Total Leads', allLeads.length],
+      ['LEADS', 'New Leads', allLeads.filter(l=>l.status==='New').length],
+      ['LEADS', 'Site Visit', allLeads.filter(l=>l.status==='Site Visit').length],
+      ['LEADS', 'Proposal Sent', allLeads.filter(l=>l.status==='Proposal Sent').length],
+      ['LEADS', 'Won', won],
+      ['LEADS', 'Lost', allLeads.filter(l=>l.status==='Lost').length],
+      ['LEADS', 'Conversion Rate', convRate+'%'],
+      ['','',''],
+      ['TASKS', 'Total Tasks', allTasks.length],
+      ['TASKS', 'Pending', allTasks.filter(t=>t.status==='Pending').length],
+      ['TASKS', 'In Progress', allTasks.filter(t=>t.status==='In Progress').length],
+      ['TASKS', 'Done', allTasks.filter(t=>t.status==='Done').length],
+      ['TASKS', 'Overdue', allTasks.filter(t=>
+        t.dueDate && new Date(t.dueDate)<today && t.status!=='Done'
+      ).length],
+      ['','',''],
+      ['PROJECTS', 'Total Projects', allProjects.length],
+      ['PROJECTS', 'Planning', allProjects.filter(p=>p.status==='Planning').length],
+      ['PROJECTS', 'Execution', allProjects.filter(p=>p.status==='Execution').length],
+      ['PROJECTS', 'Completed', allProjects.filter(p=>p.status==='Completed').length],
+      ['PROJECTS', 'Total Revenue', '₹'+revenue.toLocaleString('en-IN')],
+      ['','',''],
+      ['FOLLOWUPS', 'Total Follow-ups', allFollowups.length],
+      ['FOLLOWUPS', 'Completed', allFollowups.filter(f=>f.done).length],
+      ['FOLLOWUPS', 'Pending', allFollowups.filter(f=>!f.done).length],
+      ['FOLLOWUPS', 'Overdue', allFollowups.filter(f=>{
+        if (!f.date || f.done) return false;
+        return new Date(f.date) < today;
+      }).length]
+    ];
+
+    downloadCSV(toCSV(headers, rows),
+      `TurnkeyCRM_FullReport_${dateStamp()}.csv`);
+    showToast('✅ Full CRM report downloaded!', 'success');
+  }
+
+  // ═══════════════════════════════════════
+  //     BACKUP FROM FIREBASE
+  // ═══════════════════════════════════════
+  async function backupAllData() {
+    showSaving(true);
+    try {
+      const backup = {
+        version: '2.0',
+        company: 'Turnkey Interior Contractors',
+        database: 'Firebase',
+        exportedAt: new Date().toISOString(),
+        data: {
+          leads:     allLeads,
+          tasks:     allTasks,
+          projects:  allProjects,
+          followups: allFollowups
+        }
+      };
+
+      const blob = new Blob(
+        [JSON.stringify(backup, null, 2)],
+        { type: 'application/json' }
+      );
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = `TurnkeyCRM_FirebaseBackup_${dateStamp()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('✅ Firebase backup downloaded!', 'success');
+    } catch (error) {
+      showToast('❌ Error creating backup!', 'danger');
+    }
+    showSaving(false);
+  }
+
+  // ═══════════════════════════════════════
+  //     RESTORE TO FIREBASE
+  // ═══════════════════════════════════════
+  async function restoreData(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (!file.name.endsWith('.json')) {
+      showToast('❌ Please select a valid JSON backup!', 'danger');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+      try {
+        const backup = JSON.parse(e.target.result);
+
+        if (!backup.data) {
+          showToast('❌ Invalid backup file format!', 'danger');
+          return;
+        }
+
+        if (!confirm(
+          `Restore backup from:\n${backup.exportedAt || 'Unknown date'}\n\n` +
+          `This will ADD backup data to Firebase.\n` +
+          `Existing data will NOT be deleted.\n\nContinue?`
+        )) return;
+
+        showSaving(true);
+        showToast('⏳ Restoring to Firebase...', 'warning');
+
+        const collections = ['leads','tasks','projects','followups'];
+
+        for (const col of collections) {
+          if (backup.data[col] && backup.data[col].length > 0) {
+            const batch = db.batch();
+            backup.data[col].forEach(item => {
+              const { id, ...data } = item;
+              const docRef = db.collection(col).doc();
+              batch.set(docRef, {
+                ...data,
+                restoredAt: new Date().toISOString()
+              });
+            });
+            await batch.commit();
+          }
+        }
+
+        await loadAllData();
+        showToast('✅ Data restored to Firebase!', 'success');
+
+      } catch (err) {
+        console.error('Restore error:', err);
+        showToast('❌ Error restoring backup!', 'danger');
+      }
+      showSaving(false);
+    };
+    reader.readAsText(file);
+  }
+
+  // ═══════════════════════════════════════
+  //     CLEAR FIREBASE COLLECTIONS
+  // ═══════════════════════════════════════
+  async function clearSection(section) {
+    const data = section === 'leads' ? allLeads :
+                 section === 'tasks' ? allTasks :
+                 section === 'projects' ? allProjects : allFollowups;
+
+    if (data.length === 0) {
+      showToast(`❌ No ${section} in Firebase!`, 'warning');
+      return;
+    }
+
+    if (!confirm(
+      `⚠️ This will permanently delete ALL ${data.length} ${section} from Firebase!\n\n` +
+      `This CANNOT be undone! Are you sure?`
+    )) return;
+
+    showSaving(true);
+    try {
+      const batch = db.batch();
+      data.forEach(item => {
+        batch.delete(db.collection(section).doc(item.id));
+      });
+      await batch.commit();
+      await loadAllData();
+      showToast(`🗑️ All ${section} deleted from Firebase!`, 'danger');
+    } catch (error) {
+      showToast(`❌ Error clearing ${section}!`, 'danger');
+    }
+    showSaving(false);
+  }
+
+  // ─── CLEAR ALL DATA ───
+  async function clearAllData() {
+    if (!confirm(
+      '⚠️⚠️ DANGER!\n\nThis will DELETE ALL data from Firebase:\n' +
+      '• All Leads\n• All Tasks\n• All Projects\n• All Follow-ups\n\n' +
+      'THIS CANNOT BE UNDONE!'
+    )) return;
+
+    if (!confirm('🚨 FINAL WARNING! Are you absolutely sure?')) return;
+
+    showSaving(true);
+    try {
+      const collections = ['leads','tasks','projects','followups'];
+      for (const col of collections) {
+        const snap = await db.collection(col).get();
+        const batch = db.batch();
+        snap.forEach(doc => batch.delete(doc.ref));
+        await batch.commit();
+      }
+      await loadAllData();
+      showToast('🗑️ All Firebase data cleared!', 'danger');
+    } catch (error) {
+      showToast('❌ Error clearing data!', 'danger');
+    }
+    showSaving(false);
+  }
+
+  // ─── SAVING INDICATOR ───
+  function showSaving(show) {
+    document.getElementById('savingIndicator').style.display =
+      show ? 'block' : 'none';
+    document.getElementById('savingIndicator').textContent =
+      show ? '⏳ Loading from Firebase...' : '';
+  }
+
+  // ─── TOAST ───
+  function showToast(message, type = 'success') {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.style.display = 'block';
+    toast.style.background =
+      type === 'danger'  ? 'var(--danger)'  :
+      type === 'warning' ? 'var(--warning)' :
+      'var(--success)';
+    setTimeout(() => { toast.style.display = 'none'; }, 3500);
+  }
+
+  // ─── INIT ───
+  loadAllData();
+</script>
+</body>
+</html>

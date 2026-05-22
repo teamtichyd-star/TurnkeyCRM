@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Tasks - Turnkey CRM</title>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+
+  <!-- ─── FIREBASE SDK ─── -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
   <style>
     * {
       margin: 0;
@@ -32,7 +37,6 @@
       min-height: 100vh;
     }
 
-    /* ─── PAGE ─── */
     .page {
       padding: 25px;
       animation: fadeIn 0.3s ease;
@@ -42,6 +46,29 @@
       from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
     }
+
+    /* ─── LOADING ─── */
+    .page-loader {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 60px;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .page-loader .spinner {
+      width: 36px;
+      height: 36px;
+      border: 4px solid rgba(200,169,110,0.2);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .page-loader p { font-size: 14px; color: var(--subtext); }
 
     /* ─── TOP ACTIONS ─── */
     .top-actions {
@@ -101,19 +128,13 @@
       border: 1px solid rgba(33,150,243,0.3);
     }
 
-    .btn-success {
-      background: rgba(76,175,80,0.15);
-      color: var(--success);
-      border: 1px solid rgba(76,175,80,0.3);
-    }
-
     .btn-warning {
       background: rgba(255,152,0,0.15);
       color: var(--warning);
       border: 1px solid rgba(255,152,0,0.3);
     }
 
-    /* ─── STATS ROW ─── */
+    /* ─── STATS ─── */
     .task-stats {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
@@ -135,16 +156,8 @@
       border-color: rgba(200,169,110,0.2);
     }
 
-    .task-stat h3 {
-      font-size: 26px;
-      font-weight: 700;
-    }
-
-    .task-stat p {
-      font-size: 12px;
-      color: var(--subtext);
-      margin-top: 4px;
-    }
+    .task-stat h3 { font-size: 26px; font-weight: 700; }
+    .task-stat p { font-size: 12px; color: var(--subtext); margin-top: 4px; }
 
     .task-stat.gold h3 { color: var(--primary); }
     .task-stat.blue h3 { color: var(--info); }
@@ -175,10 +188,7 @@
       gap: 6px;
     }
 
-    .tab:hover {
-      border-color: var(--primary);
-      color: var(--primary);
-    }
+    .tab:hover { border-color: var(--primary); color: var(--primary); }
 
     .tab.active {
       background: rgba(200,169,110,0.15);
@@ -193,9 +203,7 @@
       font-size: 11px;
     }
 
-    .tab.active .count {
-      background: rgba(200,169,110,0.3);
-    }
+    .tab.active .count { background: rgba(200,169,110,0.3); }
 
     /* ─── FILTER BAR ─── */
     .filter-bar {
@@ -221,23 +229,13 @@
       transition: 0.3s;
     }
 
-    .filter-bar input {
-      flex: 1;
-      min-width: 180px;
-    }
-
-    .filter-bar select {
-      min-width: 150px;
-    }
+    .filter-bar input { flex: 1; min-width: 180px; }
+    .filter-bar select { min-width: 150px; }
 
     .filter-bar input:focus,
-    .filter-bar select:focus {
-      border-color: var(--primary);
-    }
+    .filter-bar select:focus { border-color: var(--primary); }
 
-    .filter-bar select option {
-      background: var(--card);
-    }
+    .filter-bar select option { background: var(--card); }
 
     /* ─── TASK LIST ─── */
     .task-list {
@@ -263,11 +261,7 @@
       transform: translateY(-1px);
     }
 
-    .task-card.done {
-      opacity: 0.6;
-      border-color: rgba(76,175,80,0.2);
-    }
-
+    .task-card.done { opacity: 0.6; border-color: rgba(76,175,80,0.2); }
     .task-card.overdue {
       border-color: rgba(244,67,54,0.3);
       background: rgba(244,67,54,0.03);
@@ -288,9 +282,7 @@
       margin-top: 2px;
     }
 
-    .task-checkbox:hover {
-      border-color: var(--success);
-    }
+    .task-checkbox:hover { border-color: var(--success); }
 
     .task-checkbox.checked {
       background: var(--success);
@@ -305,9 +297,7 @@
     }
 
     /* ─── TASK CONTENT ─── */
-    .task-content {
-      flex: 1;
-    }
+    .task-content { flex: 1; }
 
     .task-title-row {
       display: flex;
@@ -317,16 +307,8 @@
       margin-bottom: 8px;
     }
 
-    .task-title {
-      font-size: 15px;
-      font-weight: 600;
-      line-height: 1.4;
-    }
-
-    .task-title.done-text {
-      text-decoration: line-through;
-      color: var(--subtext);
-    }
+    .task-title { font-size: 15px; font-weight: 600; line-height: 1.4; }
+    .task-title.done-text { text-decoration: line-through; color: var(--subtext); }
 
     .task-meta {
       display: flex;
@@ -344,10 +326,6 @@
       background: rgba(255,255,255,0.04);
       padding: 4px 10px;
       border-radius: 6px;
-    }
-
-    .task-meta-item i {
-      font-size: 11px;
     }
 
     .task-meta-item.overdue-text {
@@ -379,27 +357,12 @@
       flex-shrink: 0;
     }
 
-    .priority-high {
-      background: rgba(244,67,54,0.15);
-      color: var(--danger);
-    }
-
-    .priority-medium {
-      background: rgba(255,152,0,0.15);
-      color: var(--warning);
-    }
-
-    .priority-low {
-      background: rgba(76,175,80,0.15);
-      color: var(--success);
-    }
+    .priority-high { background: rgba(244,67,54,0.15); color: var(--danger); }
+    .priority-medium { background: rgba(255,152,0,0.15); color: var(--warning); }
+    .priority-low { background: rgba(76,175,80,0.15); color: var(--success); }
 
     /* ─── TASK ACTIONS ─── */
-    .task-actions {
-      display: flex;
-      gap: 6px;
-      flex-shrink: 0;
-    }
+    .task-actions { display: flex; gap: 6px; flex-shrink: 0; }
 
     .icon-btn {
       width: 32px;
@@ -414,18 +377,54 @@
       transition: 0.2s;
     }
 
-    .icon-btn.edit {
-      background: rgba(33,150,243,0.15);
-      color: var(--info);
+    .icon-btn.edit { background: rgba(33,150,243,0.15); color: var(--info); }
+    .icon-btn.delete { background: rgba(244,67,54,0.15); color: var(--danger); }
+    .icon-btn:hover { transform: scale(1.1); }
+
+    /* ─── BADGE ─── */
+    .badge {
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
     }
 
-    .icon-btn.delete {
-      background: rgba(244,67,54,0.15);
-      color: var(--danger);
+    .badge-blue { background: rgba(33,150,243,0.15); color: var(--info); }
+    .badge-green { background: rgba(76,175,80,0.15); color: var(--success); }
+    .badge-orange { background: rgba(255,152,0,0.15); color: var(--warning); }
+    .badge-red { background: rgba(244,67,54,0.15); color: var(--danger); }
+
+    /* ─── PROGRESS BAR ─── */
+    .progress-section {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 18px 20px;
+      margin-bottom: 20px;
+      border: 1px solid rgba(255,255,255,0.05);
     }
 
-    .icon-btn:hover {
-      transform: scale(1.1);
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .progress-header h4 { font-size: 14px; color: var(--subtext); }
+    .progress-header span { font-size: 14px; font-weight: 600; color: var(--success); }
+
+    .progress-bar {
+      height: 10px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--success));
+      border-radius: 10px;
+      transition: width 0.8s ease;
     }
 
     /* ─── EMPTY STATE ─── */
@@ -443,24 +442,7 @@
       display: block;
     }
 
-    .empty-state h3 {
-      font-size: 18px;
-      margin-bottom: 8px;
-      color: var(--text);
-    }
-
-    /* ─── BADGE ─── */
-    .badge {
-      padding: 3px 10px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 500;
-    }
-
-    .badge-blue { background: rgba(33,150,243,0.15); color: var(--info); }
-    .badge-green { background: rgba(76,175,80,0.15); color: var(--success); }
-    .badge-orange { background: rgba(255,152,0,0.15); color: var(--warning); }
-    .badge-red { background: rgba(244,67,54,0.15); color: var(--danger); }
+    .empty-state h3 { font-size: 18px; margin-bottom: 8px; color: var(--text); }
 
     /* ─── MODAL ─── */
     .modal-overlay {
@@ -474,9 +456,7 @@
       padding: 20px;
     }
 
-    .modal-overlay.show {
-      display: flex;
-    }
+    .modal-overlay.show { display: flex; }
 
     .modal {
       background: var(--dark);
@@ -506,11 +486,7 @@
       z-index: 1;
     }
 
-    .modal-header h3 {
-      font-size: 17px;
-      font-weight: 600;
-      color: var(--primary);
-    }
+    .modal-header h3 { font-size: 17px; font-weight: 600; color: var(--primary); }
 
     .modal-close {
       width: 34px;
@@ -527,14 +503,9 @@
       transition: 0.2s;
     }
 
-    .modal-close:hover {
-      background: rgba(244,67,54,0.2);
-      color: var(--danger);
-    }
+    .modal-close:hover { background: rgba(244,67,54,0.2); color: var(--danger); }
 
-    .modal-body {
-      padding: 25px;
-    }
+    .modal-body { padding: 25px; }
 
     .modal-footer {
       padding: 15px 25px;
@@ -551,24 +522,11 @@
       gap: 15px;
     }
 
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 7px;
-    }
+    .form-group { display: flex; flex-direction: column; gap: 7px; }
+    .form-group.full { grid-column: 1 / -1; }
 
-    .form-group.full {
-      grid-column: 1 / -1;
-    }
-
-    .form-group label {
-      font-size: 13px;
-      color: var(--subtext);
-    }
-
-    .form-group label span {
-      color: var(--danger);
-    }
+    .form-group label { font-size: 13px; color: var(--subtext); }
+    .form-group label span { color: var(--danger); }
 
     .form-group input,
     .form-group select,
@@ -591,54 +549,21 @@
       background: rgba(200,169,110,0.05);
     }
 
-    .form-group select option {
-      background: var(--dark);
-    }
+    .form-group select option { background: var(--dark); }
+    .form-group textarea { resize: vertical; min-height: 80px; }
 
-    .form-group textarea {
-      resize: vertical;
-      min-height: 80px;
-    }
-
-    /* ─── PROGRESS BAR ─── */
-    .progress-section {
-      background: var(--card);
-      border-radius: 14px;
-      padding: 18px 20px;
-      margin-bottom: 20px;
-      border: 1px solid rgba(255,255,255,0.05);
-    }
-
-    .progress-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-    }
-
-    .progress-header h4 {
-      font-size: 14px;
-      color: var(--subtext);
-    }
-
-    .progress-header span {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--success);
-    }
-
-    .progress-bar {
-      height: 10px;
-      background: rgba(255,255,255,0.05);
-      border-radius: 10px;
-      overflow: hidden;
-    }
-
-    .progress-fill {
-      height: 100%;
-      background: linear-gradient(90deg, var(--primary), var(--success));
-      border-radius: 10px;
-      transition: width 0.8s ease;
+    /* ─── SAVING INDICATOR ─── */
+    .saving-indicator {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: rgba(200,169,110,0.2);
+      color: var(--primary);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      z-index: 9999;
+      display: none;
     }
 
     /* ─── TOAST ─── */
@@ -677,13 +602,22 @@
 </head>
 <body>
 
+<!-- ─── SAVING INDICATOR ─── -->
+<div class="saving-indicator" id="savingIndicator">⏳ Saving to Firebase...</div>
+
 <!-- ─── TOAST ─── -->
 <div class="toast" id="toast"></div>
+
+<!-- ─── LOADING ─── -->
+<div class="page-loader" id="pageLoader">
+  <div class="spinner"></div>
+  <p>Loading tasks from Firebase...</p>
+</div>
 
 <!-- ═══════════════════════════════════ -->
 <!--         TASKS PAGE CONTENT         -->
 <!-- ═══════════════════════════════════ -->
-<div class="page">
+<div class="page" id="mainPage" style="display:none">
 
   <!-- TOP ACTIONS -->
   <div class="top-actions">
@@ -703,24 +637,19 @@
   <!-- STATS -->
   <div class="task-stats">
     <div class="task-stat gold">
-      <h3 id="ts-total">0</h3>
-      <p>Total Tasks</p>
+      <h3 id="ts-total">0</h3><p>Total Tasks</p>
     </div>
     <div class="task-stat blue">
-      <h3 id="ts-pending">0</h3>
-      <p>Pending</p>
+      <h3 id="ts-pending">0</h3><p>Pending</p>
     </div>
     <div class="task-stat orange">
-      <h3 id="ts-inprogress">0</h3>
-      <p>In Progress</p>
+      <h3 id="ts-inprogress">0</h3><p>In Progress</p>
     </div>
     <div class="task-stat green">
-      <h3 id="ts-done">0</h3>
-      <p>Completed</p>
+      <h3 id="ts-done">0</h3><p>Completed</p>
     </div>
     <div class="task-stat red">
-      <h3 id="ts-overdue">0</h3>
-      <p>Overdue</p>
+      <h3 id="ts-overdue">0</h3><p>Overdue</p>
     </div>
   </div>
 
@@ -805,13 +734,11 @@
     </div>
     <div class="modal-body">
       <div class="form-grid">
-
         <div class="form-group full">
           <label>Task Title <span>*</span></label>
           <input type="text" id="taskTitle"
                  placeholder="e.g. Site visit at Gachibowli project"/>
         </div>
-
         <div class="form-group">
           <label>Category</label>
           <select id="taskCategory">
@@ -824,7 +751,6 @@
             <option value="Documentation">Documentation</option>
           </select>
         </div>
-
         <div class="form-group">
           <label>Priority</label>
           <select id="taskPriority">
@@ -833,7 +759,6 @@
             <option value="Low">🟢 Low</option>
           </select>
         </div>
-
         <div class="form-group">
           <label>Status</label>
           <select id="taskStatus">
@@ -842,35 +767,26 @@
             <option value="Done">✅ Done</option>
           </select>
         </div>
-
         <div class="form-group">
           <label>Due Date</label>
           <input type="date" id="taskDueDate"/>
         </div>
-
         <div class="form-group">
           <label>Due Time</label>
           <input type="time" id="taskDueTime"/>
         </div>
-
         <div class="form-group">
           <label>Assigned To</label>
-          <input type="text" id="taskAssigned"
-                 placeholder="e.g. Rahul"/>
+          <input type="text" id="taskAssigned" placeholder="e.g. Rahul"/>
         </div>
-
         <div class="form-group">
           <label>Related Lead/Project</label>
-          <input type="text" id="taskRelated"
-                 placeholder="e.g. ABC Office Project"/>
+          <input type="text" id="taskRelated" placeholder="e.g. ABC Office Project"/>
         </div>
-
         <div class="form-group full">
           <label>Description / Notes</label>
-          <textarea id="taskNotes"
-            placeholder="Add task details, instructions..."></textarea>
+          <textarea id="taskNotes" placeholder="Add task details, instructions..."></textarea>
         </div>
-
       </div>
     </div>
     <div class="modal-footer">
@@ -901,7 +817,7 @@
                 margin-bottom:15px; display:block"></i>
       <h3 style="margin-bottom:10px">Are you sure?</h3>
       <p style="color:var(--subtext); font-size:14px">
-        This will permanently delete the task!
+        This will permanently delete this task from database!
       </p>
     </div>
     <div class="modal-footer">
@@ -916,11 +832,24 @@
 </div>
 
 <script>
-  // ─── STORAGE KEY ───
-  const TASKS_KEY = 'crm_tasks';
+  // ═══════════════════════════════════════
+  //        FIREBASE CONFIGURATION
+  // ═══════════════════════════════════════
+  const firebaseConfig = {
+    apiKey: "AIzaSyBLQhUZA-VN4_A9FhQWmlRSQZC2D95KoE8",
+    authDomain: "turnkeycrm-ce7b8.firebaseapp.com",
+    projectId: "turnkeycrm-ce7b8",
+    storageBucket: "turnkeycrm-ce7b8.firebasestorage.app",
+    messagingSenderId: "487224108102",
+    appId: "1:487224108102:web:dbe9d4ea6abdb2db581647"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+  const tasksRef = db.collection('tasks');
 
   // ─── STATE ───
-  let tasks = JSON.parse(localStorage.getItem(TASKS_KEY) || '[]');
+  let tasks = [];
   let editingId = null;
   let deletingId = null;
   let currentTab = 'all';
@@ -934,7 +863,6 @@
     return due < today;
   }
 
-  // ─── CHECK DUE TODAY ───
   function isDueToday(task) {
     if (!task.dueDate || task.status === 'Done') return false;
     const due = new Date(task.dueDate);
@@ -942,12 +870,39 @@
     return due.toDateString() === today.toDateString();
   }
 
-  // ─── FORMAT DATE ───
   function formatDate(d) {
     if (!d) return '-';
     return new Date(d).toLocaleDateString('en-IN', {
       day: '2-digit', month: 'short', year: 'numeric'
     });
+  }
+
+  // ═══════════════════════════════════════
+  //     LOAD TASKS FROM FIREBASE
+  // ═══════════════════════════════════════
+  async function loadTasks() {
+    try {
+      const snapshot = await tasksRef
+        .orderBy('createdAt', 'desc').get();
+      tasks = [];
+      snapshot.forEach(doc => {
+        tasks.push({ id: doc.id, ...doc.data() });
+      });
+      renderTasks();
+      document.getElementById('pageLoader').style.display = 'none';
+      document.getElementById('mainPage').style.display = 'block';
+    } catch (error) {
+      console.error('Error loading tasks:', error);
+      document.getElementById('pageLoader').innerHTML = `
+        <div style="text-align:center; color:var(--danger)">
+          <i class="fas fa-exclamation-triangle"
+             style="font-size:40px; margin-bottom:15px; display:block"></i>
+          <h3>Error Loading Tasks</h3>
+          <p style="color:var(--subtext); margin-top:8px">
+            Check internet connection and refresh
+          </p>
+        </div>`;
+    }
   }
 
   // ─── SET TAB ───
@@ -966,29 +921,26 @@
     const sort = document.getElementById('sortFilter').value;
 
     let filtered = tasks.filter(task => {
-      // Tab filter
       if (currentTab === 'pending' && task.status !== 'Pending') return false;
       if (currentTab === 'inprogress' && task.status !== 'In Progress') return false;
       if (currentTab === 'done' && task.status !== 'Done') return false;
       if (currentTab === 'overdue' && !isOverdue(task)) return false;
 
-      // Search
       const matchSearch =
         task.title.toLowerCase().includes(search) ||
         (task.notes && task.notes.toLowerCase().includes(search)) ||
         (task.related && task.related.toLowerCase().includes(search)) ||
         (task.assignedTo && task.assignedTo.toLowerCase().includes(search));
 
-      // Priority & Category
       const matchPriority = !priority || task.priority === priority;
       const matchCategory = !category || task.category === category;
 
       return matchSearch && matchPriority && matchCategory;
     });
 
-    // Sort
     if (sort === 'newest') {
-      filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      filtered.sort((a, b) =>
+        new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
     } else if (sort === 'duedate') {
       filtered.sort((a, b) => {
         if (!a.dueDate) return 1;
@@ -1035,9 +987,7 @@
       }[task.priority] || 'priority-medium';
 
       const priorityIcon = {
-        'High': '🔴',
-        'Medium': '🟡',
-        'Low': '🟢'
+        'High': '🔴', 'Medium': '🟡', 'Low': '🟢'
       }[task.priority] || '🟡';
 
       const statusBadge = {
@@ -1047,20 +997,13 @@
       }[task.status] || '';
 
       return `
-        <div class="task-card ${isDone ? 'done' : ''} ${overdue ? 'overdue' : ''}"
-             id="task-${task.id}">
-
-          <!-- CHECKBOX -->
+        <div class="task-card ${isDone ? 'done' : ''} ${overdue ? 'overdue' : ''}">
           <div class="task-checkbox ${isDone ? 'checked' : ''}"
-               onclick="toggleDone('${task.id}')">
+               onclick="toggleDone('${task.id}', ${isDone})">
           </div>
-
-          <!-- CONTENT -->
           <div class="task-content">
             <div class="task-title-row">
-              <div class="task-title ${isDone ? 'done-text' : ''}">
-                ${task.title}
-              </div>
+              <div class="task-title ${isDone ? 'done-text' : ''}">${task.title}</div>
               <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap">
                 <span class="priority-badge ${priorityClass}">
                   ${priorityIcon} ${task.priority}
@@ -1068,13 +1011,11 @@
                 ${statusBadge}
               </div>
             </div>
-
             <div class="task-meta">
               ${task.category ? `
               <div class="task-meta-item">
                 <i class="fas fa-tag"></i> ${task.category}
               </div>` : ''}
-
               ${task.dueDate ? `
               <div class="task-meta-item ${overdue ? 'overdue-text' : dueToday ? 'due-today' : ''}">
                 <i class="fas fa-calendar"></i>
@@ -1082,30 +1023,18 @@
                 ${formatDate(task.dueDate)}
                 ${task.dueTime ? ' at ' + task.dueTime : ''}
               </div>` : ''}
-
               ${task.assignedTo ? `
               <div class="task-meta-item">
                 <i class="fas fa-user"></i> ${task.assignedTo}
               </div>` : ''}
-
               ${task.related ? `
               <div class="task-meta-item">
                 <i class="fas fa-link"></i> ${task.related}
               </div>` : ''}
-
-              <div class="task-meta-item">
-                <i class="fas fa-clock"></i>
-                ${new Date(task.createdAt).toLocaleDateString('en-IN')}
-              </div>
             </div>
-
             ${task.notes ? `
-            <div class="task-notes">
-              📝 ${task.notes}
-            </div>` : ''}
+            <div class="task-notes">📝 ${task.notes}</div>` : ''}
           </div>
-
-          <!-- ACTIONS -->
           <div class="task-actions">
             <button class="icon-btn edit" onclick="editTask('${task.id}')" title="Edit">
               <i class="fas fa-edit"></i>
@@ -1133,7 +1062,6 @@
     document.getElementById('ts-done').textContent = done;
     document.getElementById('ts-overdue').textContent = overdue;
 
-    // Progress bar
     const percent = total > 0 ? Math.round((done / total) * 100) : 0;
     document.getElementById('progressText').textContent = percent + '% Complete';
     setTimeout(() => {
@@ -1154,18 +1082,26 @@
       tasks.filter(t => isOverdue(t)).length;
   }
 
-  // ─── TOGGLE DONE ───
-  function toggleDone(id) {
-    const task = tasks.find(t => t.id === id);
-    if (!task) return;
-    task.status = task.status === 'Done' ? 'Pending' : 'Done';
-    task.updatedAt = new Date().toISOString();
-    localStorage.setItem(TASKS_KEY, JSON.stringify(tasks));
-    renderTasks();
-    showToast(
-      task.status === 'Done' ? '✅ Task completed!' : '🔄 Task reopened!',
-      task.status === 'Done' ? 'success' : 'warning'
-    );
+  // ═══════════════════════════════════════
+  //     TOGGLE DONE IN FIREBASE
+  // ═══════════════════════════════════════
+  async function toggleDone(id, isDone) {
+    showSaving(true);
+    try {
+      const newStatus = isDone ? 'Pending' : 'Done';
+      await tasksRef.doc(id).update({
+        status: newStatus,
+        updatedAt: new Date().toISOString()
+      });
+      await loadTasks();
+      showToast(
+        newStatus === 'Done' ? '✅ Task completed!' : '🔄 Task reopened!',
+        newStatus === 'Done' ? 'success' : 'warning'
+      );
+    } catch (error) {
+      showToast('❌ Error updating task!', 'danger');
+    }
+    showSaving(false);
   }
 
   // ─── OPEN ADD MODAL ───
@@ -1189,14 +1125,15 @@
     document.getElementById('taskNotes').value = '';
   }
 
-  // ─── CLOSE MODAL ───
   function closeModal() {
     document.getElementById('taskModal').classList.remove('show');
     editingId = null;
   }
 
-  // ─── SAVE TASK ───
-  function saveTask() {
+  // ═══════════════════════════════════════
+  //     SAVE TASK TO FIREBASE
+  // ═══════════════════════════════════════
+  async function saveTask() {
     const title = document.getElementById('taskTitle').value.trim();
     if (!title) {
       showToast('❌ Please enter a task title!', 'danger');
@@ -1204,7 +1141,6 @@
     }
 
     const taskData = {
-      id: editingId || 'task_' + Date.now(),
       title,
       category: document.getElementById('taskCategory').value,
       priority: document.getElementById('taskPriority').value,
@@ -1214,24 +1150,29 @@
       assignedTo: document.getElementById('taskAssigned').value.trim(),
       related: document.getElementById('taskRelated').value.trim(),
       notes: document.getElementById('taskNotes').value.trim(),
-      createdAt: editingId
-        ? tasks.find(t => t.id === editingId)?.createdAt
-        : new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
 
-    if (editingId) {
-      const index = tasks.findIndex(t => t.id === editingId);
-      if (index !== -1) tasks[index] = taskData;
-      showToast('✅ Task updated!', 'success');
-    } else {
-      tasks.unshift(taskData);
-      showToast('✅ Task added!', 'success');
+    showSaving(true);
+
+    try {
+      if (editingId) {
+        await tasksRef.doc(editingId).update(taskData);
+        showToast('✅ Task updated in database!', 'success');
+      } else {
+        taskData.createdAt = new Date().toISOString();
+        await tasksRef.add(taskData);
+        showToast('✅ Task saved to database!', 'success');
+      }
+
+      closeModal();
+      await loadTasks();
+    } catch (error) {
+      console.error('Save error:', error);
+      showToast('❌ Error saving! Check connection.', 'danger');
     }
 
-    localStorage.setItem(TASKS_KEY, JSON.stringify(tasks));
-    renderTasks();
-    closeModal();
+    showSaving(false);
   }
 
   // ─── EDIT TASK ───
@@ -1254,7 +1195,9 @@
     document.getElementById('taskModal').classList.add('show');
   }
 
-  // ─── DELETE TASK ───
+  // ═══════════════════════════════════════
+  //     DELETE TASK FROM FIREBASE
+  // ═══════════════════════════════════════
   function deleteTask(id) {
     deletingId = id;
     document.getElementById('deleteModal').classList.add('show');
@@ -1265,28 +1208,49 @@
     deletingId = null;
   }
 
-  function confirmDelete() {
+  async function confirmDelete() {
     if (!deletingId) return;
-    tasks = tasks.filter(t => t.id !== deletingId);
-    localStorage.setItem(TASKS_KEY, JSON.stringify(tasks));
-    renderTasks();
-    closeDeleteModal();
-    showToast('🗑️ Task deleted!', 'danger');
+    showSaving(true);
+    try {
+      await tasksRef.doc(deletingId).delete();
+      closeDeleteModal();
+      await loadTasks();
+      showToast('🗑️ Task deleted from database!', 'danger');
+    } catch (error) {
+      showToast('❌ Error deleting! Check connection.', 'danger');
+    }
+    showSaving(false);
   }
 
   // ─── CLEAR COMPLETED ───
-  function clearCompleted() {
-    const doneCount = tasks.filter(t => t.status === 'Done').length;
-    if (doneCount === 0) {
+  async function clearCompleted() {
+    const doneTasks = tasks.filter(t => t.status === 'Done');
+    if (doneTasks.length === 0) {
       showToast('❌ No completed tasks to clear!', 'warning');
       return;
     }
-    if (confirm(`Clear ${doneCount} completed task(s)?`)) {
-      tasks = tasks.filter(t => t.status !== 'Done');
-      localStorage.setItem(TASKS_KEY, JSON.stringify(tasks));
-      renderTasks();
+
+    if (!confirm(`Clear ${doneTasks.length} completed task(s) from database?`)) return;
+
+    showSaving(true);
+    try {
+      const batch = db.batch();
+      doneTasks.forEach(task => {
+        batch.delete(tasksRef.doc(task.id));
+      });
+      await batch.commit();
+      await loadTasks();
       showToast('🧹 Completed tasks cleared!', 'success');
+    } catch (error) {
+      showToast('❌ Error clearing tasks!', 'danger');
     }
+    showSaving(false);
+  }
+
+  // ─── SAVING INDICATOR ───
+  function showSaving(show) {
+    document.getElementById('savingIndicator').style.display =
+      show ? 'block' : 'none';
   }
 
   // ─── TOAST ───
@@ -1301,7 +1265,7 @@
     setTimeout(() => { toast.style.display = 'none'; }, 3000);
   }
 
-  // ─── CLOSE MODALS ON OUTSIDE CLICK ───
+  // ─── CLOSE ON OUTSIDE CLICK ───
   document.querySelectorAll('.modal-overlay').forEach(overlay => {
     overlay.addEventListener('click', function (e) {
       if (e.target === this) {
@@ -1313,7 +1277,7 @@
   });
 
   // ─── INIT ───
-  renderTasks();
+  loadTasks();
 </script>
 </body>
 </html>
