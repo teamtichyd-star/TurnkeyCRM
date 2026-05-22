@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Control Panel – TurnkeyCRM</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: #12121f; color: #e0e0e0; min-height: 100vh; }
+    .topbar { background: #16213e; padding: 14px 28px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.05); position: sticky; top: 0; z-index: 100; }
+    .topbar .logo { font-size: 1.3rem; font-weight: 700; color: #c8a96e; display: flex; align-items: center; gap: 10px; }
+    .topbar .back-btn { background: rgba(200,169,110,0.1); border: 1px solid rgba(200,169,110,0.2); color: #c8a96e; padding: 8px 18px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; transition: 0.2s; }
+    .topbar .back-btn:hover { background: rgba(200,169,110,0.2); }
+    .container { max-width: 1200px; margin: 30px auto; padding: 0 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    @media(max-width: 768px) { .container { grid-template-columns: 1fr; } }
+    .card { background: #16213e; border: 1px solid rgba(255,255,255,0.05); border-radius: 14px; padding: 24px; }
+    .card:hover { border-color: rgba(200,169,110,0.2); }
+    .card h2 { font-size: 1rem; color: #c8a96e; margin-bottom: 18px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 12px; }
+    .card.full-width { grid-column: 1 / -1; }
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 0.82rem; color: #a0a0b0; margin-bottom: 5px; }
+    .form-group input, .form-group select { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #e0e0e0; padding: 10px 14px; border-radius: 8px; font-size: 0.92rem; outline: none; transition: 0.2s; }
+    .form-group input:focus, .form-group select:focus { border-color: #c8a96e; }
+    .form-group select option { background: #1a1a2e; }
+    .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary { background: linear-gradient(135deg, #c8a96e, #a07840); color: #fff; }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-danger { background: rgba(244,67,54,0.15); color: #f44336; border: 1px solid rgba(244,67,54,0.3); }
+    .btn-danger:hover { background: rgba(244,67,54,0.25); }
+    .btn-success { background: rgba(76,175,80,0.15); color: #4caf50; border: 1px solid rgba(76,175,80,0.3); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .status-msg { margin-top: 10px; padding: 10px 14px; border-radius: 8px; font-size: 0.88rem; display: none; }
+    .status-msg.success { background: rgba(76,175,80,0.1); color: #4caf50; border: 1px solid rgba(76,175,80,0.3); display: block; }
+    .status-msg.error { background: rgba(244,67,54,0.1); color: #f44336; border: 1px solid rgba(244,67,54,0.3); display: block; }
+    .user-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    .user-table th { text-align: left; font-size: 0.78rem; color: #a0a0b0; padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .user-table td { padding: 10px; font-size: 0.88rem; border-bottom: 1px solid rgba(255,255,255,0.03); vertical-align: middle; }
+    .user-table tr:last-child td { border-bottom: none; }
+    .user-table tr:hover td { background: rgba(255,255,255,0.02); }
+    .role-badge { padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+    .role-admin { background: rgba(200,169,110,0.15); color: #c8a96e; border: 1px solid rgba(200,169,110,0.3); }
+    .role-manager { background: rgba(33,150,243,0.15); color: #2196f3; border: 1px solid rgba(33,150,243,0.3); }
+    .role-staff { background: rgba(76,175,80,0.15); color: #4caf50; border: 1px solid rgba(76,175,80,0.3); }
+    .role-viewer { background: rgba(255,152,0,0.15); color: #ff9800; border: 1px solid rgba(255,152,0,0.3); }
+    .delete-user-btn { background: rgba(244,67,54,0.1); border: 1px solid rgba(244,67,54,0.3); color: #f44336; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 0.78rem; transition: 0.2s; }
+    .delete-user-btn:hover { background: rgba(244,67,54,0.2); }
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px; }
+    .stat-box { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 10px; padding: 16px; text-align: center; }
+    .stat-box .stat-value { font-size: 1.6rem; font-weight: 700; color: #c8a96e; }
+    .stat-box .stat-label { font-size: 0.78rem; color: #6b7280; margin-top: 4px; }
+    .progress-item { margin-bottom: 14px; }
+    .progress-header { display: flex; justify-content: space-between; font-size: 0.82rem; color: #a0a0b0; margin-bottom: 6px; }
+    .progress-bar-bg { background: rgba(255,255,255,0.05); border-radius: 20px; height: 8px; overflow: hidden; }
+    .progress-bar-fill { height: 100%; border-radius: 20px; background: linear-gradient(90deg, #c8a96e, #a07840); transition: width 0.6s ease; }
+    .progress-bar-fill.warning { background: linear-gradient(90deg, #ff9800, #ffc107); }
+    .progress-bar-fill.danger { background: linear-gradient(90deg, #f44336, #e57373); }
+    .plan-box { background: linear-gradient(135deg, rgba(200,169,110,0.1), rgba(160,120,64,0.05)); border: 1px solid rgba(200,169,110,0.2); border-radius: 12px; padding: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; }
+    .plan-name { font-size: 1.2rem; font-weight: 700; color: #c8a96e; }
+    .plan-desc { font-size: 0.82rem; color: #6b7280; margin-top: 4px; }
+    .plan-badge { background: rgba(200,169,110,0.15); border: 1px solid rgba(200,169,110,0.3); color: #c8a96e; padding: 6px 18px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; }
+    .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(200,169,110,0.3); border-top-color: #c8a96e; border-radius: 50%; animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .empty-state { text-align: center; color: #4b5563; padding: 24px; font-size: 0.9rem; }
+    .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 999; display: none; align-items: center; justify-content: center; }
+    .overlay.active { display: flex; }
+    .confirm-box { background: #16213e; border: 1px solid rgba(244,67,54,0.3); border-radius: 14px; padding: 28px; max-width: 400px; width: 90%; text-align: center; }
+    .confirm-box h3 { color: #f44336; margin-bottom: 10px; }
+    .confirm-box p { color: #a0a0b0; font-size: 0.9rem; margin-bottom: 20px; }
+    .confirm-actions { display: flex; gap: 12px; justify-content: center; }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">
+    <i class="fa-solid fa-shield-halved"></i>
+    Admin Control Panel
+  </div>
+  <button class="back-btn" onclick="window.location.href='index.html'">
+    <i class="fa-solid fa-arrow-left"></i> Back to CRM
+  </button>
+</div>
+
+<div class="container">
+
+  <!-- ADD USER -->
+  <div class="card">
+    <h2><i class="fa-solid fa-user-plus"></i> Add New User</h2>
+    <div class="form-group">
+      <label>Full Name</label>
+      <input type="text" id="newName" placeholder="e.g. John Smith" />
+    </div>
+    <div class="form-group">
+      <label>Email Address</label>
+      <input type="email" id="newEmail" placeholder="user@example.com" />
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="newPassword" placeholder="Min 6 characters" />
+    </div>
+    <div class="form-group">
+      <label>Role</label>
+      <select id="newRole">
+        <option value="staff">Staff</option>
+        <option value="manager">Manager</option>
+        <option value="admin">Admin</option>
+        <option value="viewer">Viewer (Read Only)</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" id="addUserBtn" onclick="handleAddUser()">
+      <i class="fa-solid fa-plus"></i> Create User
+    </button>
+    <div class="status-msg" id="addUserStatus"></div>
+  </div>
+
+  <!-- FIREBASE USAGE -->
+  <div class="card">
+    <h2><i class="fa-solid fa-database"></i> Firebase Usage</h2>
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-value" id="statUsers">–</div>
+        <div class="stat-label">Registered Users</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value" id="statDocs">–</div>
+        <div class="stat-label">Total Documents</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value" id="statLeads">–</div>
+        <div class="stat-label">Total Leads</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value" id="statProjects">–</div>
+        <div class="stat-label">Total Projects</div>
+      </div>
+    </div>
+    <div class="progress-item">
+      <div class="progress-header">
+        <span><i class="fa-solid fa-file-lines"></i> Firestore Documents</span>
+        <span id="docsLabel">Loading...</span>
+      </div>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="docsBar" style="width:0%"></div>
+      </div>
+    </div>
+    <div class="progress-item">
+      <div class="progress-header">
+        <span><i class="fa-solid fa-users"></i> Auth Users</span>
+        <span id="usersLabel">Loading...</span>
+      </div>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="usersBar" style="width:0%"></div>
+      </div>
+    </div>
+    <a href="https://console.firebase.google.com/" target="_blank"
+       style="font-size:0.8rem;color:#c8a96e;text-decoration:none;display:flex;align-items:center;gap:6px;margin-top:12px;">
+      <i class="fa-solid fa-external-link"></i> View full usage in Firebase Console
+    </a>
+  </div>
+
+  <!-- PLAN INFO -->
+  <div class="card">
+    <h2><i class="fa-solid fa-star"></i> Current Plan</h2>
+    <div class="plan-box">
+      <div>
+        <div class="plan-name">🔥 Spark (Free)</div>
+        <div class="plan-desc">No cost • Limited quotas • No billing required</div>
+      </div>
+      <div class="plan-badge">FREE</div>
+    </div>
+    <br/>
+    <table style="width:100%;font-size:0.83rem;border-collapse:collapse;">
+      <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+        <td style="padding:8px 4px;color:#a0a0b0;">Firestore Reads / day</td>
+        <td style="padding:8px 4px;color:#c8a96e;text-align:right;font-weight:600;">50,000</td>
+      </tr>
+      <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+        <td style="padding:8px 4px;color:#a0a0b0;">Firestore Writes / day</td>
+        <td style="padding:8px 4px;color:#c8a96e;text-align:right;font-weight:600;">20,000</td>
+      </tr>
+      <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+        <td style="padding:8px 4px;color:#a0a0b0;">Firestore Deletes / day</td>
+        <td style="padding:8px 4px;color:#c8a96e;text-align:right;font-weight:600;">20,000</td>
+      </tr>
+      <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+        <td style="padding:8px 4px;color:#a0a0b0;">Firestore Storage</td>
+        <td style="padding:8px 4px;color:#c8a96e;text-align:right;font-weight:600;">1 GiB</td>
+      </tr>
+      <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+        <td style="padding:8px 4px;color:#a0a0b0;">Auth Users</td>
+        <td style="padding:8px 4px;color:#c8a96e;text-align:right;font-weight:600;">10,000</td>
+      </tr>
+      <tr>
+        <td style="padding:8px 4px;color:#a0a0b0;">Cloud Storage</td>
+        <td style="padding:8px 4px;color:#c8a96e;text-align:right;font-weight:600;">5 GB</td>
+      </tr>
+    </table>
+    <br/>
+    <a href="https://firebase.google.com/pricing" target="_blank"
+       style="font-size:0.82rem;color:#c8a96e;text-decoration:none;display:flex;align-items:center;gap:6px;">
+      <i class="fa-solid fa-arrow-up-right-from-square"></i> Upgrade to Blaze (Pay-as-you-go)
+    </a>
+  </div>
+
+  <!-- QUICK ACTIONS -->
+  <div class="card">
+    <h2><i class="fa-solid fa-bolt"></i> Quick Actions</h2>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <button class="btn btn-success" onclick="loadUsers()">
+        <i class="fa-solid fa-rotate"></i> Refresh User List
+      </button>
+      <button class="btn" style="background:rgba(33,150,243,0.1);color:#2196f3;border:1px solid rgba(33,150,243,0.3);"
+              onclick="window.open('https://console.firebase.google.com/','_blank')">
+        <i class="fa-solid fa-fire"></i> Open Firebase Console
+      </button>
+      <button class="btn" style="background:rgba(76,175,80,0.1);color:#4caf50;border:1px solid rgba(76,175,80,0.3);"
+              onclick="exportUsers()">
+        <i class="fa-solid fa-download"></i> Export User List (CSV)
+      </button>
+      <button class="btn btn-danger" onclick="doSignOut()">
+        <i class="fa-solid fa-right-from-bracket"></i> Sign Out
+      </button>
+    </div>
+  </div>
+
+  <!-- USER LIST -->
+  <div class="card full-width">
+    <h2>
+      <i class="fa-solid fa-users"></i> All Users
+      <span style="margin-left:auto;">
+        <span class="spinner" id="userListSpinner" style="display:none;"></span>
+      </span>
+    </h2>
+    <div id="userListContainer">
+      <div class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i> Loading users...</div>
+    </div>
+    <div class="status-msg" id="removeUserStatus"></div>
+  </div>
+
+</div>
+
+<!-- CONFIRM MODAL -->
+<div class="overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <h3><i class="fa-solid fa-triangle-exclamation"></i> Confirm Delete</h3>
+    <p id="confirmMsg">Are you sure?</p>
+    <div class="confirm-actions">
+      <button class="btn btn-danger" id="confirmYesBtn">
+        <i class="fa-solid fa-trash"></i> Delete
+      </button>
+      <button class="btn" style="background:rgba(255,255,255,0.05);color:#e0e0e0;"
+              onclick="closeConfirm()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── FIREBASE CONFIG ──
+  const firebaseConfig = {
+    apiKey: "AIzaSyBLQhUZA-VN4_A9FhQWmlRSQZC2D95KoE8",
+    authDomain: "turnkeycrm-ce7b8.firebaseapp.com",
+    projectId: "turnkeycrm-ce7b8",
+    storageBucket: "turnkeycrm-ce7b8.firebasestorage.app",
+    messagingSenderId: "487224108102",
+    appId: "1:487224108102:web:dbe9d4ea6abdb2db581647"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db   = firebase.firestore();
+
+  let allUsersData       = [];
+  let pendingDeleteEmail = null;
+
+  // ── AUTH GUARD ──
+  auth.onAuthStateChanged(async function(user) {
+    if (!user) { window.location.href = "index.html"; return; }
+    try {
+      const doc = await db.collection("users").doc(user.email).get();
+      if (!doc.exists || doc.data().role !== "admin") {
+        alert("⛔ Access denied. Admins only.");
+        window.location.href = "index.html";
+        return;
+      }
+    } catch(e) { console.warn(e); }
+    loadUsers();
+    loadUsageStats();
+  });
+
+  // ── LOAD USERS ──
+  async function loadUsers() {
+    const spinner   = document.getElementById("userListSpinner");
+    const container = document.getElementById("userListContainer");
+    spinner.style.display = "inline-block";
+    try {
+      const snap   = await db.collection("users").get();
+      allUsersData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      if (allUsersData.length === 0) {
+        container.innerHTML = `<div class="empty-state">No users found.</div>`;
+      } else {
+        let rows = "";
+        allUsersData.forEach(u => {
+          const created = u.createdAt?.toDate
+            ? u.createdAt.toDate().toLocaleDateString("en-GB") : "N/A";
+          const role      = u.role || "staff";
+          const roleClass = "role-" + role.toLowerCase();
+          rows += `
+            <tr>
+              <td>${u.name || "—"}</td>
+              <td style="color:#93c5fd;">${u.email || u.id}</td>
+              <td><span class="role-badge ${roleClass}">${role}</span></td>
+              <td style="color:#6b7280;">${created}</td>
+              <td>
+                <button class="delete-user-btn"
+                  onclick="triggerDelete('${u.email || u.id}')">
+                  <i class="fa-solid fa-trash"></i> Remove
+                </button>
+              </td>
+            </tr>`;
+        });
+        container.innerHTML = `
+          <table class="user-table">
+            <thead>
+              <tr>
+                <th>Name</th><th>Email</th><th>Role</th>
+                <th>Created</th><th>Action</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>`;
+      }
+      document.getElementById("statUsers").textContent = allUsersData.length;
+    } catch(e) {
+      container.innerHTML = `<div class="empty-state">Error: ${e.message}</div>`;
+    } finally {
+      spinner.style.display = "none";
+    }
+  }
+
+  // ── ADD USER ──
+  async function handleAddUser() {
+    const name     = document.getElementById("newName").value.trim();
+    const email    = document.getElementById("newEmail").value.trim();
+    const password = document.getElementById("newPassword").value;
+    const role     = document.getElementById("newRole").value;
+    const status   = document.getElementById("addUserStatus");
+    const btn      = document.getElementById("addUserBtn");
+
+    if (!name || !email || !password) {
+      showStatus(status, "Please fill in all fields.", "error"); return;
+    }
+    if (password.length < 6) {
+      showStatus(status, "Password must be at least 6 characters.", "error"); return;
+    }
+
+    btn.disabled     = true;
+    btn.innerHTML    = `<span class="spinner"></span> Creating...`;
+
+    try {
+      const adminUser = auth.currentUser;
+      const cred      = await auth.createUserWithEmailAndPassword(email, password);
+
+      await db.collection("users").doc(email).set({
+        name, email, role,
+        uid:       cred.user.uid,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        createdBy: adminUser?.email || "admin"
+      });
+
+      await auth.signOut();
+      showStatus(status, `✅ User "${name}" created successfully!`, "success");
+      document.getElementById("newName").value     = "";
+      document.getElementById("newEmail").value    = "";
+      document.getElementById("newPassword").value = "";
+      loadUsers();
+      loadUsageStats();
+    } catch(e) {
+      showStatus(status, `Error: ${e.message}`, "error");
+    } finally {
+      btn.disabled  = false;
+      btn.innerHTML = `<i class="fa-solid fa-plus"></i> Create User`;
+    }
+  }
+
+  // ── DELETE USER ──
+  function triggerDelete(email) {
+    pendingDeleteEmail = email;
+    document.getElementById("confirmMsg").textContent =
+      `Remove "${email}"? Their Firestore data will be deleted.`;
+    document.getElementById("confirmOverlay").classList.add("active");
+    document.getElementById("confirmYesBtn").onclick = confirmDelete;
+  }
+
+  function closeConfirm() {
+    document.getElementById("confirmOverlay").classList.remove("active");
+  }
+
+  async function confirmDelete() {
+    closeConfirm();
+    const status = document.getElementById("removeUserStatus");
+    try {
+      await db.collection("users").doc(pendingDeleteEmail).delete();
+      showStatus(status, `✅ "${pendingDeleteEmail}" removed.`, "success");
+      loadUsers();
+      loadUsageStats();
+    } catch(e) {
+      showStatus(status, `Error: ${e.message}`, "error");
+    }
+  }
+
+  // ── USAGE STATS ──
+  async function loadUsageStats() {
+    try {
+      const collections = ["users","leads","projects","followups","sheets","tasks"];
+      let total = 0;
+      const c   = {};
+      for (const col of collections) {
+        try {
+          const s  = await db.collection(col).get();
+          c[col]   = s.size;
+          total   += s.size;
+        } catch { c[col] = 0; }
+      }
+      document.getElementById("statDocs").textContent     = total;
+      document.getElementById("statLeads").textContent    = c["leads"]    || 0;
+      document.getElementById("statProjects").textContent = c["projects"] || 0;
+
+      const docPct  = Math.min((total / 100000) * 100, 100).toFixed(1);
+      const userPct = Math.min(((c["users"]||0) / 10000) * 100, 100).toFixed(1);
+
+      document.getElementById("docsLabel").textContent  = `${total} / 100,000`;
+      document.getElementById("usersLabel").textContent = `${c["users"]||0} / 10,000`;
+      setBar("docsBar",  docPct);
+      setBar("usersBar", userPct);
+    } catch(e) { console.warn(e); }
+  }
+
+  function setBar(id, pct) {
+    const bar     = document.getElementById(id);
+    bar.style.width = pct + "%";
+    bar.className   = "progress-bar-fill" +
+      (pct > 80 ? " danger" : pct > 50 ? " warning" : "");
+  }
+
+  // ── EXPORT CSV ──
+  function exportUsers() {
+    if (!allUsersData.length) { alert("No users to export."); return; }
+    const rows = allUsersData.map(u => [
+      `"${u.name||""}"`,
+      `"${u.email||u.id}"`,
+      `"${u.role||"staff"}"`,
+      `"${u.createdAt?.toDate ? u.createdAt.toDate().toLocaleDateString() : "N/A"}"`
+    ]);
+    const csv = [["Name","Email","Role","Created"].join(","),
+                 ...rows.map(r => r.join(","))].join("\n");
+    const a   = document.createElement("a");
+    a.href    = URL.createObjectURL(new Blob([csv], { type:"text/csv" }));
+    a.download = "turnkeycrm_users.csv";
+    a.click();
+  }
+
+  // ── SIGN OUT ──
+  function doSignOut() {
+    if (confirm("Sign out?")) {
+      auth.signOut().then(() => window.location.href = "index.html");
+    }
+  }
+
+  // ── UTILITY ──
+  function showStatus(el, msg, type) {
+    el.textContent = msg;
+    el.className   = `status-msg ${type}`;
+  }
+
+  // Make functions global
+  window.handleAddUser  = handleAddUser;
+  window.triggerDelete  = triggerDelete;
+  window.closeConfirm   = closeConfirm;
+  window.loadUsers      = loadUsers;
+  window.exportUsers    = exportUsers;
+  window.doSignOut      = doSignOut;
+</script>
+</body>
+</html>
