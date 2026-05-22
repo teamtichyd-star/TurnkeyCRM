@@ -796,7 +796,28 @@
     document.getElementById('sidebarUserName').textContent = name;
     document.getElementById('sidebarUserRole').textContent = roleNames[role] || role;
     document.getElementById('sidebarUserEmail').textContent = currentUser?.email || '';
-
+// Hide leads for supervisor
+if (role === "supervisor") {
+  document.querySelectorAll(".menu-item").forEach(function(item) {
+    if (item.textContent.trim().toLowerCase().includes("lead")) {
+      item.style.display = "none";
+    }
+  });
+  document.querySelectorAll(".bottom-nav-item").forEach(function(item) {
+    if (item.textContent.trim().toLowerCase().includes("lead")) {
+      item.style.display = "none";
+    }
+  });
+  document.querySelectorAll(".action-btn").forEach(function(item) {
+    if (item.textContent.trim().toLowerCase().includes("lead")) {
+      item.style.display = "none";
+    }
+  });
+  // Block direct URL access to leads page
+  if (window.location.hash === "#leads") {
+    window.location.hash = "#dashboard";
+  }
+}
     // Show/Hide menu items based on role
     const allMenus = ['leads','tasks','projects','followups','sheets','export'];
     allMenus.forEach(module => {
