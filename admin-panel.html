@@ -241,6 +241,9 @@
     .stat-box { background: rgba(255,255,255,0.03); border-radius: 10px; padding: 14px; text-align: center; border: 1px solid var(--border); }
     .stat-box h3 { font-size: 24px; font-weight: 700; color: var(--primary); }
     .stat-box p { font-size: 11px; color: var(--subtext); margin-top: 3px; }
+    .stat-label { font-size: 11px; color: var(--subtext); margin-top: 3px; }
+    .stat-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 16px; }
+    .stat-box { background: rgba(200,169,110,0.08); border: 1px solid rgba(200,169,110,0.15); border-radius: 10px; padding: 14px; text-align: center; }
     .quota-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.03); font-size: 13px; }
     .quota-row:last-child { border-bottom: none; }
     .quota-row span:last-child { color: var(--primary); font-weight: 600; }
@@ -249,6 +252,15 @@
 
       .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 3000; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
     .overlay.active { display: flex; }
+  
+    .usage-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
+    .usage-stat { background: rgba(200,169,110,0.08); border: 1px solid rgba(200,169,110,0.15); border-radius: 10px; padding: 12px; text-align: center; }
+    .usage-stat h3 { font-size: 22px; font-weight: 700; color: var(--primary); }
+    .usage-stat p { font-size: 11px; color: var(--subtext); margin-top: 3px; }
+    .usage-info { font-size: 13px; color: var(--subtext); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+    .usage-link { font-size: 13px; color: var(--primary); text-decoration: none; display: flex; align-items: center; gap: 6px; margin-top: 10px; }
+    .usage-link:hover { text-decoration: underline; }
+
   </style>
 </head>
 <body>
