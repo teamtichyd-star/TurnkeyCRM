@@ -233,6 +233,33 @@
     body { overflow-x: hidden; }
     @media (max-width: 768px) { .page { padding: 14px; } }
 
+  
+    .task-card { display: flex; align-items: flex-start; gap: 14px; }
+    .task-card.done { opacity: 0.6; }
+    .task-card.overdue { border-left: 3px solid var(--danger); }
+    .task-checkbox { width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--border); cursor: pointer; flex-shrink: 0; margin-top: 2px; transition: 0.2s; }
+    .task-checkbox.checked { background: var(--success); border-color: var(--success); }
+    .task-checkbox.checked::after { content: '✓'; color: white; font-size: 13px; display: flex; align-items: center; justify-content: center; height: 100%; }
+    .task-content { flex: 1; }
+    .task-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+    .task-title { font-size: 15px; font-weight: 600; color: var(--text); }
+    .task-title.done-text { text-decoration: line-through; color: var(--subtext); }
+    .task-meta { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 8px; }
+    .task-meta-item { font-size: 12px; color: var(--subtext); display: flex; align-items: center; gap: 5px; }
+    .task-meta-item.overdue-text { color: var(--danger); }
+    .task-meta-item.due-today { color: var(--warning); }
+    .task-notes { font-size: 12px; color: var(--subtext); background: rgba(255,255,255,0.03); padding: 8px 12px; border-radius: 8px; border-left: 3px solid var(--primary); margin-top: 6px; }
+    .task-actions { display: flex; gap: 6px; flex-shrink: 0; }
+    .priority-badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .priority-high { background: rgba(244,67,54,0.12); color: var(--danger); }
+    .priority-medium { background: rgba(255,152,0,0.12); color: var(--warning); }
+    .priority-low { background: rgba(76,175,80,0.12); color: var(--success); }
+    .overall-progress { display: none; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+    .tab { padding: 7px 14px; border-radius: 20px; cursor: pointer; font-size: 12px; background: var(--card); border: 1px solid var(--border); color: var(--subtext); transition: 0.2s; }
+    .tab:hover { border-color: rgba(200,169,110,0.3); color: var(--text); }
+    .tab.active { background: var(--primary-glow); border-color: var(--primary); color: var(--primary); font-weight: 600; }
+
   </style>
 </head>
 <body>
