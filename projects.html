@@ -197,6 +197,39 @@
       .users-grid { grid-template-columns: 1fr; }
       .modal { border-radius: 16px; }
     }
+  
+    .saving-indicator { display: none !important; }
+    .page-loader { position: fixed; inset: 0; background: var(--darker); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px; z-index: 9999; }
+    .page { padding: 20px 24px; max-width: 100%; margin: 0; width: 100%; }
+    .top-actions { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+    .top-actions h2 { font-size: 22px; font-weight: 700; color: var(--text); }
+    .top-actions h2 span { font-size: 14px; color: var(--subtext); font-weight: 400; margin-left: 8px; }
+    .task-stats, .project-stats, .followup-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 14px; margin-bottom: 24px; }
+    .task-stat, .project-stat, .followup-stat { background: linear-gradient(145deg, var(--card2), var(--card)); border-radius: var(--radius); padding: 18px; text-align: center; border: 1px solid var(--border); box-shadow: var(--shadow); transition: 0.3s; }
+    .task-stat:hover, .project-stat:hover, .followup-stat:hover { transform: translateY(-2px); }
+    .task-stat h3, .project-stat h3, .followup-stat h3 { font-size: 28px; font-weight: 700; }
+    .task-stat p, .project-stat p, .followup-stat p { font-size: 12px; color: var(--subtext); margin-top: 4px; }
+    .task-stat.gold h3, .project-stat.gold h3, .followup-stat.gold h3 { color: var(--primary); }
+    .task-stat.blue h3, .project-stat.blue h3, .followup-stat.blue h3 { color: var(--info); }
+    .task-stat.green h3, .project-stat.green h3, .followup-stat.green h3 { color: var(--success); }
+    .task-stat.orange h3, .project-stat.orange h3, .followup-stat.orange h3 { color: var(--warning); }
+    .task-stat.red h3, .project-stat.red h3, .followup-stat.red h3 { color: var(--danger); }
+    .filter-bar { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+    .filter-bar input { flex: 1; min-width: 200px; padding: 10px 16px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 14px; outline: none; transition: 0.3s; }
+    .filter-bar input:focus { border-color: var(--primary); }
+    .filter-bar select { padding: 10px 14px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 13px; outline: none; cursor: pointer; }
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--subtext); font-size: 15px; }
+    .icon-btn { width:30px; height:30px; border-radius:8px; border:none; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:13px; transition:0.2s; text-decoration:none; }
+    .icon-btn.view { background:rgba(33,150,243,0.15); color:#2196f3; }
+    .icon-btn.edit { background:rgba(200,169,110,0.15); color:#c8a96e; }
+    .icon-btn.delete { background:rgba(244,67,54,0.15); color:#f44336; }
+    .icon-btn.whatsapp { background:rgba(37,211,102,0.15); color:#25d366; }
+    .icon-btn:hover { transform:scale(1.15); filter:brightness(1.3); }
+    .task-card, .project-card, .followup-card { background: linear-gradient(145deg, var(--card2), var(--card)); border-radius: var(--radius); padding: 18px; border: 1px solid var(--border); margin-bottom: 12px; box-shadow: var(--shadow); transition: 0.3s; }
+    .task-card:hover, .project-card:hover, .followup-card:hover { border-color: rgba(200,169,110,0.2); transform: translateY(-2px); }
+    body { overflow-x: hidden; }
+    @media (max-width: 768px) { .page { padding: 14px; } }
+
   </style>
 </head>
 <body>
