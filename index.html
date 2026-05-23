@@ -693,21 +693,23 @@
 
   // ─── ROLE MODULES ───
   const roleModules = {
-    superadmin:     ['leads','tasks','projects','followups','sheets','export','users'],
-    admin:          ['leads','tasks','projects','followups','sheets','export'],
-    manager:        ['leads'],
-    projectmanager: ['tasks','projects'],
-    accounts:       ['tasks','projects','followups','sheets','export'],
-    designer:       ['tasks','projects','followups','sheets','export']
+    superadmin:  ['leads','tasks','projects','followups','sheets','export','users'],
+    admin:       ['leads','tasks','projects','followups','sheets','export','users'],
+    manager:     ['leads','tasks','projects','followups','sheets','export'],
+    supervisor:  ['tasks','projects','followups'],
+    purchase:    ['tasks','projects','followups','sheets','export'],
+    designer:    ['tasks','projects'],
+    accounts:    ['leads','tasks','followups','sheets','export']
   };
 
   const roleNames = {
-    superadmin:     '👑 Super Admin',
-    admin:          '👤 Admin',
-    manager:        '👥 Manager',
-    projectmanager: '🏗️ Project Manager',
-    accounts:       '💰 Accounts',
-    designer:       '🎨 Designer'
+    superadmin:  '👑 Super Admin',
+    admin:       '👤 Admin (Full Access)',
+    manager:     '👥 Manager',
+    supervisor:  '🏗️ Supervisor',
+    purchase:    '🛒 Purchase',
+    designer:    '🎨 Designer',
+    accounts:    '💰 Accounts'
   };
 
   // ─── CURRENT USER DATA ───
