@@ -230,6 +230,18 @@
     body { overflow-x: hidden; }
     @media (max-width: 768px) { .page { padding: 14px; } }
 
+  
+    .proj-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 14px; margin-bottom: 24px; }
+    .proj-stat { background: linear-gradient(145deg, var(--card2), var(--card)); border-radius: var(--radius); padding: 18px; text-align: center; border: 1px solid var(--border); box-shadow: var(--shadow); transition: 0.3s; }
+    .proj-stat:hover { transform: translateY(-2px); }
+    .proj-stat h3 { font-size: 28px; font-weight: 700; }
+    .proj-stat p { font-size: 12px; color: var(--subtext); margin-top: 4px; }
+    .proj-stat.gold h3 { color: var(--primary); }
+    .proj-stat.blue h3 { color: var(--info); }
+    .proj-stat.green h3 { color: var(--success); }
+    .proj-stat.orange h3 { color: var(--warning); }
+    .proj-stat.red h3 { color: var(--danger); }
+
   </style>
 </head>
 <body>
