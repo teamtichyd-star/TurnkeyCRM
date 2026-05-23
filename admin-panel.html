@@ -524,8 +524,8 @@
               <td><span class="role-badge ${roleClass}">${role}</span></td>
               <td style="color:#6b7280;">${created}</td>
               <td>
-                <button class="delete-user-btn"
-                  onclick="triggerDelete('${u.email || u.id}')" class="btn-remove">
+                <button class="btn-remove"
+                  onclick="triggerDelete('${u.email || u.id}')">
                   <i class="fa-solid fa-trash"></i>
                 </button>
               </td>
