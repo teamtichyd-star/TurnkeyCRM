@@ -571,8 +571,9 @@
 
     try {
       const adminUser = auth.currentUser;
-      const cred      = await auth.createUserWithEmailAndPassword(email, password);
+      const cred      = await secondaryAuth.createUserWithEmailAndPassword(email, password);
 
+      await secondaryAuth.signOut();
       await db.collection("users").doc(email).set({
         name, email, role,
         uid:       cred.user.uid,
