@@ -481,6 +481,8 @@
   firebase.initializeApp(firebaseConfig);
   const auth = firebase.auth();
   const db   = firebase.firestore();
+  const secondaryApp  = firebase.initializeApp(firebaseConfig, "secondary");
+  const secondaryAuth = secondaryApp.auth();
 
   let allUsersData       = [];
   let pendingDeleteEmail = null;
