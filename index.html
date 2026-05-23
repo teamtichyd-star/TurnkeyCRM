@@ -939,7 +939,7 @@ if (role === "supervisor") {
 
   function showPage(page) {
     const role    = currentUserData?.role || 'manager';
-    const modules = roleModules['admin'];
+    const modules = roleModules[role] || roleModules['manager'];
 
     // Check access
     if (page !== 'dashboard' && page !== 'users' && !modules.includes(page)) {
