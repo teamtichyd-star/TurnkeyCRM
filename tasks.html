@@ -270,6 +270,10 @@
     .mform-group select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(200,169,110,0.1); }
     .mform-group select option { background: var(--dark); }
 
+  
+    .overall-progress { display: none !important; }
+    .progress-section { display: none !important; }
+
   </style>
 </head>
 <body>
@@ -526,12 +530,19 @@
     try {
       const snapshot = await db.collection('users').get();
       const select = document.getElementById('taskAssigned');
+      const assigneeFilter = document.getElementById('assigneeFilter');
       snapshot.forEach(doc => {
         const u = doc.data();
+        const name = u.name || doc.id;
+        const role = u.role || '';
         const opt = document.createElement('option');
-        opt.value = u.name || doc.id;
-        opt.textContent = (u.name || doc.id) + ' (' + (u.role || '') + ')';
+        opt.value = name;
+        opt.textContent = name + ' (' + role + ')';
         select.appendChild(opt);
+        const opt2 = document.createElement('option');
+        opt2.value = name;
+        opt2.textContent = name;
+        assigneeFilter.appendChild(opt2);
       });
     } catch(e) { console.error('Error loading users:', e); }
   }
@@ -608,6 +619,7 @@
     const priority = document.getElementById('priorityFilter').value;
     const category = document.getElementById('categoryFilter').value;
     const sort = document.getElementById('sortFilter').value;
+    const assignee = document.getElementById('assigneeFilter').value;
 
     let filtered = tasks.filter(task => {
       if (currentTab === 'pending' && task.status !== 'Pending') return false;
@@ -623,8 +635,9 @@
 
       const matchPriority = !priority || task.priority === priority;
       const matchCategory = !category || task.category === category;
+      const matchAssignee = !assignee || (task.assignedTo && task.assignedTo === assignee);
 
-      return matchSearch && matchPriority && matchCategory;
+      return matchSearch && matchPriority && matchCategory && matchAssignee;
     });
 
     if (sort === 'newest') {
