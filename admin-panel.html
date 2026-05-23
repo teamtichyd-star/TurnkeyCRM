@@ -247,6 +247,8 @@
     .plan-tag { display: inline-flex; align-items: center; gap: 6px; background: rgba(200,169,110,0.1); border: 1px solid rgba(200,169,110,0.2); border-radius: 20px; padding: 5px 14px; font-size: 13px; color: var(--primary); font-weight: 600; margin-bottom: 10px; }
     @media (max-width: 768px) { .container { grid-template-columns: 1fr; padding: 14px; } }
 
+      .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 3000; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+    .overlay.active { display: flex; }
   </style>
 </head>
 <body>
