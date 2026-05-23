@@ -260,6 +260,11 @@
     .tab:hover { border-color: rgba(200,169,110,0.3); color: var(--text); }
     .tab.active { background: var(--primary-glow); border-color: var(--primary); color: var(--primary); font-weight: 600; }
 
+  
+    .mform-group select, .form-group select { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 11px 14px; color: var(--text); font-size: 14px; outline: none; transition: 0.3s; width: 100%; }
+    .mform-group select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(200,169,110,0.1); }
+    .mform-group select option { background: var(--dark); }
+
   </style>
 </head>
 <body>
@@ -439,7 +444,9 @@
         </div>
         <div class="form-group">
           <label>Assigned To</label>
-          <input type="text" id="taskAssigned" placeholder="e.g. Rahul"/>
+          <select id="taskAssigned">
+            <option value="">Select User</option>
+          </select>
         </div>
         <div class="form-group">
           <label>Related Lead/Project</label>
@@ -508,6 +515,21 @@
 
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
+
+  // Load registered users into dropdowns
+  async function loadUsersDropdown() {
+    try {
+      const snapshot = await db.collection('users').get();
+      const select = document.getElementById('taskAssigned');
+      snapshot.forEach(doc => {
+        const u = doc.data();
+        const opt = document.createElement('option');
+        opt.value = u.name || doc.id;
+        opt.textContent = (u.name || doc.id) + ' (' + (u.role || '') + ')';
+        select.appendChild(opt);
+      });
+    } catch(e) { console.error('Error loading users:', e); }
+  }
   const tasksRef = db.collection('tasks');
 
   // ─── STATE ───
