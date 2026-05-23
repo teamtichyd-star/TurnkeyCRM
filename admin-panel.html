@@ -261,6 +261,21 @@
     .usage-link { font-size: 13px; color: var(--primary); text-decoration: none; display: flex; align-items: center; gap: 6px; margin-top: 10px; }
     .usage-link:hover { text-decoration: underline; }
 
+  
+    .usage-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 13px; color: var(--subtext); }
+    .usage-row:last-child { border-bottom: none; }
+    .usage-row span:last-child { color: var(--primary); font-weight: 600; font-size: 13px; }
+    .usage-link { font-size: 12px; color: var(--info); text-decoration: none; display: inline-flex; align-items: center; gap: 5px; margin-top: 12px; }
+    .usage-link:hover { text-decoration: underline; }
+
+  
+    .progress-item { margin-bottom: 14px; }
+    .progress-header { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; color: var(--subtext); }
+    .progress-header span:last-child { color: var(--primary); font-weight: 600; }
+    .progress-bar-bg { height: 6px; background: rgba(255,255,255,0.06); border-radius: 10px; overflow: hidden; }
+    .progress-bar-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--primary-dark)); border-radius: 10px; transition: width 1s ease; }
+    .stat-value { font-size: 24px; font-weight: 700; color: var(--primary); }
+
   </style>
 </head>
 <body>
