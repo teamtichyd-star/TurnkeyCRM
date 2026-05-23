@@ -525,8 +525,8 @@
               <td style="color:#6b7280;">${created}</td>
               <td>
                 <button class="delete-user-btn"
-                  onclick="triggerDelete('${u.email || u.id}')">
-                  <i class="fa-solid fa-trash"></i> Remove
+                  onclick="triggerDelete('${u.email || u.id}')" class="btn-remove">
+                  <i class="fa-solid fa-trash"></i>
                 </button>
               </td>
             </tr>`;
@@ -580,7 +580,6 @@
         createdBy: adminUser?.email || "admin"
       });
 
-      await auth.signOut();
       showStatus(status, `✅ User "${name}" created successfully!`, "success");
       document.getElementById("newName").value     = "";
       document.getElementById("newEmail").value    = "";
