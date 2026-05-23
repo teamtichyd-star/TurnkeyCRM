@@ -198,6 +198,55 @@
       .users-grid { grid-template-columns: 1fr; }
       .modal { border-radius: 16px; }
     }
+  
+    body { background: var(--darker); color: var(--text); padding: 0; margin: 0; }
+    .admin-topbar { background: linear-gradient(90deg, #1a2550, #16213e); padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 20px rgba(0,0,0,0.3); }
+    .admin-topbar h1 { font-size: 16px; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 8px; }
+    .admin-topbar a { color: var(--subtext); text-decoration: none; font-size: 13px; padding: 7px 14px; border: 1px solid var(--border); border-radius: 8px; transition: 0.2s; }
+    .admin-topbar a:hover { border-color: var(--primary); color: var(--primary); }
+    .admin-body { padding: 24px; max-width: 1200px; margin: 0 auto; }
+    .admin-section { background: linear-gradient(145deg, var(--card2), var(--card)); border-radius: var(--radius); padding: 24px; border: 1px solid var(--border); box-shadow: var(--shadow); margin-bottom: 24px; }
+    .admin-section h2 { font-size: 16px; font-weight: 700; color: var(--primary); margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
+    .admin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .form-field { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
+    .form-field label { font-size: 11px; color: var(--subtext); text-transform: uppercase; letter-spacing: 0.7px; font-weight: 600; }
+    .form-field input, .form-field select { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 11px 14px; color: var(--text); font-size: 14px; outline: none; transition: 0.3s; width: 100%; }
+    .form-field input:focus, .form-field select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(200,169,110,0.1); }
+    .form-field select option { background: var(--dark); }
+    .firebase-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-bottom: 20px; }
+    .firebase-stat { background: rgba(255,255,255,0.03); border-radius: 12px; padding: 16px; text-align: center; border: 1px solid var(--border); }
+    .firebase-stat h3 { font-size: 28px; font-weight: 700; color: var(--primary); }
+    .firebase-stat p { font-size: 12px; color: var(--subtext); margin-top: 4px; }
+    .quota-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.03); font-size: 13px; }
+    .quota-item:last-child { border-bottom: none; }
+    .quota-item span:last-child { color: var(--primary); font-weight: 600; }
+    .plan-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(200,169,110,0.1); border: 1px solid rgba(200,169,110,0.2); border-radius: 20px; padding: 6px 16px; font-size: 13px; color: var(--primary); font-weight: 600; margin-bottom: 12px; }
+    .plan-desc { font-size: 13px; color: var(--subtext); margin-bottom: 16px; }
+    @media (max-width: 768px) { .admin-grid { grid-template-columns: 1fr; } .form-row { grid-template-columns: 1fr; } .admin-body { padding: 14px; } }
+
+  
+    .container { padding: 24px; max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .card { background: linear-gradient(145deg, var(--card2), var(--card)); border-radius: var(--radius); padding: 24px; border: 1px solid var(--border); box-shadow: var(--shadow); }
+    .card h2 { font-size: 15px; font-weight: 700; color: var(--primary); margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
+    .form-group { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
+    .form-group label { font-size: 11px; color: var(--subtext); text-transform: uppercase; letter-spacing: 0.7px; font-weight: 600; }
+    .form-group input, .form-group select { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 11px 14px; color: var(--text); font-size: 14px; outline: none; transition: 0.3s; width: 100%; }
+    .form-group input:focus, .form-group select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(200,169,110,0.1); }
+    .form-group select option { background: var(--dark); }
+    .logo { font-size: 15px; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 8px; }
+    .back-btn { color: var(--subtext); text-decoration: none; font-size: 13px; padding: 7px 14px; border: 1px solid var(--border); border-radius: 8px; transition: 0.2s; background: none; cursor: pointer; }
+    .back-btn:hover { border-color: var(--primary); color: var(--primary); }
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 16px; }
+    .stat-box { background: rgba(255,255,255,0.03); border-radius: 10px; padding: 14px; text-align: center; border: 1px solid var(--border); }
+    .stat-box h3 { font-size: 24px; font-weight: 700; color: var(--primary); }
+    .stat-box p { font-size: 11px; color: var(--subtext); margin-top: 3px; }
+    .quota-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.03); font-size: 13px; }
+    .quota-row:last-child { border-bottom: none; }
+    .quota-row span:last-child { color: var(--primary); font-weight: 600; }
+    .plan-tag { display: inline-flex; align-items: center; gap: 6px; background: rgba(200,169,110,0.1); border: 1px solid rgba(200,169,110,0.2); border-radius: 20px; padding: 5px 14px; font-size: 13px; color: var(--primary); font-weight: 600; margin-bottom: 10px; }
+    @media (max-width: 768px) { .container { grid-template-columns: 1fr; padding: 14px; } }
+
   </style>
 </head>
 <body>
