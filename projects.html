@@ -242,6 +242,14 @@
     .proj-stat.orange h3 { color: var(--warning); }
     .proj-stat.red h3 { color: var(--danger); }
 
+  
+    .tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+    .tab { padding: 8px 16px; border-radius: 20px; cursor: pointer; font-size: 13px; background: var(--card); border: 1px solid var(--border); color: var(--subtext); transition: 0.2s; }
+    .tab:hover { border-color: rgba(200,169,110,0.3); color: var(--text); }
+    .tab.active { background: var(--primary-glow); border-color: var(--primary); color: var(--primary); font-weight: 600; }
+    .tab .count { background: rgba(255,255,255,0.1); border-radius: 10px; padding: 1px 7px; font-size: 11px; margin-left: 4px; }
+    .portal-tabs { display: flex; gap: 8px; margin: 15px 0; flex-wrap: wrap; }
+
   </style>
 </head>
 <body>
