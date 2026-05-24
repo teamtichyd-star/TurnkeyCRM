@@ -369,6 +369,9 @@
     <input type="text" id="searchInput"
            placeholder="🔍 Search tasks..."
            oninput="renderTasks()"/>
+    <select id="assigneeFilter" onchange="renderTasks()">
+      <option value="">All Assignees</option>
+    </select>
     <select id="priorityFilter" onchange="renderTasks()">
       <option value="">All Priorities</option>
       <option value="High">🔴 High</option>
