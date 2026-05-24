@@ -530,9 +530,9 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
 
-  // Get user info from parent sessionStorage
-  const currentUserRole = sessionStorage.getItem('crm_role') || 'admin';
-  const currentUserName = sessionStorage.getItem('crm_user') || '';
+  const urlParams = new URLSearchParams(window.location.search);
+  const currentUserRole = urlParams.get('role') || 'admin';
+  const currentUserName = decodeURIComponent(urlParams.get('user') || '');
 
 
   // Load registered users into dropdowns

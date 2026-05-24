@@ -564,32 +564,32 @@
 
     <!-- ═══ LEADS ═══ -->
     <div class="page iframe-page" id="page-leads">
-      <iframe src="leads.html" style="width:100%; height:calc(100vh - 70px); border:none; display:block; background:var(--darker); margin-left:0;"></iframe>
+      <iframe data-src="leads.html" src="about:blank" style="width:100%; height:calc(100vh - 70px); border:none; display:block; background:var(--darker); margin-left:0;"></iframe>
     </div>
 
     <!-- ═══ TASKS ═══ -->
     <div class="page iframe-page" id="page-tasks">
-      <iframe src="tasks.html" style="width:100%; height:calc(100vh - 70px); border:none; display:block; background:var(--darker); margin-left:0;"></iframe>
+      <iframe data-src="tasks.html" src="about:blank" style="width:100%; height:calc(100vh - 70px); border:none; display:block; background:var(--darker); margin-left:0;"></iframe>
     </div>
 
     <!-- ═══ PROJECTS ═══ -->
     <div class="page iframe-page" id="page-projects">
-      <iframe src="projects.html" style="width:100%; height:calc(100vh - 70px); border:none; display:block; background:var(--darker); margin-left:0;"></iframe>
+      <iframe data-src="projects.html" src="about:blank" style="width:100%; height:calc(100vh - 70px); border:none; display:block; background:var(--darker); margin-left:0;"></iframe>
     </div>
 
     <!-- ═══ FOLLOWUPS ═══ -->
     <div class="page iframe-page" id="page-followups">
-      <iframe src="followups.html" style="width:100%; height:calc(100vh - 70px); border:none; display:block; background:var(--darker); margin-left:0;"></iframe>
+      <iframe data-src="followups.html" src="about:blank" style="width:100%; height:calc(100vh - 70px); border:none; display:block; background:var(--darker); margin-left:0;"></iframe>
     </div>
 
     <!-- ═══ SHEETS ═══ -->
     <div class="page iframe-page" id="page-sheets">
-      <iframe src="sheets.html" style="width:100%; height:calc(100vh - 70px); border:none; display:block; background:var(--darker); margin-left:0;"></iframe>
+      <iframe data-src="sheets.html" src="about:blank" style="width:100%; height:calc(100vh - 70px); border:none; display:block; background:var(--darker); margin-left:0;"></iframe>
     </div>
 
     <!-- ═══ EXPORT ═══ -->
     <div class="page iframe-page" id="page-export">
-      <iframe src="export.html" style="width:100%; height:calc(100vh - 70px); border:none; display:block; background:var(--darker); margin-left:0;"></iframe>
+      <iframe data-src="export.html" src="about:blank" style="width:100%; height:calc(100vh - 70px); border:none; display:block; background:var(--darker); margin-left:0;"></iframe>
     </div>
 
     <!-- ═══ USER MANAGEMENT ═══ -->
@@ -982,14 +982,14 @@ if (role === "supervisor") {
 
     const target = document.getElementById('page-' + page);
     if (target) target.classList.add('active');
-    // Send user info to this page's iframe
-    const iframe = target?.querySelector('iframe');
+    // Load iframe lazily with role info
+    const iframe = target?.querySelector('iframe[data-src]');
     if (iframe) {
-      iframe.contentWindow?.postMessage({
-        type: 'USER_INFO',
-        role: currentUserData?.role || 'manager',
-        name: currentUserData?.name || ''
-      }, '*');
+      const dataSrc = iframe.getAttribute('data-src');
+      const role2 = currentUserData?.role || 'manager';
+      const user2 = encodeURIComponent(currentUserData?.name || '');
+      iframe.src = dataSrc + '?role=' + role2 + '&user=' + user2;
+      iframe.removeAttribute('data-src');
     }
 
     document.getElementById('pageTitle').textContent = pageTitles[page] || page;
