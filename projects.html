@@ -1692,6 +1692,9 @@
   });
 
   // ─── INIT ───
+  const urlParams = new URLSearchParams(window.location.search);
+  const currentUserRole = urlParams.get('role') || 'admin';
+  const currentUserName = decodeURIComponent(urlParams.get('user') || '');
   loadProjects();
   loadUsersDropdown();
   loadUsersDropdown();
