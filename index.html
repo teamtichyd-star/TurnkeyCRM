@@ -471,11 +471,11 @@
           <div class="stat-icon green"><i class="fas fa-trophy"></i></div>
           <div class="stat-info"><h3 id="stat-won">0</h3><p>Leads Won</p></div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card" id="dash-fu-card">
           <div class="stat-icon red"><i class="fas fa-exclamation-circle"></i></div>
           <div class="stat-info"><h3 id="stat-followup">0</h3><p>Follow-ups Due</p></div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card" id="dash-revenue-card">
           <div class="stat-icon blue"><i class="fas fa-rupee-sign"></i></div>
           <div class="stat-info"><h3 id="stat-revenue">₹0</h3><p>Est. Revenue</p></div>
         </div>
@@ -804,6 +804,10 @@
     if (wonCard) wonCard.style.display = hasLeads ? '' : 'none';
     if (recentLeads) recentLeads.style.display = hasLeads ? '' : 'none';
     if (pipeline) pipeline.style.display = hasLeads ? '' : 'none';
+    const fuCard2 = document.getElementById('dash-fu-card');
+    const revCard = document.getElementById('dash-revenue-card');
+    if (fuCard2) fuCard2.style.display = hasLeads ? '' : 'none';
+    if (revCard) revCard.style.display = hasLeads ? '' : 'none';
 // Hide leads for supervisor
 if (role === "supervisor") {
   document.querySelectorAll(".menu-item").forEach(function(item) {
