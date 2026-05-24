@@ -598,8 +598,9 @@
       snapshot.forEach(doc => {
         tasks.push({ id: doc.id, ...doc.data() });
       });
-      // Supervisor/Designer/Accounts/Purchase see only their assigned tasks
-      if (['designer','accounts'].includes(currentUserRole) && currentUserName) {
+      // Designer/Accounts see only their assigned tasks
+      // Supervisor/Purchase/Manager/Admin see all tasks
+      if (['designer', 'accounts'].includes(currentUserRole) && currentUserName) {
         tasks = tasks.filter(t => 
           t.assignedTo && t.assignedTo.toLowerCase() === currentUserName.toLowerCase()
         );

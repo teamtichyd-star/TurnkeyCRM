@@ -467,7 +467,7 @@
           <div class="stat-icon orange"><i class="fas fa-hard-hat"></i></div>
           <div class="stat-info"><h3 id="stat-projects">0</h3><p>Projects</p></div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card" id="dash-won-card">
           <div class="stat-icon green"><i class="fas fa-trophy"></i></div>
           <div class="stat-info"><h3 id="stat-won">0</h3><p>Leads Won</p></div>
         </div>
@@ -795,9 +795,15 @@
 
     // Hide leads-only sections for roles without leads access
     const hasLeads = modules.includes('leads');
-    document.getElementById('dash-leads-card').style.display = hasLeads ? '' : 'none';
-    document.getElementById('recentLeadsSection').style.display = hasLeads ? '' : 'none';
-    document.getElementById('pipelineSection').style.display = hasLeads ? '' : 'none';
+    const leadsCard = document.getElementById('dash-leads-card');
+    const wonCard = document.getElementById('dash-won-card');
+    const fuCard = document.getElementById('dash-fu-card');
+    const recentLeads = document.getElementById('recentLeadsSection');
+    const pipeline = document.getElementById('pipelineSection');
+    if (leadsCard) leadsCard.style.display = hasLeads ? '' : 'none';
+    if (wonCard) wonCard.style.display = hasLeads ? '' : 'none';
+    if (recentLeads) recentLeads.style.display = hasLeads ? '' : 'none';
+    if (pipeline) pipeline.style.display = hasLeads ? '' : 'none';
 // Hide leads for supervisor
 if (role === "supervisor") {
   document.querySelectorAll(".menu-item").forEach(function(item) {
