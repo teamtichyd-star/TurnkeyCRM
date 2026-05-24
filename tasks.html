@@ -585,8 +585,7 @@
   // ═══════════════════════════════════════
   async function loadTasks() {
     try {
-      const snapshot = await tasksRef
-        .orderBy('createdAt', 'desc').get();
+      const snapshot = await tasksRef.get();
       tasks = [];
       snapshot.forEach(doc => {
         tasks.push({ id: doc.id, ...doc.data() });
