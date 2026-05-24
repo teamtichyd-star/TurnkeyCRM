@@ -540,6 +540,26 @@
           </table>
         </div>
       </div>
+    <div class="table-card">
+        <div class="table-card-header">
+          <h3>✅ My Tasks</h3>
+          <span class="badge badge-blue" onclick="showPage('tasks')" style="cursor:pointer">View All →</span>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Task</th><th>Priority</th><th>Due Date</th><th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="myTasksTable">
+              <tr><td colspan="4" style="text-align:center; color:var(--subtext); padding:30px">
+                Loading...
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
     <!-- ═══ LEADS ═══ -->
@@ -1040,6 +1060,26 @@ if (role === "supervisor") {
             (count/total*100) + '%';
         }, 100);
       });
+
+      // My Tasks
+      const currentUserName = currentUserData?.name || '';
+      const myTasks = tasks.filter(t => 
+        t.assignedTo && t.assignedTo.toLowerCase() === currentUserName.toLowerCase() && t.status !== 'Done'
+      ).slice(0, 5);
+      const myTasksTbody = document.getElementById('myTasksTable');
+      const priorityColors = { High: 'badge-red', Medium: 'badge-orange', Low: 'badge-green' };
+      const statusColors = { Pending: 'badge-orange', 'In Progress': 'badge-blue', Done: 'badge-green' };
+      if (myTasks.length === 0) {
+        myTasksTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--subtext); padding:20px">No tasks assigned to you</td></tr>';
+      } else {
+        myTasksTbody.innerHTML = myTasks.map(t => `
+          <tr>
+            <td><strong>${t.title||'-'}</strong></td>
+            <td><span class="badge ${priorityColors[t.priority]||'badge-gold'}">${t.priority||'-'}</span></td>
+            <td style="color:var(--subtext)">${t.dueDate||'-'}</td>
+            <td><span class="badge ${statusColors[t.status]||'badge-gold'}">${t.status||'-'}</span></td>
+          </tr>`).join('');
+      }
 
       // Recent Leads
       const tbody = document.getElementById('recentLeadsTable');
