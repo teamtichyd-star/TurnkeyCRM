@@ -1061,6 +1061,17 @@ if (role === "supervisor") {
         }, 100);
       });
 
+      // Hide leads sections for non-leads roles
+      const showLeads = modules.includes('leads');
+      const recentLeadsCard = document.querySelector('#page-dashboard .table-card');
+      const pipelineCard = document.querySelector('.pipeline-card');
+      const dashLeadsCard = document.getElementById('dash-leads-card');
+      if (!showLeads) {
+        if (recentLeadsCard) recentLeadsCard.style.display = 'none';
+        if (pipelineCard) pipelineCard.style.display = 'none';
+        if (dashLeadsCard) dashLeadsCard.style.display = 'none';
+      }
+
       // My Tasks
       const currentUserName = currentUserData?.name || '';
       const myTasks = tasks.filter(t => 
