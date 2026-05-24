@@ -778,7 +778,7 @@
 
   // ─── SHOW APP ───
   function showApp() {
-    const role = 'admin';
+    const role = currentUserData?.role || 'manager';
     const modules = roleModules[role] || ['leads'];
     const name = currentUserData?.name || currentUser?.email || 'User';
 
