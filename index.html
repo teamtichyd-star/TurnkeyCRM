@@ -498,7 +498,7 @@
           </div>
         </div>
 
-        <div class="pipeline-card">
+        <div class="pipeline-card" id="pipelineSection">
           <h3>📊 Lead Pipeline</h3>
           <div class="pipeline-item">
             <div class="pipeline-label"><span>New Leads</span><span id="pipe-new">0</span></div>
@@ -519,7 +519,7 @@
         </div>
       </div>
 
-      <div class="table-card">
+      <div class="table-card" id="recentLeadsSection">
         <div class="table-card-header">
           <h3>📋 Recent Leads</h3>
           <span class="badge badge-gold" onclick="showPage('leads')" style="cursor:pointer">View All →</span>
@@ -787,6 +787,12 @@
     document.getElementById('sidebarUserName').textContent = name;
     document.getElementById('sidebarUserRole').textContent = roleNames[role] || role;
     document.getElementById('sidebarUserEmail').textContent = currentUser?.email || '';
+
+    // Hide leads-only sections for roles without leads access
+    const hasLeads = modules.includes('leads');
+    document.getElementById('dash-leads-card').style.display = hasLeads ? '' : 'none';
+    document.getElementById('recentLeadsSection').style.display = hasLeads ? '' : 'none';
+    document.getElementById('pipelineSection').style.display = hasLeads ? '' : 'none';
 // Hide leads for supervisor
 if (role === "supervisor") {
   document.querySelectorAll(".menu-item").forEach(function(item) {
@@ -1060,17 +1066,6 @@ if (role === "supervisor") {
             (count/total*100) + '%';
         }, 100);
       });
-
-      // Hide leads sections for non-leads roles
-      const showLeads = modules.includes('leads');
-      const recentLeadsCard = document.querySelector('#page-dashboard .table-card');
-      const pipelineCard = document.querySelector('.pipeline-card');
-      const dashLeadsCard = document.getElementById('dash-leads-card');
-      if (!showLeads) {
-        if (recentLeadsCard) recentLeadsCard.style.display = 'none';
-        if (pipelineCard) pipelineCard.style.display = 'none';
-        if (dashLeadsCard) dashLeadsCard.style.display = 'none';
-      }
 
       // My Tasks
       const currentUserName = currentUserData?.name || '';
