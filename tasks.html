@@ -523,7 +523,9 @@
     appId: "1:487224108102:web:dbe9d4ea6abdb2db581647"
   };
 
-  firebase.initializeApp(firebaseConfig);
+  if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
   const db = firebase.firestore();
 
   // Load registered users into dropdowns
