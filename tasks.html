@@ -529,6 +529,9 @@
 
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
+  const urlParams = new URLSearchParams(window.location.search);
+  const currentUserRole = urlParams.get('role') || 'admin';
+  const currentUserName = decodeURIComponent(urlParams.get('user') || '');
 
   // Load registered users into dropdowns
   async function loadUsersDropdown() {
@@ -593,6 +596,12 @@
       snapshot.forEach(doc => {
         tasks.push({ id: doc.id, ...doc.data() });
       });
+      // Supervisor/Designer/Accounts/Purchase see only their assigned tasks
+      if (['designer','accounts'].includes(currentUserRole) && currentUserName) {
+        tasks = tasks.filter(t => 
+          t.assignedTo && t.assignedTo.toLowerCase() === currentUserName.toLowerCase()
+        );
+      }
       renderTasks();
       document.getElementById('pageLoader').style.display = 'none';
       document.getElementById('mainPage').style.display = 'block';
