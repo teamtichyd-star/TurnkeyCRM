@@ -762,7 +762,7 @@
         currentUserData = {
           name: email.split('@')[0],
           email: email,
-          role: 'admin',
+          role: 'manager',
           active: true
         };
         await db.collection('users').doc(email).set(currentUserData);
