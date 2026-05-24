@@ -1066,6 +1066,7 @@ if (role === "supervisor") {
       const uRole = currentUserData?.role || 'admin';
       const uName = currentUserData?.name || '';
       const isRestricted = ['supervisor','designer','accounts','purchase'].includes(uRole);
+      console.log('DEBUG:', uRole, uName, isRestricted);
 
       document.getElementById('stat-leads').textContent = leads.length;
 
