@@ -494,9 +494,7 @@
             <button class="action-btn blue hidden" id="qa-projects" onclick="showPage('projects')">
               <i class="fas fa-hard-hat"></i> New Project
             </button>
-            <button class="action-btn orange hidden" id="qa-followups" onclick="showPage('followups')">
-              <i class="fas fa-comments"></i> Add Follow-up
-            </button>
+
           </div>
         </div>
 
@@ -1002,22 +1000,19 @@ if (role === "supervisor") {
   // ─── LOAD DASHBOARD ───
   async function loadDashboard() {
     try {
-      const [leadsSnap, tasksSnap, projSnap, fuSnap] = await Promise.all([
+      const [leadsSnap, tasksSnap, projSnap] = await Promise.all([
         db.collection('leads').get(),
         db.collection('tasks').get(),
-        db.collection('projects').get(),
-        db.collection('followups').get()
+        db.collection('projects').get()
       ]);
 
       const leads    = [];
       const tasks    = [];
       const projects = [];
-      const followups= [];
 
       leadsSnap.forEach(doc  => leads.push(doc.data()));
       tasksSnap.forEach(doc  => tasks.push(doc.data()));
       projSnap.forEach(doc   => projects.push(doc.data()));
-      fuSnap.forEach(doc     => followups.push(doc.data()));
 
       // Stats
       document.getElementById('stat-leads').textContent    = leads.length;
@@ -1028,7 +1023,7 @@ if (role === "supervisor") {
       const today = new Date();
       today.setHours(0,0,0,0);
       document.getElementById('stat-followup').textContent =
-        followups.filter(f => f.date && !f.done && new Date(f.date) <= today).length;
+        leads.filter(l => l.followupDate && new Date(l.followupDate) <= today && l.status !== 'Won' && l.status !== 'Lost').length;
 
       const revenue = projects.reduce((s,p) => s + (parseInt(p.value)||0), 0);
       document.getElementById('stat-revenue').textContent =
