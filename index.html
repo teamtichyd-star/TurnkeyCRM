@@ -1063,10 +1063,25 @@ if (role === "supervisor") {
       projSnap.forEach(doc   => projects.push(doc.data()));
 
       // Stats
-      document.getElementById('stat-leads').textContent    = leads.length;
-      document.getElementById('stat-tasks').textContent    = tasks.filter(t => t.status !== 'Done').length;
-      document.getElementById('stat-projects').textContent = projects.length;
-      document.getElementById('stat-won').textContent      = leads.filter(l => l.status === 'Won').length;
+      const uRole = currentUserData?.role || 'admin';
+      const uName = currentUserData?.name || '';
+      const isRestricted = ['supervisor','designer','accounts','purchase'].includes(uRole);
+
+      document.getElementById('stat-leads').textContent = leads.length;
+
+      const myTasks2 = isRestricted && uName
+        ? tasks.filter(t => t.status !== 'Done' && (
+            (t.assignedTo && t.assignedTo.toLowerCase() === uName.toLowerCase()) ||
+            (t.createdBy && t.createdBy.toLowerCase() === uName.toLowerCase())
+          ))
+        : tasks.filter(t => t.status !== 'Done');
+      document.getElementById('stat-tasks').textContent = myTasks2.length;
+
+      const myProjects = isRestricted && uName
+        ? projects.filter(p => p.manager && p.manager.toLowerCase() === uName.toLowerCase())
+        : projects;
+      document.getElementById('stat-projects').textContent = myProjects.length;
+      document.getElementById('stat-won').textContent = leads.filter(l => l.status === 'Won').length;
 
       const today = new Date();
       today.setHours(0,0,0,0);
