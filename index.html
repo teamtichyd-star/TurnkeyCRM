@@ -988,14 +988,16 @@ if (role === "supervisor") {
 
     const target = document.getElementById('page-' + page);
     if (target) target.classList.add('active');
-    // Load iframe lazily with role info
-    const iframe = target?.querySelector('iframe[data-src]');
+    // Load iframe with role info
+    const iframe = target?.querySelector('iframe');
     if (iframe) {
-      const dataSrc = iframe.getAttribute('data-src');
       const role2 = currentUserData?.role || 'manager';
       const user2 = encodeURIComponent(currentUserData?.name || '');
-      iframe.src = dataSrc + '?role=' + role2 + '&user=' + user2;
-      iframe.removeAttribute('data-src');
+      const dataSrc = iframe.getAttribute('data-src') || iframe.src.split('?')[0];
+      if (dataSrc && dataSrc !== 'about:blank') {
+        iframe.src = dataSrc + '?role=' + role2 + '&user=' + user2;
+        iframe.removeAttribute('data-src');
+      }
     }
 
     document.getElementById('pageTitle').textContent = pageTitles[page] || page;
