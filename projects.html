@@ -770,6 +770,10 @@
     firebase.initializeApp(firebaseConfig);
   }
   const db = firebase.firestore();
+  // Global user role vars
+  const urlParams = new URLSearchParams(window.location.search);
+  const currentUserRole = urlParams.get('role') || 'admin';
+  const currentUserName = decodeURIComponent(urlParams.get('user') || '');
 
   async function loadUsersDropdown() {
     try {
@@ -1692,11 +1696,7 @@
   });
 
   // ─── INIT ───
-  const urlParams = new URLSearchParams(window.location.search);
-  const currentUserRole = urlParams.get('role') || 'admin';
-  const currentUserName = decodeURIComponent(urlParams.get('user') || '');
   loadProjects();
-  loadUsersDropdown();
   loadUsersDropdown();
 </script>
 </body>
