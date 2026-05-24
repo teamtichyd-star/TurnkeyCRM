@@ -409,9 +409,10 @@
           <input type="date" id="projDeadline"/>
         </div>
         <div class="form-group">
-          <label>Site Manager</label>
-          <input type="text" id="projManager"
-                 placeholder="e.g. Suresh"/>
+          <label>Site Manager / Assigned To</label>
+          <select id="projManager">
+            <option value="">Select User</option>
+          </select>
         </div>
         <div class="form-group">
           <label>Client Portal Password <span>*</span></label>
@@ -703,7 +704,8 @@
         </div>
         <div class="form-group">
           <label>Assigned To</label>
-          <input type="text" id="snagAssigned"
+          <select id="snagAssigned"><option value="">Select User</option></select>
+          <input type="text" id="snagAssignedHidden" style="display:none"
                  placeholder="e.g. Ramesh"/>
         </div>
         <div class="form-group">
@@ -768,6 +770,29 @@
     firebase.initializeApp(firebaseConfig);
   }
   const db = firebase.firestore();
+
+  async function loadUsersDropdown() {
+    try {
+      const snap = await db.collection('users').get();
+      const sel = document.getElementById('projManager');
+      const snagSel = document.getElementById('snagAssigned');
+      snap.forEach(doc => {
+        const u = doc.data();
+        const name = u.name || doc.id;
+        const role = u.role || '';
+        if (sel) {
+          const o = document.createElement('option');
+          o.value = name; o.textContent = name + ' (' + role + ')';
+          sel.appendChild(o);
+        }
+        if (snagSel) {
+          const o2 = document.createElement('option');
+          o2.value = name; o2.textContent = name;
+          snagSel.appendChild(o2);
+        }
+      });
+    } catch(e) { console.error('Error loading users:', e); }
+  }
   const projRef = db.collection('projects');
 
   // ─── STATE ───
@@ -814,6 +839,12 @@
       snapshot.forEach(doc => {
         projects.push({ id: doc.id, ...doc.data() });
       });
+      // Filter projects for supervisor/designer - only show assigned ones
+      if (currentUserRole === 'supervisor' || currentUserRole === 'designer') {
+        projects = projects.filter(p => 
+          p.manager && p.manager.toLowerCase() === currentUserName.toLowerCase()
+        );
+      }
       renderProjects();
       document.getElementById('pageLoader').style.display = 'none';
       document.getElementById('mainPage').style.display = 'block';
@@ -1662,6 +1693,8 @@
 
   // ─── INIT ───
   loadProjects();
+  loadUsersDropdown();
+  loadUsersDropdown();
 </script>
 </body>
 </html>

@@ -788,6 +788,16 @@
     document.getElementById('sidebarUserRole').textContent = roleNames[role] || role;
     document.getElementById('sidebarUserEmail').textContent = currentUser?.email || '';
 
+    // Pass user info to iframes
+    const userName = currentUserData?.name || '';
+    ['leads','tasks','projects','followups','sheets','export'].forEach(p => {
+      const iframe = document.querySelector(`#page-${p} iframe`);
+      if (iframe) {
+        const base = iframe.src.split('?')[0];
+        iframe.src = base + '?role=' + role + '&user=' + encodeURIComponent(userName);
+      }
+    });
+
     // Hide leads-only sections for roles without leads access
     const hasLeads = modules.includes('leads');
     document.getElementById('dash-leads-card').style.display = hasLeads ? '' : 'none';
