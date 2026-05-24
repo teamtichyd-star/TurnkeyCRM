@@ -426,6 +426,10 @@
           <label>Follow-up Date</label>
           <input type="date" id="leadFollowup"/>
         </div>
+        <div class="mform-group">
+          <label>Follow-up Notes</label>
+          <input type="text" id="leadFollowupNote" placeholder="e.g. Call about proposal..."/>
+        </div>
 
         <div class="form-group">
           <label>Assigned To</label>
@@ -824,6 +828,7 @@
     document.getElementById('leadSource').value   = '';
     document.getElementById('leadStatus').value   = 'New';
     document.getElementById('leadFollowup').value = '';
+    document.getElementById('leadFollowupNote').value = '';
   }
 
   function closeModal() {
@@ -853,6 +858,7 @@
       source:      document.getElementById('leadSource').value,
       status:      document.getElementById('leadStatus').value,
       followupDate:document.getElementById('leadFollowup').value,
+      followupNote:document.getElementById('leadFollowupNote').value,
       assignedTo:  document.getElementById('leadAssigned').value,
       area:        document.getElementById('leadArea').value,
       notes:       document.getElementById('leadNotes').value.trim(),
@@ -895,6 +901,7 @@
     document.getElementById('leadSource').value      = lead.source || '';
     document.getElementById('leadStatus').value      = lead.status || 'New';
     document.getElementById('leadFollowup').value    = lead.followupDate || '';
+    document.getElementById('leadFollowupNote').value = lead.followupNote || '';
     document.getElementById('leadArea').value        = lead.area || '';
     document.getElementById('leadNotes').value       = lead.notes || '';
     loadUsersForAssign(lead.assignedTo || '');

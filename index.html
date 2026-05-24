@@ -325,7 +325,7 @@
       </div>
 
       <div class="menu-label">Tools</div>
-      <div class="menu-item" onclick="showPage('followups')" id="menu-followups">
+      <div class="menu-item" onclick="showPage('followups')" id="menu-followups" style="display:none">
         <i class="fas fa-comments"></i> Follow-ups
       </div>
       <div class="menu-item" onclick="showPage('sheets')" id="menu-sheets">
@@ -693,13 +693,13 @@
 
   // ─── ROLE MODULES ───
   const roleModules = {
-    superadmin:  ['leads','tasks','projects','followups','sheets','export','users'],
-    admin:       ['leads','tasks','projects','followups','sheets','export','users'],
-    manager:     ['leads','tasks','projects','followups','sheets','export'],
-    supervisor:  ['tasks','projects','followups'],
-    purchase:    ['tasks','projects','followups','sheets','export'],
+    superadmin:  ['leads','tasks','projects','sheets','export','users'],
+    admin:       ['leads','tasks','projects','sheets','export','users'],
+    manager:     ['leads','tasks','projects','sheets','export'],
+    supervisor:  ['tasks','projects'],
+    purchase:    ['tasks','projects','sheets','export'],
     designer:    ['tasks','projects'],
-    accounts:    ['leads','tasks','followups','sheets','export']
+    accounts:    ['leads','tasks','sheets','export']
   };
 
   const roleNames = {
