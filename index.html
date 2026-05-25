@@ -927,30 +927,19 @@ if (role === "supervisor") {
   }
 
   // ─── NOTIFICATIONS LISTENER ───
-  function listenNotifications(userEmail) {
-    db.collection('notifications')
-      .where('to', '==', userEmail)
-      .where('read', '==', false)
-      .onSnapshot(snap => {
-        const count = snap.size;
-        const badge = document.getElementById('notifCount');
-        if (badge) {
-          badge.textContent = count;
-          badge.style.display = count > 0 ? 'flex' : 'none';
-        }
-        // Show browser notification for new ones
-        snap.docChanges().forEach(change => {
-          if (change.type === 'added') {
-            const d = change.doc.data();
-            if (d.title && Notification.permission === 'granted') {
-              new Notification(d.title, {
-                body: d.body,
-                icon: '/TurnkeyCRM/icon-192.png'
-              });
-            }
-          }
-        });
-      });
+  async function listenNotifications(userEmail) {
+    try {
+      const snap = await db.collection('notifications')
+        .where('to', '==', userEmail)
+        .where('read', '==', false)
+        .get();
+      const count = snap.size;
+      const badge = document.getElementById('notifCount');
+      if (badge) {
+        badge.textContent = count;
+        badge.style.display = count > 0 ? 'flex' : 'none';
+      }
+    } catch(e) { console.log('Notif error:', e); }
   }
 
   async function showNotifications() {
