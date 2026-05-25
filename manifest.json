@@ -6,26 +6,14 @@
   "scope": "/TurnkeyCRM/",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#0e0e1a",
+  "background_color": "#ffffff",
   "theme_color": "#1a2550",
   "icons": [
     {
       "src": "/TurnkeyCRM/logo.png",
-      "sizes": "192x192",
+      "sizes": "500x500",
       "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/TurnkeyCRM/logo.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/TurnkeyCRM/logo.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
+      "purpose": "any maskable"
     }
   ]
 }
