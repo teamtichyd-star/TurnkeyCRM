@@ -385,10 +385,7 @@
         style="display:none; background:rgba(200,169,110,0.15); border:1px solid rgba(200,169,110,0.3); color:var(--primary); padding:6px 12px; border-radius:8px; cursor:pointer; font-size:12px; gap:5px; align-items:center">
         <i class="fas fa-bell"></i> Enable Alerts
       </button>
-      <button id="enableNotifBtn" onclick="initNotifications(currentUser?.email)" 
-        style="display:none; background:rgba(200,169,110,0.15); border:1px solid rgba(200,169,110,0.3); color:var(--primary); padding:6px 12px; border-radius:8px; cursor:pointer; font-size:12px; gap:5px; align-items:center">
-        <i class="fas fa-bell"></i> Enable Alerts
-      </button>
+      
       <div class="user-badge">
         <i class="fas fa-user-circle"></i>
         <span id="userName">-</span>
@@ -962,7 +959,7 @@ if (role === "supervisor") {
     const snap = await db.collection('notifications')
       .where('to', '==', userEmail)
       .where('read', '==', false)
-      .orderBy('createdAt', 'desc').limit(10).get();
+      .limit(10).get();
     
     let html = snap.empty ? '<p style="color:var(--subtext);text-align:center;padding:20px">No new notifications</p>' :
       snap.docs.map(d => {
