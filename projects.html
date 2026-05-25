@@ -553,6 +553,9 @@
         <button class="portal-tab" onclick="switchPortalTab('share')" id="ptab-share">
           <i class="fas fa-share-alt"></i> Share
         </button>
+        <button class="portal-tab" onclick="switchPortalTab('payments')" id="ptab-payments">
+          <i class="fas fa-rupee-sign"></i> Payments
+        </button>
       </div>
 
       <!-- ─── DETAILS TAB ─── -->
@@ -626,13 +629,99 @@
             <h4 style="font-size:13px; color:var(--subtext); margin-bottom:10px">
               🔑 Client Password:
             </h4>
-            <div style="background:rgba(200,169,110,0.1); border:1px solid rgba(200,169,110,0.2); border-radius:8px; padding:12px 16px; font-size:16px; font-weight:700; color:var(--primary); letter-spacing:2px" id="clientPassword">
-              -
-                            </div>
+            <div class="password-section">
+              <div>
+                <div class="pass-label">Password</div>
+                <div class="pass-value" id="clientPassword">-</div>
+              </div>
+              <div class="pass-icon">🔑</div>
+            </div>
+            <div style="display:none">           </div>
                 <div class="pass-icon">🔑</div>
               </div>
           </div>>
         </div>
+      </div>
+
+
+      <!-- ─── PAYMENTS TAB ─── -->
+      <div class="portal-section" id="psec-payments">
+
+        <!-- Summary Bar -->
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:20px">
+          <div style="background:rgba(200,169,110,0.08); border:1px solid rgba(200,169,110,0.2); border-radius:12px; padding:16px; text-align:center">
+            <div style="font-size:11px; color:var(--subtext); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px">Total Project Value</div>
+            <div style="font-size:22px; font-weight:700; color:var(--primary)" id="pay-total-display">&#8377;0</div>
+          </div>
+          <div style="background:rgba(76,175,80,0.08); border:1px solid rgba(76,175,80,0.2); border-radius:12px; padding:16px; text-align:center">
+            <div style="font-size:11px; color:var(--subtext); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px">Total Received</div>
+            <div style="font-size:22px; font-weight:700; color:var(--success)" id="pay-received-display">&#8377;0</div>
+          </div>
+          <div style="background:rgba(244,67,54,0.08); border:1px solid rgba(244,67,54,0.2); border-radius:12px; padding:16px; text-align:center">
+            <div style="font-size:11px; color:var(--subtext); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px">Balance Due</div>
+            <div style="font-size:22px; font-weight:700; color:var(--danger)" id="pay-due-display">&#8377;0</div>
+          </div>
+        </div>
+
+        <!-- Project Value Entry -->
+        <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:12px; padding:16px; margin-bottom:20px">
+          <div style="font-size:13px; font-weight:700; color:var(--primary); margin-bottom:14px; display:flex; align-items:center; gap:6px">
+            <i class="fas fa-rupee-sign"></i> Project Value Setup
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; align-items:end">
+            <div>
+              <label style="font-size:11px; color:var(--subtext); text-transform:uppercase; letter-spacing:0.7px; font-weight:700; display:block; margin-bottom:8px">Base Amount (&#8377;)</label>
+              <input type="number" id="pay-base-amount" placeholder="e.g. 500000"
+                oninput="calcProjectTotal()"
+                style="width:100%; padding:11px 14px; background:rgba(255,255,255,0.04); border:1.5px solid rgba(255,255,255,0.08); border-radius:10px; color:var(--text); font-size:14px; outline:none; transition:all 0.25s"
+                onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='rgba(255,255,255,0.08)'"/>
+            </div>
+            <div>
+              <label style="font-size:11px; color:var(--subtext); text-transform:uppercase; letter-spacing:0.7px; font-weight:700; display:block; margin-bottom:8px">GST (%)</label>
+              <input type="number" id="pay-gst-percent" placeholder="e.g. 18"
+                oninput="calcProjectTotal()"
+                style="width:100%; padding:11px 14px; background:rgba(255,255,255,0.04); border:1.5px solid rgba(255,255,255,0.08); border-radius:10px; color:var(--text); font-size:14px; outline:none; transition:all 0.25s"
+                onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='rgba(255,255,255,0.08)'"/>
+            </div>
+            <div>
+              <label style="font-size:11px; color:var(--subtext); text-transform:uppercase; letter-spacing:0.7px; font-weight:700; display:block; margin-bottom:8px">Total (incl. GST)</label>
+              <div id="pay-grand-total" style="padding:11px 14px; background:rgba(200,169,110,0.08); border:1.5px solid rgba(200,169,110,0.25); border-radius:10px; font-size:15px; font-weight:700; color:var(--primary)">&#8377;0</div>
+            </div>
+          </div>
+          <button onclick="savePaymentValue()" style="margin-top:14px; padding:10px 20px; background:linear-gradient(135deg,var(--primary),var(--primary-dark)); border:none; border-radius:10px; color:white; font-size:13px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:7px">
+            <i class="fas fa-save"></i> Save Project Value
+          </button>
+        </div>
+
+        <!-- Receipts Table -->
+        <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:12px; overflow:hidden; margin-bottom:16px">
+          <div style="padding:14px 16px; border-bottom:1px solid rgba(255,255,255,0.06); display:flex; align-items:center; justify-content:space-between">
+            <div style="font-size:13px; font-weight:700; color:var(--primary); display:flex; align-items:center; gap:6px">
+              <i class="fas fa-receipt"></i> Payment Receipts
+            </div>
+            <button onclick="addReceiptRow()" style="padding:7px 14px; background:rgba(76,175,80,0.1); border:1px solid rgba(76,175,80,0.25); border-radius:8px; color:var(--success); font-size:12px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:5px">
+              <i class="fas fa-plus"></i> Add Row
+            </button>
+          </div>
+          <div style="overflow-x:auto">
+            <table style="width:100%; border-collapse:collapse">
+              <thead>
+                <tr style="background:rgba(255,255,255,0.02)">
+                  <th style="padding:10px 14px; text-align:left; font-size:11px; color:var(--subtext); text-transform:uppercase; letter-spacing:0.8px; font-weight:600">#</th>
+                  <th style="padding:10px 14px; text-align:left; font-size:11px; color:var(--subtext); text-transform:uppercase; letter-spacing:0.8px; font-weight:600">Date</th>
+                  <th style="padding:10px 14px; text-align:left; font-size:11px; color:var(--subtext); text-transform:uppercase; letter-spacing:0.8px; font-weight:600">Amount (&#8377;)</th>
+                  <th style="padding:10px 14px; text-align:left; font-size:11px; color:var(--subtext); text-transform:uppercase; letter-spacing:0.8px; font-weight:600">Details / Remarks</th>
+                  <th style="padding:10px 14px; text-align:center; font-size:11px; color:var(--subtext); text-transform:uppercase; letter-spacing:0.8px; font-weight:600"></th>
+                </tr>
+              </thead>
+              <tbody id="receipts-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <button onclick="saveReceipts()" style="padding:11px 22px; background:linear-gradient(135deg,var(--primary),var(--primary-dark)); border:none; border-radius:10px; color:white; font-size:13.5px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:8px; box-shadow:0 4px 15px rgba(200,169,110,0.3)">
+          <i class="fas fa-save"></i> Save All Receipts
+        </button>
       </div>
 
     </div>
@@ -1249,6 +1338,7 @@
     loadUpdates(p);
     loadSnags(p);
     loadShareInfo(p);
+    loadPayments(p);
 
     document.getElementById('portalModal').classList.add('show');
   }
@@ -1771,6 +1861,142 @@
       }
     });
   });
+
+  // ════════════════════════════════════
+  //       PAYMENTS TAB
+  // ════════════════════════════════════
+
+  function calcProjectTotal() {
+    const base = parseFloat(document.getElementById('pay-base-amount').value) || 0;
+    const gst  = parseFloat(document.getElementById('pay-gst-percent').value) || 0;
+    const total = base + (base * gst / 100);
+    document.getElementById('pay-grand-total').textContent = '\u20B9' + total.toLocaleString('en-IN', {maximumFractionDigits:0});
+    return total;
+  }
+
+  async function savePaymentValue() {
+    const base  = parseFloat(document.getElementById('pay-base-amount').value) || 0;
+    const gst   = parseFloat(document.getElementById('pay-gst-percent').value) || 0;
+    const total = calcProjectTotal();
+    if (!base) { showToast('\u274C Enter base amount!', 'danger'); return; }
+    const p = projects.find(pr => pr.id === viewingId);
+    if (!p) return;
+    p.payment = p.payment || {};
+    p.payment.baseAmount = base;
+    p.payment.gstPercent = gst;
+    p.payment.totalValue = total;
+    try {
+      await projRef.doc(viewingId).update({ payment: p.payment });
+      updatePaymentSummary(p);
+      showToast('\u2705 Project value saved!', 'success');
+    } catch(e) { showToast('\u274C Error saving!', 'danger'); }
+  }
+
+  function addReceiptRow(receipt) {
+    const tbody = document.getElementById('receipts-tbody');
+    const rowIndex = tbody.rows.length + 1;
+    const tr = document.createElement('tr');
+    tr.style.borderTop = '1px solid rgba(255,255,255,0.04)';
+    tr.innerHTML = `
+      <td style="padding:10px 14px; font-size:13px; color:var(--subtext); font-weight:600">${rowIndex}</td>
+      <td style="padding:8px 10px">
+        <input type="date" value="${receipt ? receipt.date : new Date().toISOString().split('T')[0]}"
+          style="width:140px; padding:8px 10px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:8px; color:var(--text); font-size:13px; outline:none"
+          onfocus="this.style.borderColor=\'var(--primary)\'" onblur="this.style.borderColor=\'rgba(255,255,255,0.08)\'"
+          onchange="calcTotalReceived()"/>
+      </td>
+      <td style="padding:8px 10px">
+        <input type="number" placeholder="0" value="${receipt ? receipt.amount : ''}"
+          style="width:130px; padding:8px 10px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:8px; color:var(--text); font-size:13px; outline:none"
+          onfocus="this.style.borderColor=\'var(--primary)\'" onblur="this.style.borderColor=\'rgba(255,255,255,0.08)\'"
+          oninput="calcTotalReceived()"/>
+      </td>
+      <td style="padding:8px 10px">
+        <input type="text" placeholder="e.g. Advance, 2nd installment..."
+          value="${receipt ? receipt.details : ''}"
+          style="width:100%; min-width:160px; padding:8px 10px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:8px; color:var(--text); font-size:13px; outline:none"
+          onfocus="this.style.borderColor=\'var(--primary)\'" onblur="this.style.borderColor=\'rgba(255,255,255,0.08)\'"/>
+      </td>
+      <td style="padding:8px 10px; text-align:center">
+        <button onclick="removeReceiptRow(this)" style="width:28px; height:28px; background:rgba(244,67,54,0.12); border:1px solid rgba(244,67,54,0.2); border-radius:7px; color:var(--danger); cursor:pointer; font-size:12px; display:inline-flex; align-items:center; justify-content:center">
+          <i class="fas fa-trash"></i>
+        </button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+    calcTotalReceived();
+  }
+
+  function removeReceiptRow(btn) {
+    btn.closest('tr').remove();
+    document.querySelectorAll('#receipts-tbody tr').forEach((tr, i) => {
+      tr.cells[0].textContent = i + 1;
+    });
+    calcTotalReceived();
+  }
+
+  function calcTotalReceived() {
+    let total = 0;
+    document.querySelectorAll('#receipts-tbody tr').forEach(tr => {
+      const amtInput = tr.cells[2].querySelector('input');
+      total += parseFloat(amtInput.value) || 0;
+    });
+    const p = projects.find(pr => pr.id === viewingId);
+    const projectTotal = (p && p.payment && p.payment.totalValue) || 0;
+    const due = Math.max(0, projectTotal - total);
+    document.getElementById('pay-received-display').textContent = '\u20B9' + total.toLocaleString('en-IN', {maximumFractionDigits:0});
+    document.getElementById('pay-due-display').textContent = '\u20B9' + due.toLocaleString('en-IN', {maximumFractionDigits:0});
+    return total;
+  }
+
+  async function saveReceipts() {
+    const rows = [];
+    document.querySelectorAll('#receipts-tbody tr').forEach(tr => {
+      const date    = tr.cells[1].querySelector('input').value;
+      const amount  = parseFloat(tr.cells[2].querySelector('input').value) || 0;
+      const details = tr.cells[3].querySelector('input').value.trim();
+      rows.push({ date, amount, details });
+    });
+    const p = projects.find(pr => pr.id === viewingId);
+    if (!p) return;
+    if (!p.payment) p.payment = {};
+    p.payment.receipts = rows;
+    try {
+      await projRef.doc(viewingId).update({ payment: p.payment });
+      updatePaymentSummary(p);
+      showToast('\u2705 Receipts saved!', 'success');
+    } catch(e) { showToast('\u274C Error saving!', 'danger'); }
+  }
+
+  function loadPayments(p) {
+    const pay = p.payment || {};
+    document.getElementById('pay-base-amount').value = pay.baseAmount || '';
+    document.getElementById('pay-gst-percent').value = pay.gstPercent || '';
+    if (pay.baseAmount) {
+      calcProjectTotal();
+    } else {
+      document.getElementById('pay-grand-total').textContent = '\u20B90';
+    }
+    const tbody = document.getElementById('receipts-tbody');
+    tbody.innerHTML = '';
+    if (pay.receipts && pay.receipts.length > 0) {
+      pay.receipts.forEach(r => addReceiptRow(r));
+    } else {
+      addReceiptRow();
+    }
+    updatePaymentSummary(p);
+  }
+
+  function updatePaymentSummary(p) {
+    const pay      = p.payment || {};
+    const total    = pay.totalValue || 0;
+    const receipts = pay.receipts  || [];
+    const received = receipts.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0);
+    const due      = Math.max(0, total - received);
+    document.getElementById('pay-total-display').textContent    = '\u20B9' + total.toLocaleString('en-IN', {maximumFractionDigits:0});
+    document.getElementById('pay-received-display').textContent = '\u20B9' + received.toLocaleString('en-IN', {maximumFractionDigits:0});
+    document.getElementById('pay-due-display').textContent      = '\u20B9' + due.toLocaleString('en-IN', {maximumFractionDigits:0});
+  }
 
   // ─── INIT ───
   loadProjects();
