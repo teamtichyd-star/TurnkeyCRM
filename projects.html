@@ -1416,6 +1416,11 @@
       if (editingId) {
         await projRef.doc(editingId).update(projData);
         showToast('✅ Project updated!', 'success');
+        if (projData.manager) {
+          await TIC_NOTIF.send(db, projData.manager,
+            '📝 Project updated: ' + projData.name + ' · Status: ' + projData.status,
+            'project', 'projects.html');
+        }
       } else {
         projData.createdAt = new Date().toISOString();
         projData.documents = [];
@@ -1423,6 +1428,12 @@
         projData.snags     = [];
         await projRef.add(projData);
         showToast('✅ Project saved to Firebase!', 'success');
+        // Notify assigned manager
+        if (projData.manager) {
+          await TIC_NOTIF.send(db, projData.manager,
+            '🏗️ You have been assigned to project: ' + projData.name + ' · Client: ' + projData.client,
+            'project', 'projects.html');
+        }
       }
       closeModal();
       await loadProjects();
@@ -1857,6 +1868,12 @@
       loadUpdates(p);
       closeUpdateModal();
       showToast('✅ Update added!', 'success');
+      const pUpd = projects.find(pr => pr.id === viewingId);
+      if (pUpd && pUpd.manager) {
+        await TIC_NOTIF.send(db, pUpd.manager,
+          '📸 New daily update added to your project: ' + pUpd.name + ' · ' + update.date,
+          'update', 'projects.html');
+      }
     } catch (error) {
       showToast('❌ Error saving!', 'danger');
     }
@@ -1915,6 +1932,12 @@
       loadSnags(p);
       closeSnagModal();
       showToast('✅ Snag added!', 'success');
+      if (snag.assignedTo) {
+        const pSnag = projects.find(pr => pr.id === viewingId);
+        await TIC_NOTIF.send(db, snag.assignedTo,
+          '⚠️ New snag assigned to you on project: ' + (pSnag ? pSnag.name : '') + ' · ' + snag.description.substring(0,60),
+          'snag', 'projects.html');
+      }
     } catch (error) {
       showToast('❌ Error saving!', 'danger');
     }
@@ -2194,5 +2217,6 @@
   loadProjects();
   loadUsersDropdown();
 </script>
+<script src="js/notifications.js"></script>
 </body>
 </html>
