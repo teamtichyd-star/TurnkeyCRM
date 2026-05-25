@@ -1106,6 +1106,7 @@ if (role === "supervisor") {
 
     const target = document.getElementById('page-' + page);
     if (target) target.classList.add('active');
+    sessionStorage.setItem('lastPage', page);
     // Load iframe with role info
     const iframe = target?.querySelector('iframe');
     if (iframe) {
