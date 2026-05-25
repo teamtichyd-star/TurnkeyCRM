@@ -565,6 +565,14 @@
           <div class="stat-icon blue"><i class="fas fa-rupee-sign"></i></div>
           <div class="stat-info"><h3 id="stat-revenue">₹0</h3><p>Est. Revenue</p></div>
         </div>
+        <div class="stat-card" id="dash-balance-card" onclick="openBalanceModal()"
+             style="display:none; border-color:rgba(244,67,54,0.3); background:linear-gradient(145deg,#2a1a1a,#1a1520)">
+          <div class="stat-icon red"><i class="fas fa-file-invoice-dollar"></i></div>
+          <div class="stat-info">
+            <h3 id="stat-balance" style="color:var(--danger)">₹0</h3>
+            <p>Total Balance Due</p>
+          </div>
+        </div>
         </div>
 
       <div class="dashboard-grid">
@@ -1319,6 +1327,40 @@ if (role === "supervisor") {
       document.getElementById('stat-revenue').textContent =
         revenue > 0 ? '₹' + revenue.toLocaleString('en-IN') : '₹0';
 
+      // ── BALANCE DUE CARD (admin only) ──
+      const isAdmin = (uRole === 'admin' || uRole === 'superadmin');
+      const balCard = document.getElementById('dash-balance-card');
+      if (balCard) balCard.style.display = isAdmin ? '' : 'none';
+      if (isAdmin) {
+        let totalDue = 0;
+        projects.forEach(p => {
+          if (p.payment && p.payment.totalValue) {
+            const received = (p.payment.receipts || [])
+              .reduce((s,r) => s + (parseFloat(r.amount)||0), 0);
+            totalDue += Math.max(0, p.payment.totalValue - received);
+          }
+        });
+        document.getElementById('stat-balance').textContent =
+          '₹' + totalDue.toLocaleString('en-IN', {maximumFractionDigits:0});
+      }
+
+      // ── BALANCE DUE CARD (admin only) ──
+      const isAdmin = (uRole === 'admin' || uRole === 'superadmin');
+      const balCard = document.getElementById('dash-balance-card');
+      if (balCard) balCard.style.display = isAdmin ? '' : 'none';
+      if (isAdmin) {
+        let totalDue = 0;
+        projects.forEach(p => {
+          if (p.payment && p.payment.totalValue) {
+            const received = (p.payment.receipts || [])
+              .reduce((s,r) => s + (parseFloat(r.amount)||0), 0);
+            totalDue += Math.max(0, p.payment.totalValue - received);
+          }
+        });
+        document.getElementById('stat-balance').textContent =
+          '₹' + totalDue.toLocaleString('en-IN', {maximumFractionDigits:0});
+      }
+
       // Pipeline
       const total = leads.length || 1;
       ['New','Site Visit','Proposal Sent','Won'].forEach((status, i) => {
@@ -1553,6 +1595,89 @@ if (role === "supervisor") {
       if (e.target === this) this.classList.remove('show');
     });
   });
+
+  // ── BALANCE DUE MODAL ──
+  async function openBalanceModal() {
+    document.getElementById('balanceModal').classList.add('show');
+    const tbody = document.getElementById('balance-tbody');
+    const tfoot = document.getElementById('balance-tfoot');
+    const empty = document.getElementById('bm-empty');
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--subtext)"><div class="spinner" style="margin:0 auto"></div></td></tr>';
+
+    try {
+      const snap = await db.collection('projects').get();
+      const rows = [];
+      snap.forEach(doc => {
+        const p = { id: doc.id, ...doc.data() };
+        if (p.payment && p.payment.totalValue) {
+          const received = (p.payment.receipts || [])
+            .reduce((s,r) => s + (parseFloat(r.amount)||0), 0);
+          const due = Math.max(0, p.payment.totalValue - received);
+          rows.push({
+            name:     p.name || '-',
+            client:   p.client || '-',
+            total:    p.payment.totalValue,
+            received: received,
+            due:      due
+          });
+        }
+      });
+
+      if (rows.length === 0) {
+        tbody.innerHTML = '';
+        empty.style.display = 'block';
+        document.getElementById('bm-grand').textContent    = '₹0';
+        document.getElementById('bm-received').textContent = '₹0';
+        document.getElementById('bm-due').textContent      = '₹0';
+        tfoot.innerHTML = '';
+        return;
+      }
+
+      empty.style.display = 'none';
+
+      // Sort by due desc
+      rows.sort((a,b) => b.due - a.due);
+
+      const fmt = n => '₹' + n.toLocaleString('en-IN', {maximumFractionDigits:0});
+
+      tbody.innerHTML = rows.map((r,i) => `
+        <tr style="border-top:1px solid rgba(255,255,255,0.04)">
+          <td style="padding:13px 16px; font-size:13px; color:var(--subtext)">${i+1}</td>
+          <td style="padding:13px 16px">
+            <div style="font-size:14px; font-weight:600; color:var(--text)">${r.name}</div>
+          </td>
+          <td style="padding:13px 16px; font-size:13px; color:var(--subtext)">${r.client}</td>
+          <td style="padding:13px 16px; text-align:right; font-size:14px; font-weight:600; color:var(--primary)">${fmt(r.total)}</td>
+          <td style="padding:13px 16px; text-align:right; font-size:14px; font-weight:600; color:var(--success)">${fmt(r.received)}</td>
+          <td style="padding:13px 16px; text-align:right; font-size:14px; font-weight:700; color:${r.due > 0 ? 'var(--danger)' : 'var(--success)'}">
+            ${r.due > 0 ? fmt(r.due) : '✅ Paid'}
+          </td>
+        </tr>
+      `).join('');
+
+      // Totals row
+      const sumTotal    = rows.reduce((s,r) => s+r.total,    0);
+      const sumReceived = rows.reduce((s,r) => s+r.received, 0);
+      const sumDue      = rows.reduce((s,r) => s+r.due,      0);
+
+      tfoot.innerHTML = `
+        <tr style="background:rgba(255,255,255,0.04); border-top:2px solid rgba(255,255,255,0.1)">
+          <td colspan="3" style="padding:14px 16px; font-size:13px; font-weight:700; color:var(--primary); text-transform:uppercase; letter-spacing:0.5px">
+            TOTAL (${rows.length} projects)
+          </td>
+          <td style="padding:14px 16px; text-align:right; font-size:15px; font-weight:700; color:var(--primary)">${fmt(sumTotal)}</td>
+          <td style="padding:14px 16px; text-align:right; font-size:15px; font-weight:700; color:var(--success)">${fmt(sumReceived)}</td>
+          <td style="padding:14px 16px; text-align:right; font-size:15px; font-weight:700; color:var(--danger)">${fmt(sumDue)}</td>
+        </tr>`;
+
+      document.getElementById('bm-grand').textContent    = fmt(sumTotal);
+      document.getElementById('bm-received').textContent = fmt(sumReceived);
+      document.getElementById('bm-due').textContent      = fmt(sumDue);
+
+    } catch(e) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--danger)">Error loading data!</td></tr>';
+    }
+  }
 </script>
 <script type="module">
     import { addNewUser } from './js/userManagement.js';
@@ -1660,5 +1785,129 @@ if (role === "supervisor") {
     }
   </script>
 <script src="js/notifications.js"></script>
+
+<!-- ══════════════════════════════════ -->
+<!--      BALANCE DUE MODAL           -->
+<!-- ══════════════════════════════════ -->
+<div class="modal-overlay" id="balanceModal">
+  <div class="modal" style="max-width:720px">
+    <div class="modal-header">
+      <h3><i class="fas fa-file-invoice-dollar" style="margin-right:8px"></i> Project Payment Summary</h3>
+      <button class="modal-close" onclick="document.getElementById('balanceModal').classList.remove('show')">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body" style="padding:0">
+
+      <!-- Summary totals -->
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:1px; background:rgba(255,255,255,0.05)">
+        <div style="background:linear-gradient(145deg,var(--card2),var(--card)); padding:16px 20px; text-align:center">
+          <div style="font-size:11px; color:var(--subtext); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px">Grand Total</div>
+          <div style="font-size:20px; font-weight:700; color:var(--primary)" id="bm-grand">₹0</div>
+        </div>
+        <div style="background:linear-gradient(145deg,var(--card2),var(--card)); padding:16px 20px; text-align:center">
+          <div style="font-size:11px; color:var(--subtext); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px">Total Received</div>
+          <div style="font-size:20px; font-weight:700; color:var(--success)" id="bm-received">₹0</div>
+        </div>
+        <div style="background:linear-gradient(145deg,var(--card2),var(--card)); padding:16px 20px; text-align:center">
+          <div style="font-size:11px; color:var(--subtext); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px">Total Balance Due</div>
+          <div style="font-size:20px; font-weight:700; color:var(--danger)" id="bm-due">₹0</div>
+        </div>
+      </div>
+
+      <!-- Projects table -->
+      <div style="overflow-x:auto">
+        <table style="width:100%; border-collapse:collapse">
+          <thead>
+            <tr style="background:rgba(255,255,255,0.03)">
+              <th style="padding:12px 16px; text-align:left; font-size:11px; color:var(--subtext); text-transform:uppercase; letter-spacing:0.8px">#</th>
+              <th style="padding:12px 16px; text-align:left; font-size:11px; color:var(--subtext); text-transform:uppercase; letter-spacing:0.8px">Project</th>
+              <th style="padding:12px 16px; text-align:left; font-size:11px; color:var(--subtext); text-transform:uppercase; letter-spacing:0.8px">Client</th>
+              <th style="padding:12px 16px; text-align:right; font-size:11px; color:var(--subtext); text-transform:uppercase; letter-spacing:0.8px">Grand Total</th>
+              <th style="padding:12px 16px; text-align:right; font-size:11px; color:var(--subtext); text-transform:uppercase; letter-spacing:0.8px">Received</th>
+              <th style="padding:12px 16px; text-align:right; font-size:11px; color:var(--subtext); text-transform:uppercase; letter-spacing:0.8px">Balance Due</th>
+            </tr>
+          </thead>
+          <tbody id="balance-tbody"></tbody>
+          <tfoot id="balance-tfoot"></tfoot>
+        </table>
+      </div>
+
+      <div id="bm-empty" style="display:none; text-align:center; padding:40px; color:var(--subtext)">
+        <i class="fas fa-file-invoice" style="font-size:36px; opacity:0.2; display:block; margin-bottom:10px"></i>
+        <p>No payment data found. Add project values in the Payments tab.</p>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="document.getElementById('balanceModal').classList.remove('show')">
+        <i class="fas fa-check"></i> Close
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════ -->
+<!--      BALANCE DUE MODAL           -->
+<!-- ══════════════════════════════════ -->
+<div class="modal-overlay" id="balanceModal">
+  <div class="modal" style="max-width:720px">
+    <div class="modal-header">
+      <h3><i class="fas fa-file-invoice-dollar" style="margin-right:8px"></i> Project Payment Summary</h3>
+      <button class="modal-close" onclick="document.getElementById('balanceModal').classList.remove('show')">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body" style="padding:0">
+
+      <!-- Summary totals -->
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:1px; background:rgba(255,255,255,0.05)">
+        <div style="background:linear-gradient(145deg,var(--card2),var(--card)); padding:16px 20px; text-align:center">
+          <div style="font-size:11px; color:var(--subtext); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px">Grand Total</div>
+          <div style="font-size:20px; font-weight:700; color:var(--primary)" id="bm-grand">₹0</div>
+        </div>
+        <div style="background:linear-gradient(145deg,var(--card2),var(--card)); padding:16px 20px; text-align:center">
+          <div style="font-size:11px; color:var(--subtext); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px">Total Received</div>
+          <div style="font-size:20px; font-weight:700; color:var(--success)" id="bm-received">₹0</div>
+        </div>
+        <div style="background:linear-gradient(145deg,var(--card2),var(--card)); padding:16px 20px; text-align:center">
+          <div style="font-size:11px; color:var(--subtext); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px">Total Balance Due</div>
+          <div style="font-size:20px; font-weight:700; color:var(--danger)" id="bm-due">₹0</div>
+        </div>
+      </div>
+
+      <!-- Projects table -->
+      <div style="overflow-x:auto">
+        <table style="width:100%; border-collapse:collapse">
+          <thead>
+            <tr style="background:rgba(255,255,255,0.03)">
+              <th style="padding:12px 16px; text-align:left; font-size:11px; color:var(--subtext); text-transform:uppercase; letter-spacing:0.8px">#</th>
+              <th style="padding:12px 16px; text-align:left; font-size:11px; color:var(--subtext); text-transform:uppercase; letter-spacing:0.8px">Project</th>
+              <th style="padding:12px 16px; text-align:left; font-size:11px; color:var(--subtext); text-transform:uppercase; letter-spacing:0.8px">Client</th>
+              <th style="padding:12px 16px; text-align:right; font-size:11px; color:var(--subtext); text-transform:uppercase; letter-spacing:0.8px">Grand Total</th>
+              <th style="padding:12px 16px; text-align:right; font-size:11px; color:var(--subtext); text-transform:uppercase; letter-spacing:0.8px">Received</th>
+              <th style="padding:12px 16px; text-align:right; font-size:11px; color:var(--subtext); text-transform:uppercase; letter-spacing:0.8px">Balance Due</th>
+            </tr>
+          </thead>
+          <tbody id="balance-tbody"></tbody>
+          <tfoot id="balance-tfoot"></tfoot>
+        </table>
+      </div>
+
+      <div id="bm-empty" style="display:none; text-align:center; padding:40px; color:var(--subtext)">
+        <i class="fas fa-file-invoice" style="font-size:36px; opacity:0.2; display:block; margin-bottom:10px"></i>
+        <p>No payment data found. Add project values in the Payments tab.</p>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="document.getElementById('balanceModal').classList.remove('show')">
+        <i class="fas fa-check"></i> Close
+      </button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
