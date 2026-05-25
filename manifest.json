@@ -1,0 +1,31 @@
+{
+  "name": "Turnkey Interior CRM",
+  "short_name": "TIC CRM",
+  "description": "Plan | Price | Perfect Interiors - CRM System",
+  "start_url": "/TurnkeyCRM/index.html",
+  "scope": "/TurnkeyCRM/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0e0e1a",
+  "theme_color": "#1a2550",
+  "icons": [
+    {
+      "src": "/TurnkeyCRM/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/TurnkeyCRM/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/TurnkeyCRM/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
