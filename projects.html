@@ -338,7 +338,148 @@
     .password-badge span { font-size: 13px; color: var(--subtext); }
     .password-badge strong { font-size: 18px; color: var(--primary); letter-spacing: 3px; }
 
-  </style>
+  
+  /* ══════════════════════════════════
+     MOBILE RESPONSIVE - PORTAL MODAL
+  ══════════════════════════════════ */
+
+  /* Modal full screen on mobile */
+  @media (max-width: 768px) {
+    .modal-overlay { padding: 0 !important; align-items: flex-end !important; }
+    .modal, .modal-lg, .modal-sm {
+      max-width: 100% !important;
+      width: 100% !important;
+      max-height: 92vh !important;
+      border-radius: 20px 20px 0 0 !important;
+      overflow-y: auto !important;
+    }
+    .modal-header {
+      border-radius: 20px 20px 0 0 !important;
+      padding: 14px 16px !important;
+      position: sticky !important;
+      top: 0 !important;
+      z-index: 10 !important;
+    }
+    .modal-header h3 { font-size: 14px !important; }
+    .modal-body { padding: 14px 12px !important; }
+    .modal-footer {
+      padding: 12px 14px !important;
+      position: sticky !important;
+      bottom: 0 !important;
+      background: #1e2d5e !important;
+      z-index: 10 !important;
+      gap: 8px !important;
+    }
+    .modal-footer .btn { flex: 1; justify-content: center; font-size: 13px !important; padding: 10px 12px !important; }
+
+    /* Portal tabs - scrollable horizontal strip */
+    .portal-tabs {
+      display: flex !important;
+      flex-wrap: nowrap !important;
+      overflow-x: auto !important;
+      gap: 6px !important;
+      padding-bottom: 10px !important;
+      margin: 10px 0 !important;
+      scrollbar-width: none !important;
+      -webkit-overflow-scrolling: touch !important;
+    }
+    .portal-tabs::-webkit-scrollbar { display: none !important; }
+    .portal-tab {
+      flex-shrink: 0 !important;
+      padding: 7px 12px !important;
+      font-size: 11px !important;
+      white-space: nowrap !important;
+    }
+
+    /* Details grid - single column */
+    #projectDetailsView > div:first-child {
+      grid-template-columns: 1fr 1fr !important;
+      gap: 8px !important;
+    }
+
+    /* Payments summary - stack on mobile */
+    #psec-payments > div:first-child {
+      grid-template-columns: 1fr !important;
+      gap: 8px !important;
+    }
+    /* Payment value setup grid */
+    #psec-payments > div:nth-child(2) > div:nth-child(2) {
+      grid-template-columns: 1fr 1fr !important;
+      gap: 8px !important;
+    }
+
+    /* Receipts table - horizontal scroll */
+    #receipts-tbody, #receipts-tbody table,
+    #psec-payments table { min-width: 480px !important; }
+    #psec-payments > div:nth-child(3) > div:last-child { overflow-x: auto !important; }
+
+    /* Save receipts btn full width */
+    #psec-payments > button:last-child {
+      width: 100% !important;
+      justify-content: center !important;
+    }
+
+    /* Add project form grid */
+    .form-grid { display: flex !important; flex-direction: column !important; gap: 12px !important; }
+    .form-row-2 { grid-template-columns: 1fr !important; }
+
+    /* Snag, doc, update modals */
+    .form-grid { gap: 10px !important; }
+
+    /* Project cards full width */
+    .projects-grid { grid-template-columns: 1fr !important; }
+    .project-info-grid { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
+
+    /* Stats */
+    .proj-stats { grid-template-columns: repeat(3, 1fr) !important; gap: 8px !important; }
+    .proj-stat { padding: 12px 8px !important; }
+    .proj-stat h3 { font-size: 20px !important; }
+    .proj-stat p { font-size: 10px !important; }
+
+    /* Filter bar */
+    .filter-bar { flex-direction: column !important; gap: 8px !important; }
+    .filter-bar input, .filter-bar select { width: 100% !important; min-width: unset !important; }
+
+    /* Top actions */
+    .top-actions { flex-direction: column !important; align-items: flex-start !important; gap: 10px !important; }
+    .top-actions .btn { width: 100% !important; justify-content: center !important; }
+
+    /* Tabs - scrollable */
+    .tabs {
+      flex-wrap: nowrap !important;
+      overflow-x: auto !important;
+      scrollbar-width: none !important;
+      padding-bottom: 4px !important;
+      -webkit-overflow-scrolling: touch !important;
+    }
+    .tabs::-webkit-scrollbar { display: none !important; }
+    .tab { flex-shrink: 0 !important; font-size: 12px !important; padding: 7px 12px !important; }
+
+    /* Share section */
+    .share-btns { flex-direction: column !important; }
+    .share-btn-wa, .share-btn-email { width: 100% !important; justify-content: center !important; }
+    .share-url { flex-direction: column !important; }
+
+    /* Doc items */
+    .doc-item { flex-wrap: wrap !important; gap: 8px !important; }
+    .doc-actions { margin-left: auto !important; }
+
+    /* Progress slider */
+    .progress-slider { width: 100% !important; }
+
+    /* Payment value setup on very small screens */
+  }
+
+  @media (max-width: 380px) {
+    #projectDetailsView > div:first-child { grid-template-columns: 1fr !important; }
+    .proj-stats { grid-template-columns: repeat(2, 1fr) !important; }
+    #psec-payments > div:nth-child(2) > div:nth-child(2) { grid-template-columns: 1fr !important; }
+  }
+
+  /* Projects grid default */
+  .projects-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+
+</style>
 </head>
 <body>
 
