@@ -923,7 +923,10 @@ if (role === "supervisor") {
     document.getElementById('mainApp').style.display   = 'block';
 
     setDate();
-    loadDashboard();
+
+    // Restore last visited page
+    const lastPage = localStorage.getItem('lastPage') || 'dashboard';
+    showPage(lastPage);
   }
 
   // ─── NOTIFICATIONS LISTENER ───
