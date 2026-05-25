@@ -785,6 +785,15 @@
       <!-- ─── PAYMENTS TAB ─── -->
       <div class="portal-section" id="psec-payments">
 
+        <!-- Read-only notice for non-admins -->
+        <div id="pay-readonly-notice" style="display:none; align-items:center; gap:10px; background:rgba(33,150,243,0.08); border:1px solid rgba(33,150,243,0.2); border-radius:10px; padding:12px 16px; margin-bottom:16px">
+          <i class="fas fa-lock" style="color:var(--info); font-size:16px"></i>
+          <div>
+            <div style="font-size:13px; font-weight:600; color:var(--info)">View Only</div>
+            <div style="font-size:12px; color:var(--subtext); margin-top:2px">Payment details are managed by Admin only.</div>
+          </div>
+        </div>
+
         <!-- Summary Bar -->
         <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:20px">
           <div style="background:rgba(200,169,110,0.08); border:1px solid rgba(200,169,110,0.2); border-radius:12px; padding:16px; text-align:center">
@@ -826,7 +835,7 @@
               <div id="pay-grand-total" style="padding:11px 14px; background:rgba(200,169,110,0.08); border:1.5px solid rgba(200,169,110,0.25); border-radius:10px; font-size:15px; font-weight:700; color:var(--primary)">&#8377;0</div>
             </div>
           </div>
-          <button onclick="savePaymentValue()" style="margin-top:14px; padding:10px 20px; background:linear-gradient(135deg,var(--primary),var(--primary-dark)); border:none; border-radius:10px; color:white; font-size:13px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:7px">
+          <button onclick="savePaymentValue()" class="payment-admin-only" style="margin-top:14px; padding:10px 20px; background:linear-gradient(135deg,var(--primary),var(--primary-dark)); border:none; border-radius:10px; color:white; font-size:13px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:7px">
             <i class="fas fa-save"></i> Save Project Value
           </button>
         </div>
@@ -837,7 +846,7 @@
             <div style="font-size:13px; font-weight:700; color:var(--primary); display:flex; align-items:center; gap:6px">
               <i class="fas fa-receipt"></i> Payment Receipts
             </div>
-            <button onclick="addReceiptRow()" style="padding:7px 14px; background:rgba(76,175,80,0.1); border:1px solid rgba(76,175,80,0.25); border-radius:8px; color:var(--success); font-size:12px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:5px">
+            <button onclick="addReceiptRow()" class="payment-admin-only" style="padding:7px 14px; background:rgba(76,175,80,0.1); border:1px solid rgba(76,175,80,0.25); border-radius:8px; color:var(--success); font-size:12px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:5px">
               <i class="fas fa-plus"></i> Add Row
             </button>
           </div>
@@ -857,7 +866,7 @@
           </div>
         </div>
 
-        <button onclick="saveReceipts()" style="padding:11px 22px; background:linear-gradient(135deg,var(--primary),var(--primary-dark)); border:none; border-radius:10px; color:white; font-size:13.5px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:8px; box-shadow:0 4px 15px rgba(200,169,110,0.3)">
+        <button onclick="saveReceipts()" class="payment-admin-only" style="padding:11px 22px; background:linear-gradient(135deg,var(--primary),var(--primary-dark)); border:none; border-radius:10px; color:white; font-size:13.5px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:8px; box-shadow:0 4px 15px rgba(200,169,110,0.3)">
           <i class="fas fa-save"></i> Save All Receipts
         </button>
       </div>
@@ -2030,37 +2039,58 @@
     } catch(e) { showToast('\u274C Error saving!', 'danger'); }
   }
 
-  function addReceiptRow(receipt) {
+  function addReceiptRow(receipt, isAdmin) {
+    if (isAdmin === undefined) {
+      isAdmin = (currentUserRole === 'admin' || currentUserRole === 'superadmin');
+    }
     const tbody = document.getElementById('receipts-tbody');
     const rowIndex = tbody.rows.length + 1;
     const tr = document.createElement('tr');
     tr.style.borderTop = '1px solid rgba(255,255,255,0.04)';
-    tr.innerHTML = `
-      <td style="padding:10px 14px; font-size:13px; color:var(--subtext); font-weight:600">${rowIndex}</td>
-      <td style="padding:8px 10px">
-        <input type="date" value="${receipt ? receipt.date : new Date().toISOString().split('T')[0]}"
-          style="width:140px; padding:8px 10px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:8px; color:var(--text); font-size:13px; outline:none"
-          onfocus="this.style.borderColor=\'var(--primary)\'" onblur="this.style.borderColor=\'rgba(255,255,255,0.08)\'"
-          onchange="calcTotalReceived()"/>
-      </td>
-      <td style="padding:8px 10px">
-        <input type="number" placeholder="0" value="${receipt ? receipt.amount : ''}"
-          style="width:130px; padding:8px 10px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:8px; color:var(--text); font-size:13px; outline:none"
-          onfocus="this.style.borderColor=\'var(--primary)\'" onblur="this.style.borderColor=\'rgba(255,255,255,0.08)\'"
-          oninput="calcTotalReceived()"/>
-      </td>
-      <td style="padding:8px 10px">
-        <input type="text" placeholder="e.g. Advance, 2nd installment..."
-          value="${receipt ? receipt.details : ''}"
-          style="width:100%; min-width:160px; padding:8px 10px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:8px; color:var(--text); font-size:13px; outline:none"
-          onfocus="this.style.borderColor=\'var(--primary)\'" onblur="this.style.borderColor=\'rgba(255,255,255,0.08)\'"/>
-      </td>
-      <td style="padding:8px 10px; text-align:center">
-        <button onclick="removeReceiptRow(this)" style="width:28px; height:28px; background:rgba(244,67,54,0.12); border:1px solid rgba(244,67,54,0.2); border-radius:7px; color:var(--danger); cursor:pointer; font-size:12px; display:inline-flex; align-items:center; justify-content:center">
-          <i class="fas fa-trash"></i>
-        </button>
-      </td>
-    `;
+
+    const dateVal    = receipt ? receipt.date    : new Date().toISOString().split('T')[0];
+    const amountVal  = receipt ? receipt.amount  : '';
+    const detailsVal = receipt ? receipt.details : '';
+    const disabled   = isAdmin ? '' : 'disabled';
+    const opacity    = isAdmin ? '1' : '0.6';
+    const cursor     = isAdmin ? '' : 'cursor:not-allowed;';
+
+    if (isAdmin) {
+      tr.innerHTML = `
+        <td style="padding:10px 14px; font-size:13px; color:var(--subtext); font-weight:600">${rowIndex}</td>
+        <td style="padding:8px 10px">
+          <input type="date" value="${dateVal}"
+            style="width:140px; padding:8px 10px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:8px; color:var(--text); font-size:13px; outline:none"
+            onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='rgba(255,255,255,0.08)'"
+            onchange="calcTotalReceived()"/>
+        </td>
+        <td style="padding:8px 10px">
+          <input type="number" placeholder="0" value="${amountVal}"
+            style="width:130px; padding:8px 10px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:8px; color:var(--text); font-size:13px; outline:none"
+            onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='rgba(255,255,255,0.08)'"
+            oninput="calcTotalReceived()"/>
+        </td>
+        <td style="padding:8px 10px">
+          <input type="text" placeholder="e.g. Advance, 2nd installment..."
+            value="${detailsVal}"
+            style="width:100%; min-width:160px; padding:8px 10px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:8px; color:var(--text); font-size:13px; outline:none"
+            onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='rgba(255,255,255,0.08)'"/>
+        </td>
+        <td style="padding:8px 10px; text-align:center">
+          <button onclick="removeReceiptRow(this)" style="width:28px; height:28px; background:rgba(244,67,54,0.12); border:1px solid rgba(244,67,54,0.2); border-radius:7px; color:var(--danger); cursor:pointer; font-size:12px; display:inline-flex; align-items:center; justify-content:center">
+            <i class="fas fa-trash"></i>
+          </button>
+        </td>
+      `;
+    } else {
+      tr.innerHTML = `
+        <td style="padding:10px 14px; font-size:13px; color:var(--subtext); font-weight:600">${rowIndex}</td>
+        <td style="padding:10px 14px; font-size:13px; color:var(--text)">${dateVal || '-'}</td>
+        <td style="padding:10px 14px; font-size:13px; color:var(--success); font-weight:600">&#8377;${amountVal ? Number(amountVal).toLocaleString('en-IN') : '0'}</td>
+        <td style="padding:10px 14px; font-size:13px; color:var(--subtext)">${detailsVal || '-'}</td>
+        <td style="padding:10px 14px; text-align:center; color:var(--subtext); font-size:12px">—</td>
+      `;
+    }
     tbody.appendChild(tr);
     calcTotalReceived();
   }
@@ -2108,6 +2138,8 @@
 
   function loadPayments(p) {
     const pay = p.payment || {};
+    const isAdmin = (currentUserRole === 'admin' || currentUserRole === 'superadmin');
+
     document.getElementById('pay-base-amount').value = pay.baseAmount || '';
     document.getElementById('pay-gst-percent').value = pay.gstPercent || '';
     if (pay.baseAmount) {
@@ -2115,12 +2147,34 @@
     } else {
       document.getElementById('pay-grand-total').textContent = '\u20B90';
     }
+
+    // Show/hide admin-only controls
+    const adminControls = document.querySelectorAll('.payment-admin-only');
+    adminControls.forEach(el => {
+      el.style.display = isAdmin ? '' : 'none';
+    });
+
+    // Lock input fields for non-admins
+    const payInputs = ['pay-base-amount', 'pay-gst-percent'];
+    payInputs.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.disabled = !isAdmin;
+        el.style.opacity = isAdmin ? '1' : '0.6';
+        el.style.cursor = isAdmin ? '' : 'not-allowed';
+      }
+    });
+
+    // Show read-only notice for non-admins
+    const notice = document.getElementById('pay-readonly-notice');
+    if (notice) notice.style.display = isAdmin ? 'none' : 'flex';
+
     const tbody = document.getElementById('receipts-tbody');
     tbody.innerHTML = '';
     if (pay.receipts && pay.receipts.length > 0) {
-      pay.receipts.forEach(r => addReceiptRow(r));
+      pay.receipts.forEach(r => addReceiptRow(r, isAdmin));
     } else {
-      addReceiptRow();
+      if (isAdmin) addReceiptRow(null, true);
     }
     updatePaymentSummary(p);
   }
