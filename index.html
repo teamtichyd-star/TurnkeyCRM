@@ -377,9 +377,9 @@
     <div class="topbar-right">
       <div class="topbar-right">
       <div class="topbar-date" id="topDate"></div>
-      <div id="notifBell" style="position:relative; cursor:pointer" onclick="showNotifications()">
-        <i class="fas fa-bell" style="font-size:18px; color:var(--subtext)"></i>
-        <span id="notifCount" style="display:none; position:absolute; top:-6px; right:-6px; background:var(--danger); color:white; border-radius:50%; width:16px; height:16px; font-size:10px; display:flex; align-items:center; justify-content:center; font-weight:700"></span>
+      <div id="notifBell" style="position:relative; cursor:pointer; padding:6px 8px; border-radius:8px; background:rgba(255,255,255,0.05)" onclick="showNotifications()">
+        <i class="fas fa-bell" style="font-size:17px; color:var(--subtext)" id="bellIcon"></i>
+        <span id="notifCount" style="display:none; position:absolute; top:-4px; right:-4px; background:var(--danger); color:white; border-radius:50%; min-width:18px; height:18px; font-size:11px; align-items:center; justify-content:center; font-weight:700; padding:0 4px"></span>
       </div>
       <button id="enableNotifBtn" onclick="initNotifications(currentUser?.email)" 
         style="display:none; background:rgba(200,169,110,0.15); border:1px solid rgba(200,169,110,0.3); color:var(--primary); padding:6px 12px; border-radius:8px; cursor:pointer; font-size:12px; gap:5px; align-items:center">
@@ -935,9 +935,16 @@ if (role === "supervisor") {
         .get();
       const count = snap.size;
       const badge = document.getElementById('notifCount');
+      const bell = document.getElementById('bellIcon');
       if (badge) {
-        badge.textContent = count;
-        badge.style.display = count > 0 ? 'flex' : 'none';
+        if (count > 0) {
+          badge.textContent = count;
+          badge.style.display = 'flex';
+          if (bell) bell.style.color = 'var(--primary)';
+        } else {
+          badge.style.display = 'none';
+          if (bell) bell.style.color = 'var(--subtext)';
+        }
       }
     } catch(e) { console.log('Notif error:', e); }
   }
@@ -977,6 +984,11 @@ if (role === "supervisor") {
   async function markAllRead(userEmail) {
     const snap = await db.collection('notifications').where('to','==',userEmail).where('read','==',false).get();
     snap.docs.forEach(d => d.ref.update({ read: true }));
+    // Reset bell
+    const badge = document.getElementById('notifCount');
+    const bell = document.getElementById('bellIcon');
+    if (badge) badge.style.display = 'none';
+    if (bell) bell.style.color = 'var(--subtext)';
   }
 
   // ─── SHOW LOGIN PAGE ───
