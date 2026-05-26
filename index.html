@@ -1295,22 +1295,6 @@ if (role === "supervisor") {
           '₹' + totalDue.toLocaleString('en-IN', {maximumFractionDigits:0});
       }
 
-      // ── BALANCE DUE CARD (admin only) ──
-      const balCard = document.getElementById('dash-balance-card');
-      const showBal = (uRole === 'admin' || uRole === 'superadmin');
-      if (balCard) balCard.style.display = showBal ? '' : 'none';
-      if (showBal) {
-        let totalDue = 0;
-        projects.forEach(p => {
-          if (p.payment && p.payment.totalValue) {
-            const recv = (p.payment.receipts || [])
-              .reduce((s,r) => s + (parseFloat(r.amount)||0), 0);
-            totalDue += Math.max(0, p.payment.totalValue - recv);
-          }
-        });
-        document.getElementById('stat-balance').textContent =
-          '₹' + totalDue.toLocaleString('en-IN', {maximumFractionDigits:0});
-      }
 
       // Pipeline
       const pipeTotal = leads.length || 1;
