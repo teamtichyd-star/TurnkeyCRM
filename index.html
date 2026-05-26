@@ -1281,8 +1281,8 @@ if (role === "supervisor") {
       // ── BALANCE DUE CARD (admin only) ──
       const isAdminUser = (uRole === 'admin' || uRole === 'superadmin');
       const balCard = document.getElementById('dash-balance-card');
-      if (balCard) balCard.style.display = isAdminUser ? '' : 'none';
-      if (isAdminUser) {
+      if (balCard) balCard.style.display = isAdminBalance ? '' : 'none';
+      if (isAdminBalance) {
         let totalDue = 0;
         projects.forEach(p => {
           if (p.payment && p.payment.totalValue) {
@@ -1298,8 +1298,8 @@ if (role === "supervisor") {
       // ── BALANCE DUE CARD (admin only) ──
       const isAdminUser = (uRole === 'admin' || uRole === 'superadmin');
       const balCard = document.getElementById('dash-balance-card');
-      if (balCard) balCard.style.display = isAdminUser ? '' : 'none';
-      if (isAdminUser) {
+      if (balCard) balCard.style.display = isAdminBalance ? '' : 'none';
+      if (isAdminBalance) {
         let totalDue = 0;
         projects.forEach(p => {
           if (p.payment && p.payment.totalValue) {
@@ -1313,14 +1313,14 @@ if (role === "supervisor") {
       }
 
       // Pipeline
-      const total = leads.length || 1;
+      const pipeTotal = leads.length || 1;
       ['New','Site Visit','Proposal Sent','Won'].forEach((status, i) => {
         const ids = ['new','visit','proposal','won'];
-        const count = leads.filter(l => l.status === status).length;
-        document.getElementById('pipe-' + ids[i]).textContent = count;
+        const pipeCount = leads.filter(l => l.status === status).length;
+        document.getElementById('pipe-' + ids[i]).textContent = pipeCount;
         setTimeout(() => {
           document.getElementById('fill-' + ids[i]).style.width =
-            (count/total*100) + '%';
+            (pipeCount/pipeTotal*100) + '%';
         }, 100);
       });
 
@@ -1632,24 +1632,7 @@ if (role === "supervisor") {
 </script>
 
 
-<!-- ADMIN ICON ROLE CHECK -->
-<script>
-  firebase.auth().onAuthStateChanged(async function(user) {
-    if (!user) return;
-    try {
-      const doc = await firebase.firestore()
-                    .collection("users")
-                    .doc(user.email)
-                    .get();
-      if (doc.exists && (doc.data().role === "admin" || doc.data().role === "superadmin")) {
-        const w = document.getElementById("adminIconWrapper");
-        if (w) w.style.display = "inline-flex";
-      }
-    } catch(e) {
-      console.warn("Admin check error:", e.message);
-    }
-  });
-</script>
+<!-- admin icon check handled by showApp() -->
 
   <script>
     if ('serviceWorker' in navigator) {
