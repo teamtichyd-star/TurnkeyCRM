@@ -1119,6 +1119,64 @@
   let viewingId   = null;
   let currentTab  = 'all';
 
+  // ─── SEND SNAG NOTIFICATION ───
+  const OS_APP_ID_P = '9bc49e74-801f-4ffb-ab7e-ea78ba2f1089';
+  const OS_API_KEY_P = 'os_v2_app_tpcj45ead5h7xk365j4lulyqrewjylt7ro7e4je7vkzk57i5odhbhhuiax7qpxgmq3xfklcagphdgc6augpkj3zrpi2sua2erpkhbmy';
+
+  async function sendSnagNotification(assignedName, desc, projectName) {
+    try {
+      const snap = await db.collection('users').where('name','==',assignedName).get();
+      if (snap.empty) return;
+      const userDoc = snap.docs[0];
+      const playerId = userDoc.data()?.osPlayerId;
+      if (!playerId) return;
+      await fetch('https://onesignal.com/api/v1/notifications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Basic ' + OS_API_KEY_P
+        },
+        body: JSON.stringify({
+          app_id: OS_APP_ID_P,
+          include_player_ids: [playerId],
+          headings: { en: '⚠️ Snag Assigned - ' + projectName },
+          contents: { en: desc },
+          url: 'https://teamtichyd-star.github.io/TurnkeyCRM/',
+          priority: 10
+        })
+      });
+    } catch(e) { console.log('Snag notify error:', e); }
+  }
+
+  // ─── SEND SNAG NOTIFICATION ───
+  const OS_APP_ID_P = '9bc49e74-801f-4ffb-ab7e-ea78ba2f1089';
+  const OS_API_KEY_P = 'os_v2_app_tpcj45ead5h7xk365j4lulyqrewjylt7ro7e4je7vkzk57i5odhbhhuiax7qpxgmq3xfklcagphdgc6augpkj3zrpi2sua2erpkhbmy';
+
+  async function sendSnagNotification(assignedName, desc, projectName) {
+    try {
+      const snap = await db.collection('users').where('name','==',assignedName).get();
+      if (snap.empty) return;
+      const userDoc = snap.docs[0];
+      const playerId = userDoc.data()?.osPlayerId;
+      if (!playerId) return;
+      await fetch('https://onesignal.com/api/v1/notifications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Basic ' + OS_API_KEY_P
+        },
+        body: JSON.stringify({
+          app_id: OS_APP_ID_P,
+          include_player_ids: [playerId],
+          headings: { en: '⚠️ Snag Assigned - ' + projectName },
+          contents: { en: desc },
+          url: 'https://teamtichyd-star.github.io/TurnkeyCRM/',
+          priority: 10
+        })
+      });
+    } catch(e) { console.log('Snag notify error:', e); }
+  }
+
   // ─── HELPERS ───
   function formatDate(d) {
     if (!d) return '-';
@@ -1932,6 +1990,10 @@
       loadSnags(p);
       closeSnagModal();
       showToast('✅ Snag added!', 'success');
+      // Notify assigned user
+      if (snag.assignedTo) sendSnagNotification(snag.assignedTo, snag.description, p.name);
+      // Notify assigned user
+      if (snag.assignedTo) sendSnagNotification(snag.assignedTo, snag.description, p.name);
       if (snag.assignedTo) {
         const pSnag = projects.find(pr => pr.id === viewingId);
         await TIC_NOTIF.send(db, snag.assignedTo,
@@ -2003,6 +2065,64 @@
   function closePortalModal() {
     document.getElementById('portalModal').classList.remove('show');
     viewingId = null;
+  }
+
+  // ─── SEND SNAG NOTIFICATION ───
+  const OS_APP_ID_P = '9bc49e74-801f-4ffb-ab7e-ea78ba2f1089';
+  const OS_API_KEY_P = 'os_v2_app_tpcj45ead5h7xk365j4lulyqrewjylt7ro7e4je7vkzk57i5odhbhhuiax7qpxgmq3xfklcagphdgc6augpkj3zrpi2sua2erpkhbmy';
+
+  async function sendSnagNotification(assignedName, desc, projectName) {
+    try {
+      const snap = await db.collection('users').where('name','==',assignedName).get();
+      if (snap.empty) return;
+      const userDoc = snap.docs[0];
+      const playerId = userDoc.data()?.osPlayerId;
+      if (!playerId) return;
+      await fetch('https://onesignal.com/api/v1/notifications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Basic ' + OS_API_KEY_P
+        },
+        body: JSON.stringify({
+          app_id: OS_APP_ID_P,
+          include_player_ids: [playerId],
+          headings: { en: '⚠️ Snag Assigned - ' + projectName },
+          contents: { en: desc },
+          url: 'https://teamtichyd-star.github.io/TurnkeyCRM/',
+          priority: 10
+        })
+      });
+    } catch(e) { console.log('Snag notify error:', e); }
+  }
+
+  // ─── SEND SNAG NOTIFICATION ───
+  const OS_APP_ID_P = '9bc49e74-801f-4ffb-ab7e-ea78ba2f1089';
+  const OS_API_KEY_P = 'os_v2_app_tpcj45ead5h7xk365j4lulyqrewjylt7ro7e4je7vkzk57i5odhbhhuiax7qpxgmq3xfklcagphdgc6augpkj3zrpi2sua2erpkhbmy';
+
+  async function sendSnagNotification(assignedName, desc, projectName) {
+    try {
+      const snap = await db.collection('users').where('name','==',assignedName).get();
+      if (snap.empty) return;
+      const userDoc = snap.docs[0];
+      const playerId = userDoc.data()?.osPlayerId;
+      if (!playerId) return;
+      await fetch('https://onesignal.com/api/v1/notifications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Basic ' + OS_API_KEY_P
+        },
+        body: JSON.stringify({
+          app_id: OS_APP_ID_P,
+          include_player_ids: [playerId],
+          headings: { en: '⚠️ Snag Assigned - ' + projectName },
+          contents: { en: desc },
+          url: 'https://teamtichyd-star.github.io/TurnkeyCRM/',
+          priority: 10
+        })
+      });
+    } catch(e) { console.log('Snag notify error:', e); }
   }
 
   // ─── HELPERS ───

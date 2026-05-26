@@ -988,6 +988,52 @@ if (role === "supervisor") {
     showPage(lastPage);
   }
 
+  // ─── ONESIGNAL PUSH NOTIFICATION ───
+  const OS_APP_ID = '9bc49e74-801f-4ffb-ab7e-ea78ba2f1089';
+  const OS_API_KEY = 'os_v2_app_tpcj45ead5h7xk365j4lulyqrewjylt7ro7e4je7vkzk57i5odhbhhuiax7qpxgmq3xfklcagphdgc6augpkj3zrpi2sua2erpkhbmy';
+
+  async function sendPushNotification(userEmail, title, message, url) {
+    try {
+      // Get OneSignal player ID from user's Firestore doc
+      const userDoc = await db.collection('users').doc(userEmail).get();
+      const playerId = userDoc.data()?.osPlayerId;
+      if (!playerId) return;
+
+      await fetch('https://onesignal.com/api/v1/notifications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Basic ' + OS_API_KEY
+        },
+        body: JSON.stringify({
+          app_id: OS_APP_ID,
+          include_player_ids: [playerId],
+          headings: { en: title },
+          contents: { en: message },
+          url: url || 'https://teamtichyd-star.github.io/TurnkeyCRM/',
+          ios_sound: 'notification.wav',
+          android_sound: 'notification',
+          priority: 10
+        })
+      });
+    } catch(e) { console.log('Push error:', e); }
+  }
+
+  // Save OneSignal player ID when user subscribes
+  function savePlayerIdToFirestore(userEmail) {
+    if (!window.OneSignal) return;
+    OneSignal.push(function() {
+      OneSignal.getUserId(async function(playerId) {
+        if (playerId && userEmail) {
+          await db.collection('users').doc(userEmail).update({
+            osPlayerId: playerId
+          });
+          console.log('OneSignal Player ID saved:', playerId);
+        }
+      });
+    });
+  }
+
   // ─── NOTIFICATIONS LISTENER ───
   async function listenNotifications(userEmail) {
     try {
