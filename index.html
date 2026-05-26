@@ -98,7 +98,7 @@
     .page.iframe-page { padding: 0; overflow: hidden; height: calc(100vh - 70px); }
     .page.active { display: block; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-    .stats-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 24px; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 24px; }
     .stat-card { background: linear-gradient(145deg, var(--card2), var(--card)); border-radius: var(--radius); padding: 14px; display: flex; align-items: center; gap: 12px; border: 1px solid var(--border); transition: 0.3s; cursor: pointer; box-shadow: var(--shadow); }
     .stat-card:hover { transform: translateY(-3px); border-color: rgba(200,169,110,0.25); box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
     .stat-icon { width: 42px; height: 42px; border-radius: 11px; display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; }
@@ -108,7 +108,7 @@
     .stat-icon.blue { background: rgba(33,150,243,0.12); color: var(--info); }
     .stat-icon.red { background: rgba(244,67,54,0.12); color: var(--danger); }
     .stat-info h3 { font-size: 20px; font-weight: 700; line-height: 1; }
-    .stat-info p { font-size: 12px; color: var(--subtext); margin-top: 5px; }
+    .stat-info p { font-size: 11px; color: var(--subtext); margin-top: 3px; }
     .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 22px; }
     .quick-actions { background: linear-gradient(145deg, var(--card2), var(--card)); border-radius: var(--radius); padding: 20px; border: 1px solid var(--border); box-shadow: var(--shadow); }
     .quick-actions h3 { font-size: 14px; font-weight: 700; margin-bottom: 16px; color: var(--subtext); text-transform: uppercase; letter-spacing: 0.8px; }
@@ -460,7 +460,6 @@
       <div class="page-title" id="pageTitle">Dashboard</div>
     </div>
     <div class="topbar-right">
-      <div class="topbar-right">
       <div class="topbar-date" id="topDate"></div>
       <div id="notifBell" style="position:relative; cursor:pointer; padding:6px 8px; border-radius:8px; background:rgba(255,255,255,0.05)" onclick="showNotifications()">
         <i class="fas fa-bell" style="font-size:17px; color:var(--subtext)" id="bellIcon"></i>
