@@ -84,6 +84,25 @@
     .empty-msg { text-align: center; padding: 40px 20px; color: var(--subtext); }
     .empty-msg i { font-size: 40px; opacity: 0.2; display: block; margin-bottom: 10px; }
     .logout-btn { background: rgba(244,67,54,0.1); border: 1px solid rgba(244,67,54,0.2); color: var(--danger); padding: 6px 14px; border-radius: 8px; cursor: pointer; font-size: 13px; }
+    .snag-item { background: rgba(255,255,255,0.03); border-radius: 12px; padding: 14px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 10px; border-left: 3px solid var(--warning); }
+    .snag-item.fixed { border-left-color: var(--success); }
+    .snag-desc { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+    .snag-meta { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--subtext); margin-top: 6px; }
+    .pay-summary { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+    .pay-box { border-radius: 12px; padding: 16px; text-align: center; }
+    .pay-box .label { font-size: 11px; color: var(--subtext); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+    .pay-box .amount { font-size: 20px; font-weight: 700; }
+    .receipt-table { width: 100%; border-collapse: collapse; }
+    .receipt-table th { padding: 10px 12px; text-align: left; font-size: 11px; color: var(--subtext); text-transform: uppercase; background: rgba(255,255,255,0.02); }
+    .receipt-table td { padding: 12px; font-size: 13px; border-top: 1px solid rgba(255,255,255,0.04); }
+    .add-snag-form { background: rgba(255,255,255,0.03); border-radius: 12px; padding: 16px; border: 1px solid rgba(255,255,255,0.07); margin-bottom: 20px; }
+    .add-snag-form h4 { font-size: 13px; color: var(--primary); margin-bottom: 12px; }
+    .add-snag-form textarea { width: 100%; padding: 10px 14px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: var(--text); font-size: 14px; outline: none; resize: vertical; min-height: 80px; }
+    .add-snag-form textarea:focus { border-color: var(--primary); }
+    .add-snag-form input { width: 100%; padding: 10px 14px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: var(--text); font-size: 14px; outline: none; margin-top: 8px; }
+    .add-snag-form input:focus { border-color: var(--primary); }
+    .btn-submit { padding: 10px 20px; background: linear-gradient(135deg, var(--primary), #a07840); border: none; border-radius: 8px; color: white; font-size: 13px; font-weight: 600; cursor: pointer; margin-top: 10px; display: flex; align-items: center; gap: 6px; }
+    @media (max-width: 480px) { .pay-summary { grid-template-columns: 1fr; } }
     @media (max-width: 600px) {
       .info-grid { grid-template-columns: 1fr; }
       .portal-content { padding: 15px; }
@@ -167,6 +186,12 @@
       </button>
       <button class="portal-tab" onclick="switchTab('updates')" id="ptab-updates">
         <i class="fas fa-camera"></i> Daily Updates
+      </button>
+      <button class="portal-tab" onclick="switchTab('snags')" id="ptab-snags">
+        <i class="fas fa-exclamation-triangle"></i> Snag List
+      </button>
+      <button class="portal-tab" onclick="switchTab('payments')" id="ptab-payments">
+        <i class="fas fa-rupee-sign"></i> Payments
       </button>
     </div>
 
