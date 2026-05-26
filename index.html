@@ -1295,6 +1295,10 @@ if (role === "supervisor") {
           '₹' + totalDue.toLocaleString('en-IN', {maximumFractionDigits:0});
       }
 
+      const myTasks = tasks.filter(t =>
+        t.assignedTo && t.assignedTo.toLowerCase() === currentUserName.toLowerCase() && t.status !== 'Done'
+      const myTasks = tasks.filter(t =>
+        t.assignedTo && t.assignedTo.toLowerCase() === currentUserName.toLowerCase() && t.status !== 'Done'
       ).slice(0, 5);
       const myTasksTbody = document.getElementById('myTasksTable');
       const priorityColors = { High: 'badge-red', Medium: 'badge-orange', Low: 'badge-green' };
