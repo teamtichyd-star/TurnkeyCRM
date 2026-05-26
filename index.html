@@ -1283,11 +1283,13 @@ if (role === "supervisor") {
         ? projects.filter(p => p.manager && p.manager.toLowerCase() === uName.toLowerCase())
         : projects;
       document.getElementById('stat-projects').textContent = myProjects.length;
-      document.getElementById('stat-won').textContent = leads.filter(l => l.status === 'Won').length;
+      const wonEl = document.getElementById('stat-won');
+      if (wonEl) wonEl.textContent = leads.filter(l => l.status === 'Won').length;
 
       const today = new Date();
       today.setHours(0,0,0,0);
-      document.getElementById('stat-followup').textContent =
+      const fuEl = document.getElementById('stat-followup');
+      if (fuEl) fuEl.textContent =
         leads.filter(l => l.followupDate && new Date(l.followupDate) <= today && l.status !== 'Won' && l.status !== 'Lost').length;
 
       const revenue = projects.reduce((s,p) => s + (parseInt(p.value)||0), 0);
