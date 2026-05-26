@@ -763,50 +763,33 @@
 
   if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
-
-  // ─── NOTIFICATIONS ───
-  const messaging = firebase.messaging();
-  const VAPID_KEY = 'BIKDQhGOGh_8oIn_6AqWXwjNZzoYvfjbP9n38VbCePFOQ-m32_vHqaqNMrclScs4vQfQTV3g6HnmK_cnGEXhCo4';
-
-  async function initNotifications(userEmail) {
-    try {
-      const permission = await Notification.requestPermission();
-      const btn = document.getElementById('enableNotifBtn');
-      if (btn) btn.style.display = 'none';
-      if (permission !== 'granted') return;
-      const token = await messaging.getToken({ vapidKey: VAPID_KEY });
-      if (token && userEmail) {
-        await db.collection('users').doc(userEmail).update({ fcmToken: token });
-        console.log('FCM token saved');
-      }
-    } catch(e) { console.log('Notification setup:', e.message); }
-  }
-
-  // Handle foreground messages
-  messaging.onMessage(payload => {
-    const { title, body } = payload.notification || {};
-    if (title) showToast('🔔 ' + title + ': ' + body, 'info', 5000);
-  });
-
-  // ─── SEND NOTIFICATION TO USER ───
-  async function notifyUser(userEmail, title, body) {
-    try {
-      const userDoc = await db.collection('users').doc(userEmail).get();
-      const token = userDoc.data()?.fcmToken;
-      if (!token) return;
-      // Store notification in Firestore for the user
-      await db.collection('notifications').add({
-        to: userEmail,
-        title, body,
-        read: false,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-    } catch(e) { console.log('Notify error:', e); }
-  }
   }
 
   const auth = firebase.auth();
   const db   = firebase.firestore();
+
+  // ─── SAFE MESSAGING INIT ───
+  let messaging = null;
+  try {
+    messaging = firebase.messaging();
+  } catch(e) {
+    console.log('Messaging not supported:', e.message);
+  }
+
+  async function initNotifications(userEmail) {
+    try {
+      if (!messaging) return;
+      const permission = await Notification.requestPermission();
+      const btn = document.getElementById('enableNotifBtn');
+      if (btn) btn.style.display = 'none';
+      if (permission !== 'granted') return;
+      const VAPID_KEY = 'BIKDQhGOGh_8oIn_6AqWXwjNZzoYvfjbP9n38VbCePFOQ-m32_vHqaqNMrclScs4vQfQTV3g6HnmK_cnGEXhCo4';
+      const token = await messaging.getToken({ vapidKey: VAPID_KEY });
+      if (token && userEmail) {
+        await db.collection('users').doc(userEmail).update({ fcmToken: token });
+      }
+    } catch(e) { console.log('Notification setup:', e.message); }
+  }
 
   // ─── KEEP USER LOGGED IN ───
   auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
@@ -1296,10 +1279,10 @@ if (role === "supervisor") {
         revenue > 0 ? '₹' + revenue.toLocaleString('en-IN') : '₹0';
 
       // ── BALANCE DUE CARD (admin only) ──
-      const isAdmin = (uRole === 'admin' || uRole === 'superadmin');
+      const isAdminUser = (uRole === 'admin' || uRole === 'superadmin');
       const balCard = document.getElementById('dash-balance-card');
-      if (balCard) balCard.style.display = isAdmin ? '' : 'none';
-      if (isAdmin) {
+      if (balCard) balCard.style.display = isAdminUser ? '' : 'none';
+      if (isAdminUser) {
         let totalDue = 0;
         projects.forEach(p => {
           if (p.payment && p.payment.totalValue) {
@@ -1313,10 +1296,10 @@ if (role === "supervisor") {
       }
 
       // ── BALANCE DUE CARD (admin only) ──
-      const isAdmin = (uRole === 'admin' || uRole === 'superadmin');
+      const isAdminUser = (uRole === 'admin' || uRole === 'superadmin');
       const balCard = document.getElementById('dash-balance-card');
-      if (balCard) balCard.style.display = isAdmin ? '' : 'none';
-      if (isAdmin) {
+      if (balCard) balCard.style.display = isAdminUser ? '' : 'none';
+      if (isAdminUser) {
         let totalDue = 0;
         projects.forEach(p => {
           if (p.payment && p.payment.totalValue) {
