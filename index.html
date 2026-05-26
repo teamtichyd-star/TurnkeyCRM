@@ -1295,23 +1295,6 @@ if (role === "supervisor") {
           '₹' + totalDue.toLocaleString('en-IN', {maximumFractionDigits:0});
       }
 
-
-      // Pipeline
-      const pipeTotal = leads.length || 1;
-      ['New','Site Visit','Proposal Sent','Won'].forEach((status, i) => {
-        const ids = ['new','visit','proposal','won'];
-        const pipeCount = leads.filter(l => l.status === status).length;
-        document.getElementById('pipe-' + ids[i]).textContent = pipeCount;
-        setTimeout(() => {
-          document.getElementById('fill-' + ids[i]).style.width =
-            (pipeCount/pipeTotal*100) + '%';
-        }, 100);
-      });
-
-      // My Tasks
-      const currentUserName = currentUserData?.name || '';
-      const myTasks = tasks.filter(t => 
-        t.assignedTo && t.assignedTo.toLowerCase() === currentUserName.toLowerCase() && t.status !== 'Done'
       ).slice(0, 5);
       const myTasksTbody = document.getElementById('myTasksTable');
       const priorityColors = { High: 'badge-red', Medium: 'badge-orange', Low: 'badge-green' };
