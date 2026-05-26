@@ -1313,6 +1313,19 @@ if (role === "supervisor") {
           '₹' + totalDue.toLocaleString('en-IN', {maximumFractionDigits:0});
       }
 
+      // Pipeline bars
+      const pipeTotal = leads.length || 1;
+      ['New','Site Visit','Proposal Sent','Won'].forEach((status, idx) => {
+        const ids = ['new','visit','proposal','won'];
+        const cnt = leads.filter(l => l.status === status).length;
+        const el = document.getElementById('pipe-' + ids[idx]);
+        const fill = document.getElementById('fill-' + ids[idx]);
+        if (el) el.textContent = cnt;
+        setTimeout(() => {
+          if (fill) fill.style.width = (cnt/pipeTotal*100) + '%';
+        }, 100);
+      });
+
       // My Tasks
       const currentUserName = currentUserData?.name || '';
       const myTasks = tasks.filter(t =>
