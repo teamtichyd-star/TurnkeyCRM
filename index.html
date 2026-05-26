@@ -1313,6 +1313,8 @@ if (role === "supervisor") {
           '₹' + totalDue.toLocaleString('en-IN', {maximumFractionDigits:0});
       }
 
+      // My Tasks
+      const currentUserName = currentUserData?.name || '';
       const myTasks = tasks.filter(t =>
         t.assignedTo && t.assignedTo.toLowerCase() === currentUserName.toLowerCase() && t.status !== 'Done'
       ).slice(0, 5);
