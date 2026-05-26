@@ -1279,16 +1279,16 @@ if (role === "supervisor") {
         revenue > 0 ? '₹' + revenue.toLocaleString('en-IN') : '₹0';
 
       // ── BALANCE DUE CARD (admin only) ──
-      const isAdminUser = (uRole === 'admin' || uRole === 'superadmin');
       const balCard = document.getElementById('dash-balance-card');
-      if (balCard) balCard.style.display = isAdminBalance ? '' : 'none';
-      if (isAdminBalance) {
+      const showBal = (uRole === 'admin' || uRole === 'superadmin');
+      if (balCard) balCard.style.display = showBal ? '' : 'none';
+      if (showBal) {
         let totalDue = 0;
         projects.forEach(p => {
           if (p.payment && p.payment.totalValue) {
-            const received = (p.payment.receipts || [])
+            const recv = (p.payment.receipts || [])
               .reduce((s,r) => s + (parseFloat(r.amount)||0), 0);
-            totalDue += Math.max(0, p.payment.totalValue - received);
+            totalDue += Math.max(0, p.payment.totalValue - recv);
           }
         });
         document.getElementById('stat-balance').textContent =
@@ -1296,16 +1296,16 @@ if (role === "supervisor") {
       }
 
       // ── BALANCE DUE CARD (admin only) ──
-      const isAdminUser = (uRole === 'admin' || uRole === 'superadmin');
       const balCard = document.getElementById('dash-balance-card');
-      if (balCard) balCard.style.display = isAdminBalance ? '' : 'none';
-      if (isAdminBalance) {
+      const showBal = (uRole === 'admin' || uRole === 'superadmin');
+      if (balCard) balCard.style.display = showBal ? '' : 'none';
+      if (showBal) {
         let totalDue = 0;
         projects.forEach(p => {
           if (p.payment && p.payment.totalValue) {
-            const received = (p.payment.receipts || [])
+            const recv = (p.payment.receipts || [])
               .reduce((s,r) => s + (parseFloat(r.amount)||0), 0);
-            totalDue += Math.max(0, p.payment.totalValue - received);
+            totalDue += Math.max(0, p.payment.totalValue - recv);
           }
         });
         document.getElementById('stat-balance').textContent =
