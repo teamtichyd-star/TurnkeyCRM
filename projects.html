@@ -2241,9 +2241,12 @@
   }
 
   function calcTotalReceived() {
+    try {
     let total = 0;
     document.querySelectorAll('#receipts-tbody tr').forEach(tr => {
+      if (!tr.cells || !tr.cells[2]) return;
       const amtInput = tr.cells[2].querySelector('input');
+      if (!amtInput) return;
       total += parseFloat(amtInput.value) || 0;
     });
     const p = projects.find(pr => pr.id === viewingId);
