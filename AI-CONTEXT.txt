@@ -1,0 +1,70 @@
+=======================================================
+TURNKEY CRM — AI CONTEXT FILE
+=======================================================
+Last Updated: [UPDATE DATE EVERY SESSION]
+Current Session Working On: [UPDATE EVERY SESSION]
+=======================================================
+
+PROJECT OVERVIEW:
+- App Name: TurnkeyCRM
+- Type: Construction/Real Estate CRM
+- Live URL: https://teamtichyd-star.github.io/TurnkeyCRM/
+- GitHub: https://github.com/teamtichyd-star/TurnkeyCRM
+- Hosting: GitHub Pages (static — NO server-side code)
+- Status: LIVE APP WITH REAL DATA — Be careful with changes
+
+TECH STACK:
+- Frontend: Vanilla HTML, CSS, JavaScript (NO React, NO Vue)
+- Database: Firebase Firestore
+- Auth: Firebase Authentication
+- Notifications: OneSignal Push Notifications
+- PWA: Yes (manifest.json + sw.js)
+- CSS: newstyle.css (ONE shared stylesheet)
+
+PAGES IN THE APP:
+1. index.html       → Dashboard / Login
+2. leads.html       → Lead Management
+3. projects.html    → Project Tracking + Payments + Snag List
+4. tasks.html       → Task Management
+5. followups.html   → Follow-up Tracker
+6. sheets.html      → Sheets/Reports
+7. export.html      → Data Export
+8. admin-panel.html → Admin Controls
+9. client-view.html → Client Portal (Snag List + Payments)
+
+RULES FOR ALL AIs — FOLLOW STRICTLY:
+1. Vanilla JS ONLY — No React, Vue or any framework
+2. GitHub Pages — No server-side code or Node.js
+3. No new npm packages — there is no package.json
+4. No new CSS files — use newstyle.css only
+5. No style tags inside HTML — use newstyle.css classes
+6. Do NOT duplicate Firebase initialization
+7. Always check existing function names before creating new ones
+8. Match camelCase naming for all functions
+9. Always provide COMPLETE file content not partial snippets
+10. Do NOT change any Firestore collection or document names
+11. Do NOT change image or icon paths
+12. Images and icons are in ROOT folder — do not move them
+
+CURRENT MODULE STATUS:
+- Dashboard:      [complete/in-progress/not-started]
+- Leads:          [complete/in-progress/not-started]
+- Projects:       [complete/in-progress/not-started]
+- Tasks:          [complete/in-progress/not-started]
+- Follow-ups:     [complete/in-progress/not-started]
+- Sheets:         [complete/in-progress/not-started]
+- Export:         [complete/in-progress/not-started]
+- Admin Panel:    [complete/in-progress/not-started]
+- Client Portal:  [complete/in-progress/not-started]
+- Notifications:  [complete/in-progress/not-started]
+
+FIREBASE COLLECTIONS (DO NOT RENAME):
+- [fill your actual collection names here]
+
+KNOWN ISSUES (update every session):
+- [List current bugs here]
+
+LAST SESSION SUMMARY (update before switching AI):
+- What was done:   [fill this]
+- What is next:    [fill this]
+- Files modified:  [fill this]
