@@ -2255,7 +2255,7 @@
     document.getElementById('pay-received-display').textContent = '\u20B9' + total.toLocaleString('en-IN', {maximumFractionDigits:0});
     document.getElementById('pay-due-display').textContent = '\u20B9' + due.toLocaleString('en-IN', {maximumFractionDigits:0});
     return total;
-  } catch(e) { console.error("calcTotalReceived error:", e); return 0; }
+  }
 
   async function saveReceipts() {
     const rows = [];
