@@ -1,0 +1,60 @@
+
+/* Share Section Styling */
+.share-section-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 15px;
+}
+
+.share-btn-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
+.share-link-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    text-decoration: none !important;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border: none;
+    color: white !important;
+}
+
+.btn-whatsapp {
+    background-color: #25D366; /* Official WhatsApp Green */
+    color: white !important;
+}
+
+.btn-whatsapp:hover {
+    background-color: #128C7E;
+    transform: translateY(-2px);
+}
+
+.btn-email {
+    background-color: #4A90E2; /* Professional Blue */
+    color: white !important;
+}
+
+.btn-email:hover {
+    background-color: #357ABD;
+    transform: translateY(-2px);
+}
+
+.btn-copy {
+    background-color: #f8f9fa;
+    color: #333 !important;
+    border: 1px solid #ddd;
+}
+
+.btn-copy:hover {
+    background-color: #e2e6ea;
+}
