@@ -2242,19 +2242,26 @@
 
   function calcTotalReceived() {
     try {
-    let total = 0;
-    document.querySelectorAll('#receipts-tbody tr').forEach(tr => {
-      if (!tr.cells || !tr.cells[2]) return;
-      const amtInput = tr.cells[2].querySelector('input');
-      if (!amtInput) return;
-      total += parseFloat(amtInput.value) || 0;
-    });
-    const p = projects.find(pr => pr.id === viewingId);
-    const projectTotal = (p && p.payment && p.payment.totalValue) || 0;
-    const due = Math.max(0, projectTotal - total);
-    document.getElementById('pay-received-display').textContent = '\u20B9' + total.toLocaleString('en-IN', {maximumFractionDigits:0});
-    document.getElementById('pay-due-display').textContent = '\u20B9' + due.toLocaleString('en-IN', {maximumFractionDigits:0});
-    return total;
+      let total = 0;
+      document.querySelectorAll("#receipts-tbody tr").forEach(tr => {
+        if (!tr.cells || !tr.cells[2]) return;
+        const amtInput = tr.cells[2].querySelector("input");
+        if (!amtInput) return;
+        total += parseFloat(amtInput.value) || 0;
+      });
+
+      const p = projects.find(pr => pr.id === viewingId);
+      const projectTotal = (p && p.payment && p.payment.totalValue) || 0;
+      const due = Math.max(0, projectTotal - total);
+
+      document.getElementById("pay-received-display").textContent = "₹" + total.toLocaleString("en-IN", { maximumFractionDigits: 0 });
+      document.getElementById("pay-due-display").textContent = "₹" + due.toLocaleString("en-IN", { maximumFractionDigits: 0 });
+
+      return total;
+    } catch (e) {
+      console.error("calcTotalReceived error:", e);
+      return 0;
+    }
   }
 
   async function saveReceipts() {
