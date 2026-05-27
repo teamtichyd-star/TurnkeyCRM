@@ -1552,7 +1552,7 @@
     loadUpdates(p);
     loadSnags(p);
     loadShareInfo(p);
-    loadPayments(p);
+    try { loadPayments(p); } catch(e) { console.log('Payments error:', e); }
 
     document.getElementById('portalModal').classList.add('show');
   }
