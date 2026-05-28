@@ -71,3 +71,12 @@ LAST SESSION SUMMARY (update before switching AI):
 
 PENDING UI FIXES:
 - Share tab: WhatsApp button should be green, Email button should be blue (currently showing as plain underlined links)
+
+COMPLETED TODAY:
+- Fixed projects page (try-catch syntax error)
+- Added Snag List tab to client portal (client can add/edit/delete snags)
+- Added Payments tab to client portal (shows total, due, receipts)
+
+PENDING POLISH:
+- Client portal: GST breakdown missing in payments tab
+- Share tab: WhatsApp button green styling not applying
