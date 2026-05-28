@@ -450,6 +450,8 @@
     // Documents
     loadClientDocs(p);
     loadClientUpdates(p);
+    loadClientSnags(p);
+    loadClientPayments(p);
   }
 
   function loadClientDocs(p) {
@@ -551,4 +553,102 @@
   init();
 </script>
 </body>
-</html>
+</html><script>
+  // ─── SNAG MODAL LOGIC ───
+  function openAddSnagModal() {
+    document.getElementById('snagModal').style.display = 'flex';
+  }
+  function closeSnagModal() {
+    document.getElementById('snagModal').style.display = 'none';
+    document.getElementById('snagDesc').value = '';
+    document.getElementById('snagLocation').value = '';
+  }
+
+  async function saveSnag() {
+    const desc = document.getElementById('snagDesc').value.trim();
+    const loc  = document.getElementById('snagLocation').value.trim();
+    if (!desc) { alert('Please enter a description'); return; }
+
+    const newSnag = {
+      description: desc,
+      location: loc,
+      status: 'Open',
+      dateAdded: new Date().toISOString()
+    };
+
+    if (!projectData.snags) projectData.snags = [];
+    projectData.snags.push(newSnag);
+
+    try {
+      await db.collection('projects').doc(projectId).update({ snags: projectData.snags });
+      closeSnagModal();
+      loadClientSnags(projectData);
+    } catch(e) { console.error("Error saving snag:", e); }
+  }
+
+  async function deleteSnag(index) {
+    if(!confirm('Delete this snag?')) return;
+    projectData.snags.splice(index, 1);
+    await db.collection('projects').doc(projectId).update({ snags: projectData.snags });
+    loadClientSnags(projectData);
+  }
+
+  async function toggleSnagStatus(index) {
+    const current = projectData.snags[index].status;
+    projectData.snags[index].status = (current === 'Fixed' ? 'Open' : 'Fixed');
+    await db.collection('projects').doc(projectId).update({ snags: projectData.snags });
+    loadClientSnags(projectData);
+  }
+
+  // ─── LOAD SNAGS ───
+  function loadClientSnags(p) {
+    const list = document.getElementById('clientSnagsList');
+    const snags = p.snags || [];
+    if (snags.length === 0) { list.innerHTML = '<p style="color:var(--subtext)">No snags found.</p>'; return; }
+
+    list.innerHTML = snags.map((s, i) => `
+      <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:12px; padding:15px; margin-bottom:10px">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start">
+          <div style="font-weight:600">${s.description}</div>
+          <div style="display:flex; gap:5px">
+             <button class="btn" onclick="toggleSnagStatus(${i})" style="padding:4px 8px; font-size:11px">${s.status === 'Fixed' ? '✅ Fixed' : '🔴 Open'}</button>
+             <button class="btn" onclick="deleteSnag(${i})" style="padding:4px 8px; font-size:11px; color:var(--danger)">🗑️</button>
+          </div>
+        </div>
+        <div style="font-size:12px; color:var(--subtext); margin-top:5px">📍 ${s.location || 'No location'} | 📅 ${formatDate(s.dateAdded)}</div>
+      </div>
+    `).join('');
+  }
+
+  // ─── LOAD PAYMENTS ───
+  function loadClientPayments(p) {
+    const container = document.getElementById('clientPaymentsContent');
+    const pay = p.payment || {};
+    const total = pay.totalValue || 0;
+    const receipts = pay.receipts || [];
+    const received = receipts.reduce((acc, r) => acc + (parseFloat(r.amount) || 0), 0);
+    const due = total - received;
+
+    container.innerHTML = `
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px">
+        <div class="stat-card" style="background:rgba(255,255,255,0.03); padding:15px; border-radius:12px">
+           <div style="font-size:12px; color:var(--subtext)">Total Project</div>
+           <div style="font-size:18px; font-weight:700">₹${total.toLocaleString('en-IN')}</div>
+        </div>
+        <div class="stat-card" style="background:rgba(255,255,255,0.03); padding:15px; border-radius:12px">
+           <div style="font-size:12px; color:var(--subtext)">Balance Due</div>
+           <div style="font-size:18px; font-weight:700; color:var(--danger)">₹${due.toLocaleString('en-IN')}</div>
+        </div>
+      </div>
+      <h4 style="margin-bottom:10px">Receipts</h4>
+      <div id="clientReceiptsList">
+        ${receipts.map(r => `
+          <div style="display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid var(--border); font-size:13px">
+            <div><strong>${formatDate(r.date)}</strong><br><small style="color:var(--subtext)">${r.details || ''}</small></div>
+            <div style="font-weight:600; color:var(--success)">+ ₹${(parseFloat(r.amount)||0).toLocaleString('en-IN')}</div>
+          </div>
+        `).join('') || '<p style="color:var(--subtext)">No receipts found.</p>'}
+      </div>
+    `;
+  }
+</script>
