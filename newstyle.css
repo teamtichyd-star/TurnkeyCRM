@@ -1,11 +1,4 @@
 
-/* Share Section Styling */
-.share-section-container {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-top: 15px;
-}
 
 .share-btn-group {
     display: flex;
@@ -57,4 +50,48 @@
 
 .btn-copy:hover {
     background-color: #e2e6ea;
+}
+
+/* Share Section Styling - FIXED */
+.share-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.btn-whatsapp {
+    background-color: #25D366 !important;
+    color: white !important;
+    padding: 8px 16px;
+    border-radius: 8px;
+    text-decoration: none !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+    transition: all 0.3s;
+}
+
+.btn-whatsapp:hover {
+    background-color: #128C7E !important;
+    transform: translateY(-2px);
+}
+
+.btn-email {
+    background-color: #4A90E2 !important;
+    color: white !important;
+    padding: 8px 16px;
+    border-radius: 8px;
+    text-decoration: none !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+    transition: all 0.3s;
+}
+
+.btn-email:hover {
+    background-color: #357ABD !important;
+    transform: translateY(-2px);
 }
