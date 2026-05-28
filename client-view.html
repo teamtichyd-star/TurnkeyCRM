@@ -272,6 +272,45 @@
       </div>
     </div>
 
+    <!-- ─── SNAG LIST TAB ─── -->
+    <div class="tab-content" id="tab-snags">
+      <div class="info-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px">
+          <h3 style="margin:0"><i class="fas fa-exclamation-triangle"></i> Snag List</h3>
+          <button class="btn btn-primary" onclick="openAddSnagModal()">
+            <i class="fas fa-plus"></i> Add Snag
+          </button>
+        </div>
+        <div id="clientSnagsList"></div>
+      </div>
+    </div>
+
+    <!-- ─── PAYMENTS TAB ─── -->
+    <div class="tab-content" id="tab-payments">
+      <div class="info-card">
+        <h3><i class="fas fa-rupee-sign"></i> Payment Details</h3>
+        <div id="clientPaymentsContent"></div>
+      </div>
+    </div>
+
+  <!-- ─── SNAG MODAL ─── -->
+  <div class="modal-overlay" id="snagModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:2000; align-items:center; justify-content:center">
+    <div class="modal" style="background:var(--card-bg); padding:25px; border-radius:15px; width:90%; max-width:400px; border:1px solid var(--border)">
+      <h3 style="margin-bottom:20px">⚠️ Add Snag</h3>
+      <div class="form-group" style="margin-bottom:15px">
+        <label style="display:block; margin-bottom:8px; font-size:13px">Description *</label>
+        <textarea id="snagDesc" style="width:100%; padding:10px; border-radius:8px; background:rgba(255,255,255,0.05); border:1px solid var(--border); color:white; height:80px" placeholder="Describe the issue..."></textarea>
+      </div>
+      <div class="form-group" style="margin-bottom:20px">
+        <label style="display:block; margin-bottom:8px; font-size:13px">Location</label>
+        <input type="text" id="snagLocation" style="width:100%; padding:10px; border-radius:8px; background:rgba(255,255,255,0.05); border:1px solid var(--border); color:white" placeholder="Kitchen, Bedroom, etc.">
+      </div>
+      <div style="display:flex; gap:10px">
+        <button class="btn" style="flex:1" onclick="closeSnagModal()">Cancel</button>
+        <button class="btn btn-primary" style="flex:1" onclick="saveSnag()">Save Snag</button>
+      </div>
+    </div>
+  </div>
   </div>
 </div>
 
