@@ -68,3 +68,6 @@ LAST SESSION SUMMARY (update before switching AI):
 - What was done:   [fill this]
 - What is next:    [fill this]
 - Files modified:  [fill this]
+
+PENDING UI FIXES:
+- Share tab: WhatsApp button should be green, Email button should be blue (currently showing as plain underlined links)
