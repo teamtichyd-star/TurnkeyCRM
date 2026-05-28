@@ -1213,7 +1213,7 @@
         projects.push({ id: doc.id, ...doc.data() });
       });
       // Filter projects for supervisor/designer - only show assigned ones
-      if (currentUserRole === 'supervisor' || currentUserRole === 'designer') {
+      if (currentUserRole === 'supervisor') {
         projects = projects.filter(p => 
           p.manager && p.manager.toLowerCase() === currentUserName.toLowerCase()
         );
