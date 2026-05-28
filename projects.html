@@ -1123,13 +1123,9 @@
   const OS_APP_ID_P = '9bc49e74-801f-4ffb-ab7e-ea78ba2f1089';
   const OS_API_KEY_P = 'os_v2_app_tpcj45ead5h7xk365j4lulyqrewjylt7ro7e4je7vkzk57i5odhbhhuiax7qpxgmq3xfklcagphdgc6augpkj3zrpi2sua2erpkhbmy';
 
-  async function sendSnagNotification(assignedName, desc, projectName) {
+  // ─── UNIVERSAL NOTIFICATION (sends to ALL users) ───
+  async function sendNotificationToAll(title, message) {
     try {
-      const snap = await db.collection('users').where('name','==',assignedName).get();
-      if (snap.empty) return;
-      const userDoc = snap.docs[0];
-      const playerId = userDoc.data()?.osPlayerId;
-      if (!playerId) return;
       await fetch('https://onesignal.com/api/v1/notifications', {
         method: 'POST',
         headers: {
@@ -1138,42 +1134,23 @@
         },
         body: JSON.stringify({
           app_id: OS_APP_ID_P,
-          include_player_ids: [playerId],
-          headings: { en: '⚠️ Snag Assigned - ' + projectName },
-          contents: { en: desc },
+          included_segments: ['All'],
+          headings: { en: title },
+          contents: { en: message },
           url: 'https://teamtichyd-star.github.io/TurnkeyCRM/',
           priority: 10
         })
       });
-    } catch(e) { console.log('Snag notify error:', e); }
+    } catch(e) { console.log('Notify error:', e); }
   }
+
+  // Keep old function name as wrapper for backward compatibility
+  async function sendSnagNotification(assignedName, desc, projectName) {
+    return sendNotificationToAll('⚠️ Snag: ' + projectName, desc);
+  }
+
 
   // ─── SEND SNAG NOTIFICATION ───
-
-  async function sendSnagNotification(assignedName, desc, projectName) {
-    try {
-      const snap = await db.collection('users').where('name','==',assignedName).get();
-      if (snap.empty) return;
-      const userDoc = snap.docs[0];
-      const playerId = userDoc.data()?.osPlayerId;
-      if (!playerId) return;
-      await fetch('https://onesignal.com/api/v1/notifications', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Basic ' + OS_API_KEY_P
-        },
-        body: JSON.stringify({
-          app_id: OS_APP_ID_P,
-          include_player_ids: [playerId],
-          headings: { en: '⚠️ Snag Assigned - ' + projectName },
-          contents: { en: desc },
-          url: 'https://teamtichyd-star.github.io/TurnkeyCRM/',
-          priority: 10
-        })
-      });
-    } catch(e) { console.log('Snag notify error:', e); }
-  }
 
   // ─── HELPERS ───
   function formatDate(d) {
@@ -1483,6 +1460,7 @@
         projData.updates   = [];
         projData.snags     = [];
         await projRef.add(projData);
+        await sendNotificationToAll('🏗️ New Project Added', projData.name + ' (Client: ' + projData.client + ')');
         showToast('✅ Project saved to Firebase!', 'success');
         // Notify assigned manager
         if (projData.manager) {
@@ -2067,57 +2045,7 @@
 
   // ─── SEND SNAG NOTIFICATION ───
 
-  async function sendSnagNotification(assignedName, desc, projectName) {
-    try {
-      const snap = await db.collection('users').where('name','==',assignedName).get();
-      if (snap.empty) return;
-      const userDoc = snap.docs[0];
-      const playerId = userDoc.data()?.osPlayerId;
-      if (!playerId) return;
-      await fetch('https://onesignal.com/api/v1/notifications', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Basic ' + OS_API_KEY_P
-        },
-        body: JSON.stringify({
-          app_id: OS_APP_ID_P,
-          include_player_ids: [playerId],
-          headings: { en: '⚠️ Snag Assigned - ' + projectName },
-          contents: { en: desc },
-          url: 'https://teamtichyd-star.github.io/TurnkeyCRM/',
-          priority: 10
-        })
-      });
-    } catch(e) { console.log('Snag notify error:', e); }
-  }
-
   // ─── SEND SNAG NOTIFICATION ───
-
-  async function sendSnagNotification(assignedName, desc, projectName) {
-    try {
-      const snap = await db.collection('users').where('name','==',assignedName).get();
-      if (snap.empty) return;
-      const userDoc = snap.docs[0];
-      const playerId = userDoc.data()?.osPlayerId;
-      if (!playerId) return;
-      await fetch('https://onesignal.com/api/v1/notifications', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Basic ' + OS_API_KEY_P
-        },
-        body: JSON.stringify({
-          app_id: OS_APP_ID_P,
-          include_player_ids: [playerId],
-          headings: { en: '⚠️ Snag Assigned - ' + projectName },
-          contents: { en: desc },
-          url: 'https://teamtichyd-star.github.io/TurnkeyCRM/',
-          priority: 10
-        })
-      });
-    } catch(e) { console.log('Snag notify error:', e); }
-  }
 
   // ─── HELPERS ───
   function showSaving(show) {
