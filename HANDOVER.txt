@@ -1,0 +1,88 @@
+=======================================================
+TURNKEY CRM - AI SESSION HANDOVER
+=======================================================
+
+PROJECT BASICS:
+- App Name: TurnkeyCRM
+- Type: Construction/Interior CRM
+- Live URL: https://teamtichyd-star.github.io/TurnkeyCRM/
+- GitHub: https://github.com/teamtichyd-star/TurnkeyCRM
+- Local Folder: /Users/haritalla/TurnkeyCRM (Mac)
+- Owner: teamtichyd-star
+- Status: LIVE APP WITH REAL DATA
+
+TECH STACK:
+- Vanilla HTML, CSS, JavaScript (NO React, NO Vue)
+- Firebase Firestore (database)
+- Firebase Authentication
+- OneSignal (push - has CORS issues, switching to in-app)
+- PWA (manifest.json + sw.js)
+- Hosting: GitHub Pages
+- CSS file: newstyle.css
+
+FIREBASE CONFIG (already in code):
+- Project ID: turnkeycrm-ce7b8
+- App ID: 9bc49e74-801f-4ffb-ab7e-ea78ba2f1089
+
+PAGES IN APP:
+1. index.html       - Dashboard / Login
+2. leads.html       - Lead Management
+3. projects.html    - Project Tracking + Payments + Snag List
+4. tasks.html       - Task Management
+5. followups.html   - Follow-up Tracker
+6. sheets.html      - Sheets/Reports
+7. export.html      - Data Export
+8. admin-panel.html - Admin Controls
+9. client-view.html - Client Portal (Snag List + Payments)
+
+JS FILES:
+- js/notifications.js (has TIC_NOTIF.send + loadBell logic)
+- js/userManagement.js
+
+USER ROLES:
+- superadmin, admin, manager, designer, supervisor, accounts, projectmanager
+- designer can see ALL projects (just fixed)
+- supervisor sees only assigned projects
+
+CRITICAL RULES (DO NOT BREAK):
+1. Vanilla JS only - NO React/Vue/frameworks
+2. No npm packages - no package.json exists
+3. No new CSS files - use newstyle.css only
+4. Do NOT change Firestore collection names
+5. Do NOT change image/icon paths
+6. Always provide COMPLETE file content
+7. Match camelCase naming
+
+GIT WORKFLOW:
+- Save before changes: git add . && git commit -m "save point" && git push origin main
+- Undo: git reset --hard HEAD
+- Emergency: git checkout backup-before-notifications
+
+ALREADY COMPLETED:
+✅ Fixed projects page try-catch syntax error
+✅ Designer role can access all projects
+✅ Added Snag List + Payments tabs to client portal
+✅ Removed 4 duplicate sendSnagNotification functions
+✅ Cleaned up tasks_backup.html and projects.html.bak
+✅ Created js/core/ and js/pages/ folder structure
+
+WHERE I AM NOW (CONTINUE FROM HERE):
+🔴 Notification bell visible on projects.html top-right
+🔴 Shows red badge with count
+🔴 But cannot find bell HTML in any file (grep returns empty)
+🔴 Must be injected dynamically by something
+🔴 Need to find source and fix the bell
+
+NEXT STEPS TO DO:
+1. Find where notification bell is rendered (it shows up but not in any file)
+2. Make bell work properly with click + dropdown
+3. Polish share tab styling (WhatsApp button should be green)
+4. Add GST breakdown to client portal payments tab
+5. Add notification triggers to tasks.html
+
+DO NOT TOUCH:
+- All Firestore data (real client data)
+- Existing snag list + payments in client portal (working)
+- Firebase initialization code
+- Login/authentication logic
+=======================================================
