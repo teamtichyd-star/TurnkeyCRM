@@ -862,6 +862,7 @@
     if (user) {
       // User is logged in!
       currentUser = user;
+      listenNotifications(user.email);
       await loadUserData(user.email);
     } else {
       // User is NOT logged in
