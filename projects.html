@@ -494,6 +494,14 @@
 <div class="page" id="mainPage" style="display:none">
 
   <!-- TOP ACTIONS -->
+  <div class="top-actions">
+    <h2>🏗️ Project Tracker
+      <span id="projectsCount">0 projects</span>
+    </h2>
+    <button class="btn btn-primary" onclick="openAddModal()">
+      <i class="fas fa-plus"></i> Add Project
+    </button>
+  </div>
 
   <!-- STATS -->
   <div class="proj-stats">
@@ -1463,7 +1471,6 @@
       }
       closeModal();
       await loadProjects();
-  if (typeof TIC_NOTIF !== 'undefined') TIC_NOTIF.loadBell(db, currentUserName);
     } catch (error) {
       console.error(error);
       showToast('❌ Error saving!', 'danger');
@@ -2024,7 +2031,6 @@
       await projRef.doc(deletingId).delete();
       closeDeleteModal();
       await loadProjects();
-  if (typeof TIC_NOTIF !== 'undefined') TIC_NOTIF.loadBell(db, currentUserName);
       showToast('🗑️ Project deleted!', 'danger');
     } catch (error) {
       showToast('❌ Error!', 'danger');
@@ -2261,7 +2267,6 @@
 
   // ─── INIT ───
   loadProjects();
-  if (typeof TIC_NOTIF !== 'undefined') TIC_NOTIF.loadBell(db, currentUserName);
   loadUsersDropdown();
 </script>
 <script src="js/notifications.js"></script>
