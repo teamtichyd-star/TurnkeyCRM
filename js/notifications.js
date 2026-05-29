@@ -48,6 +48,7 @@ const TIC_NOTIF = {
       });
 
       console.log('✅ Notification sent to', toUserName, '(' + userEmail + ')');
+      try { if (typeof listenNotifications === 'function') listenNotifications(userEmail); if (window.parent && window.parent.listenNotifications) window.parent.listenNotifications(userEmail); } catch(e) {}
     } catch(e) {
       console.warn('TIC_NOTIF send failed:', e);
     }
