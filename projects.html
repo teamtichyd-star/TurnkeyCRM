@@ -1460,7 +1460,7 @@
         projData.updates   = [];
         projData.snags     = [];
         await projRef.add(projData);
-        await sendNotificationToAll('🏗️ New Project Added', projData.name + ' (Client: ' + projData.client + ')');
+        // await sendNotificationToAll('🏗️ New Project Added', projData.name + ' (Client: ' + projData.client + ')');
         showToast('✅ Project saved to Firebase!', 'success');
         // Notify assigned manager
         if (projData.manager) {
