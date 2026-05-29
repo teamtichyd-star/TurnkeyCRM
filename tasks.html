@@ -914,10 +914,12 @@
     try {
       if (editingId) {
         await tasksRef.doc(editingId).update(taskData);
+        if (taskData.assignedTo) await TIC_NOTIF.send(db, taskData.assignedTo, '📝 Task updated: ' + (taskData.title || taskData.task || 'Task'), 'task', 'tasks.html');
         showToast('✅ Task updated in database!', 'success');
       } else {
         taskData.createdAt = new Date().toISOString();
         await tasksRef.add(taskData);
+        if (taskData.assignedTo) await TIC_NOTIF.send(db, taskData.assignedTo, '✅ New task assigned: ' + (taskData.title || taskData.task || 'Task'), 'task', 'tasks.html');
         showToast('✅ Task saved to database!', 'success');
       }
 

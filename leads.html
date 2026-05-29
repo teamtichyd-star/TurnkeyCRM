@@ -898,11 +898,13 @@
     try {
       if (editingId) {
         await leadsRef.doc(editingId).update(leadData);
+        if (leadData.assignedTo) await TIC_NOTIF.send(db, leadData.assignedTo, '👤 Lead updated: ' + (leadData.name || 'Lead'), 'lead', 'leads.html');
         showToast('✅ Lead updated!', 'success');
       } else {
         leadData.date      = new Date().toISOString().split('T')[0];
         leadData.createdAt = new Date().toISOString();
         await leadsRef.add(leadData);
+        if (leadData.assignedTo) await TIC_NOTIF.send(db, leadData.assignedTo, '👤 New lead assigned: ' + (leadData.name || 'Lead'), 'lead', 'leads.html');
         showToast('✅ Lead saved to Firebase!', 'success');
       }
       closeModal();

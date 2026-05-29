@@ -1036,6 +1036,17 @@ if (role === "supervisor") {
 
   // ─── NOTIFICATIONS LISTENER ───
   async function listenNotifications(userEmail) {
+    if (window._notifUnsub) window._notifUnsub();
+    window._notifUnsub = db.collection('notifications').where('to','==',userEmail).where('read','==',false).onSnapshot(snap => {
+      const count = snap.size;
+      const badge = document.getElementById('notifCount');
+      const bell = document.getElementById('bellIcon');
+      if (badge) {
+        if (count > 0) { badge.textContent = count; badge.style.display = 'flex'; if (bell) bell.style.color = 'var(--primary)'; }
+        else { badge.style.display = 'none'; if (bell) bell.style.color = 'var(--subtext)'; }
+      }
+    });
+    return;
     try {
       const snap = await db.collection('notifications')
         .where('to', '==', userEmail)
