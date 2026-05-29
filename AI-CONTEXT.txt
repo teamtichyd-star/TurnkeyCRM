@@ -80,3 +80,37 @@ COMPLETED TODAY:
 PENDING POLISH:
 - Client portal: GST breakdown missing in payments tab
 - Share tab: WhatsApp button green styling not applying
+
+=======================================================
+HANDOVER NOTE - SESSION ENDING
+Date: [Today's Date]
+=======================================================
+
+LAST COMPLETED:
+- Fixed projects page try-catch error ✅
+- Designer role can access all projects ✅
+- Added Snag List + Payments tabs to client portal ✅
+- Removed 4 duplicate sendSnagNotification functions ✅
+- Found: OneSignal blocked by CORS (cannot use frontend)
+- Chose: Build proper in-app notification system
+
+CURRENT WORK IN PROGRESS:
+- Notification bell visible top-right next to "Mustaq"
+- But notification system not working properly
+- Existing notifications.js has full logic (send, loadBell)
+- TIC_NOTIF.send() is called 4 times in projects.html
+- Bell HTML exists somewhere but cannot find in any file
+- Need to: Find where bell is rendered + activate loadBell
+
+PENDING TASKS:
+1. Find and fix notification bell (currently broken)
+2. Polish share tab styling (WhatsApp green button)
+3. Client portal GST breakdown in payments
+4. Add notification triggers to tasks.html
+
+DO NOT TOUCH (working fine):
+- All projects/leads/tasks data
+- Firebase config
+- Existing tab structures
+- Snag List + Payments in client portal
+=======================================================
