@@ -621,6 +621,7 @@
 
     try {
       await db.collection('projects').doc(projectId).update({ snags: projectData.snags });
+      if (projectData.manager) await TIC_NOTIF.send(db, projectData.manager, '⚠️ New snag added by client in: ' + (projectData.name || 'project') + ' · ' + desc, 'snag', 'projects.html');
       closeSnagModal();
       loadClientSnags(projectData);
     } catch(e) { console.error("Error saving snag:", e); }
