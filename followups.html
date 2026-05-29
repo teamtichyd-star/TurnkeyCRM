@@ -953,10 +953,12 @@
     try {
       if (editingId) {
         await fuRef.doc(editingId).update(fuData);
+        if (fuData.assignedTo) await TIC_NOTIF.send(db, fuData.assignedTo, '📞 Followup updated: ' + fuData.name, 'followup', 'followups.html');
         showToast('✅ Follow-up updated in database!', 'success');
       } else {
         fuData.createdAt = new Date().toISOString();
         await fuRef.add(fuData);
+        if (fuData.assignedTo) await TIC_NOTIF.send(db, fuData.assignedTo, '📞 New followup assigned: ' + fuData.name + ' on ' + fuData.date, 'followup', 'followups.html');
         showToast('✅ Follow-up saved to database!', 'success');
       }
       closeModal();
