@@ -1,8 +1,9 @@
 =======================================================
 TURNKEY CRM — AI CONTEXT FILE
 =======================================================
-Last Updated: [UPDATE DATE EVERY SESSION]
-Current Session Working On: [UPDATE EVERY SESSION]
+Last Updated: 31 May 2025
+Current Session Working On: Notification System (Web Push)
+Next Session Should Start With: Test push reliability on mobile
 =======================================================
 
 PROJECT OVERVIEW:
@@ -10,6 +11,7 @@ PROJECT OVERVIEW:
 - Type: Construction/Real Estate CRM
 - Live URL: https://teamtichyd-star.github.io/TurnkeyCRM/
 - GitHub: https://github.com/teamtichyd-star/TurnkeyCRM
+- Local Path: /Users/haritalla/Desktop/TIC/CRMLocal/TurnkeyCRM
 - Hosting: GitHub Pages (static — NO server-side code)
 - Status: LIVE APP WITH REAL DATA — Be careful with changes
 
@@ -17,12 +19,16 @@ TECH STACK:
 - Frontend: Vanilla HTML, CSS, JavaScript (NO React, NO Vue)
 - Database: Firebase Firestore
 - Auth: Firebase Authentication
-- Notifications: OneSignal Push Notifications
+- Notifications: In-app (Firestore) + Web Push (browser native)
 - PWA: Yes (manifest.json + sw.js)
 - CSS: newstyle.css (ONE shared stylesheet)
 
+FIREBASE:
+- Project ID: turnkeycrm-ce7b8
+- App ID: 9bc49e74-801f-4ffb-ab7e-ea78ba2f1089
+
 PAGES IN THE APP:
-1. index.html       → Dashboard / Login
+1. index.html       → Dashboard / Login + Parent shell (bell lives here)
 2. leads.html       → Lead Management
 3. projects.html    → Project Tracking + Payments + Snag List
 4. tasks.html       → Task Management
@@ -31,6 +37,10 @@ PAGES IN THE APP:
 7. export.html      → Data Export
 8. admin-panel.html → Admin Controls
 9. client-view.html → Client Portal (Snag List + Payments)
+
+KEY JS FILES:
+- js/notifications.js → TIC_NOTIF engine (in-app + web push)
+- js/userManagement.js
 
 RULES FOR ALL AIs — FOLLOW STRICTLY:
 1. Vanilla JS ONLY — No React, Vue or any framework
@@ -45,72 +55,150 @@ RULES FOR ALL AIs — FOLLOW STRICTLY:
 10. Do NOT change any Firestore collection or document names
 11. Do NOT change image or icon paths
 12. Images and icons are in ROOT folder — do not move them
+13. ALWAYS backup before changes: git add . && git commit -m "save point" && git push
+
+USER ROLES:
+- superadmin, admin, manager, designer, supervisor, accounts, projectmanager
+- Designer can see ALL projects
+- Supervisor sees only assigned
 
 CURRENT MODULE STATUS:
-- Dashboard:      [complete/in-progress/not-started]
-- Leads:          [complete/in-progress/not-started]
-- Projects:       [complete/in-progress/not-started]
-- Tasks:          [complete/in-progress/not-started]
-- Follow-ups:     [complete/in-progress/not-started]
-- Sheets:         [complete/in-progress/not-started]
-- Export:         [complete/in-progress/not-started]
-- Admin Panel:    [complete/in-progress/not-started]
-- Client Portal:  [complete/in-progress/not-started]
-- Notifications:  [complete/in-progress/not-started]
+- Dashboard:      complete
+- Leads:          complete (notifications added)
+- Projects:       complete (notifications added)
+- Tasks:          complete (notifications added)
+- Follow-ups:     complete (notifications added)
+- Sheets:         complete
+- Export:         complete
+- Admin Panel:    complete
+- Client Portal:  complete (snag notifications added)
+- Notifications:  complete (in-app + web push, push intermittent on mobile)
 
-FIREBASE COLLECTIONS (DO NOT RENAME):
-- [fill your actual collection names here]
+FIRESTORE COLLECTIONS (DO NOT RENAME):
+- users               → name, email, role, notifications[]
+- leads               → name, phone, status, assignedTo
+- projects            → name, client, manager, snags[], updates[]
+- tasks               → title, assignedTo, status
+- followups           → name, date, assignedTo
+- notifications       → to, toName, title, body, type, link, read, createdAt
 
-KNOWN ISSUES (update every session):
-- [List current bugs here]
+=======================================================
+NOTIFICATION SYSTEM (FULLY DOCUMENTED)
+=======================================================
 
-LAST SESSION SUMMARY (update before switching AI):
-- What was done:   [fill this]
-- What is next:    [fill this]
-- Files modified:  [fill this]
+✅ HOW IT WORKS:
+- Call TIC_NOTIF.send(db, userName, message, type, link)
+- Auto-resolves userName → email via users collection
+- Writes to 'notifications' collection
+- Bell badge updates real-time (onSnapshot listener)
+- OS notification fires if Notification.permission granted
 
+📍 WHERE TIC_NOTIF.send IS CALLED:
+- projects.html (4 places): new project, update, manager assign, snag
+- tasks.html (2 places): new + update
+- leads.html (2 places): new + update
+- followups.html (2 places): new + update
+- client-view.html (1 place): client adds snag → notify project manager
+
+🔔 BELL HTML LOCATION:
+- File: index.html (parent shell, NOT in iframes)
+- Element IDs: notifBell, bellIcon, notifCount
+- Click handler: showNotifications()
+- Real-time listener: listenNotifications(userEmail) using onSnapshot
+- Variable: window._notifUnsub (unsubscribe handle)
+
+🎯 WEB PUSH (OS NOTIFICATIONS):
+- Permission button: enablePushNotifications() in index.html
+- Uses service worker: navigator.serviceWorker.ready.showNotification()
+- Service worker file: sw.js (handles notification clicks)
+- Icon URL: https://teamtichyd-star.github.io/TurnkeyCRM/icon-192.png
+- Sound + vibration: vibrate: [300, 100, 300, 100, 300]
+
+📌 RESTORE POINTS (git tags):
+- v1-notifications-complete = stable in-app only
+- v2-webpush-stable = current (web push added)
+- working-notifications-v1 = early stable
+- stable-no-bell = before any bell work
+
+KNOWN ISSUES:
+- Web push fires intermittently on mobile (works sometimes, not always)
+- Suspected: service worker cache, OS battery saver, PWA not installed
+- iOS requires PWA install + iOS 16.4+
+- "Fetch event handler no-op" warnings = harmless service worker warning
+- OneSignal old code disabled (commented out) but still in files
+
+=======================================================
 PENDING UI FIXES:
-- Share tab: WhatsApp button should be green, Email button should be blue (currently showing as plain underlined links)
-
-COMPLETED TODAY:
-- Fixed projects page (try-catch syntax error)
-- Added Snag List tab to client portal (client can add/edit/delete snags)
-- Added Payments tab to client portal (shows total, due, receipts)
-
-PENDING POLISH:
+=======================================================
+- Share tab: WhatsApp button should be green, Email button should be blue
 - Client portal: GST breakdown missing in payments tab
 - Share tab: WhatsApp button green styling not applying
 
 =======================================================
-HANDOVER NOTE - SESSION ENDING
-Date: [Today's Date]
+COMPLETED IN PREVIOUS SESSIONS:
+=======================================================
+- Fixed projects page (try-catch syntax error)
+- Designer role can access all projects
+- Added Snag List + Payments tabs to client portal
+- Removed 4 duplicate sendSnagNotification functions
+- Built complete notification system (in-app + web push)
+- Real-time bell updates via onSnapshot
+- Auto mark-read on bell click
+- Logo on push notifications
+
+=======================================================
+TODO / NEXT SESSION:
 =======================================================
 
-LAST COMPLETED:
-- Fixed projects page try-catch error ✅
-- Designer role can access all projects ✅
-- Added Snag List + Payments tabs to client portal ✅
-- Removed 4 duplicate sendSnagNotification functions ✅
-- Found: OneSignal blocked by CORS (cannot use frontend)
-- Chose: Build proper in-app notification system
+🔴 PRIORITY - DEBUG NOTIFICATIONS:
+- [ ] Test why mobile push fails sometimes
+- [ ] Verify service worker properly registered on each device
+- [ ] Add console logs to track notification flow
+- [ ] Test with PWA installed vs browser tab
+- [ ] Check phone battery optimization settings
+- [ ] Document working/non-working scenarios
 
-CURRENT WORK IN PROGRESS:
-- Notification bell visible top-right next to "Mustaq"
-- But notification system not working properly
-- Existing notifications.js has full logic (send, loadBell)
-- TIC_NOTIF.send() is called 4 times in projects.html
-- Bell HTML exists somewhere but cannot find in any file
-- Need to: Find where bell is rendered + activate loadBell
+🟡 PENDING UI:
+- [ ] WhatsApp button green (share tab)
+- [ ] Email button blue (share tab)
+- [ ] GST breakdown in client portal payments
+- [ ] Notification action buttons (Mark Done, Open)
 
-PENDING TASKS:
-1. Find and fix notification bell (currently broken)
-2. Polish share tab styling (WhatsApp green button)
-3. Client portal GST breakdown in payments
-4. Add notification triggers to tasks.html
+🟢 FUTURE (LARGER WORK):
+- [ ] Real WhatsApp-like push when app closed
+  → Requires Firebase Cloud Functions (Blaze plan)
+  → Free tier sufficient for normal usage
+  → Requires credit card on file
+- [ ] Capacitor wrap → Play Store deployment
+- [ ] Native FCM for true background notifications
 
-DO NOT TOUCH (working fine):
-- All projects/leads/tasks data
-- Firebase config
-- Existing tab structures
-- Snag List + Payments in client portal
+=======================================================
+GIT WORKFLOW:
+=======================================================
+SAVE WORK:
+  git add . && git commit -m "description" && git push origin main
+
+UNDO UNSAVED CHANGES:
+  git reset --hard HEAD
+
+ROLLBACK LAST COMMIT:
+  git reset --hard HEAD~1 && git push origin main --force
+
+RESTORE STABLE POINT:
+  git checkout v2-webpush-stable
+
+TERMINAL SHORTCUT (set once):
+  echo 'alias crm="cd ~/Desktop/TIC/CRMLocal/TurnkeyCRM"' >> ~/.zshrc
+  source ~/.zshrc
+  Then just type 'crm' from anywhere
+
+=======================================================
+DEBUGGING TIPS:
+=======================================================
+- Bell not updating? → Check listenNotifications() called on login
+- Notification not sending? → Check Firestore 'notifications' collection
+- Web push not firing? → Check Notification.permission === 'granted'
+- Service worker cached? → Chrome → site settings → clear & reset
+- Check console for: "✅ Notification sent to..." (confirms TIC_NOTIF works)
+
 =======================================================
