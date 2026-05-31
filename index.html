@@ -484,10 +484,6 @@
         <i class="fas fa-bell" style="font-size:17px; color:var(--subtext)" id="bellIcon"></i>
         <span id="notifCount" style="display:none; position:absolute; top:-4px; right:-4px; background:var(--danger); color:white; border-radius:50%; min-width:18px; height:18px; font-size:11px; align-items:center; justify-content:center; font-weight:700; padding:0 4px"></span>
       </div>
-      <button id="telegramBtn" onclick="showTelegramSetup()" title="Enable Telegram Mobile Alerts"
-        style="background:rgba(40,167,235,0.15); border:1px solid rgba(40,167,235,0.3); color:#28a7eb; padding:6px 12px; border-radius:8px; cursor:pointer; font-size:12px; gap:5px; align-items:center; display:flex; margin-right:6px">
-        <i class="fab fa-telegram"></i> Mobile
-      </button>
       <button id="enableNotifBtn" onclick="initNotifications(currentUser?.email)" 
         style="display:none; background:rgba(200,169,110,0.15); border:1px solid rgba(200,169,110,0.3); color:var(--primary); padding:6px 12px; border-radius:8px; cursor:pointer; font-size:12px; gap:5px; align-items:center">
         <i class="fas fa-bell"></i> Enable Alerts
@@ -1851,125 +1847,6 @@ if (role === "supervisor") {
   </div>
 </div>
 
-
-<!-- TELEGRAM SETUP MODAL -->
-<div id="telegramModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:99999; align-items:center; justify-content:center;">
-  <div style="background:var(--card); border-radius:16px; padding:24px; max-width:420px; width:90%; border:1px solid var(--border);">
-    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
-      <h3 style="color:#28a7eb; font-size:16px;"><i class="fab fa-telegram"></i> Enable Mobile Alerts</h3>
-      <button onclick="closeTelegramModal()" style="background:none; border:none; color:var(--subtext); font-size:20px; cursor:pointer;">&times;</button>
-    </div>
-    <div id="telegramStep1">
-      <p style="color:var(--subtext); font-size:13px; margin-bottom:14px;">Get instant CRM alerts on your phone via Telegram. Free, takes 30 seconds.</p>
-      <ol style="color:var(--text); font-size:13px; line-height:1.8; padding-left:20px; margin-bottom:16px;">
-        <li>Click "Open Telegram" below</li>
-        <li>Click <b>START</b> in Telegram</li>
-        <li>Come back and click <b>Verify</b></li>
-      </ol>
-      <a id="telegramLink" href="#" target="_blank" onclick="markTelegramOpened()"
-        style="display:block; background:#28a7eb; color:white; text-align:center; padding:12px; border-radius:8px; text-decoration:none; font-weight:600; margin-bottom:10px;">
-        <i class="fab fa-telegram"></i> Open Telegram Bot
-      </a>
-      <button id="verifyTelegramBtn" onclick="verifyTelegram()" disabled
-        style="width:100%; background:var(--primary); color:white; border:none; padding:12px; border-radius:8px; cursor:pointer; font-weight:600; opacity:0.5;">
-        Verify Activation
-      </button>
-      <p id="telegramStatus" style="color:var(--subtext); font-size:12px; margin-top:10px; text-align:center;"></p>
-    </div>
-    <div id="telegramStep2" style="display:none;">
-      <div style="text-align:center; padding:20px;">
-        <div style="font-size:48px; margin-bottom:10px;">✅</div>
-        <h4 style="color:var(--success); margin-bottom:10px;">Telegram Activated!</h4>
-        <p style="color:var(--subtext); font-size:13px;">You will now receive all CRM notifications on your phone.</p>
-        <button onclick="closeTelegramModal()" style="margin-top:16px; background:var(--primary); color:white; border:none; padding:10px 24px; border-radius:8px; cursor:pointer;">Done</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script>
-let telegramSetupCode = null;
-let telegramOpened = false;
-
-async function showTelegramSetup() {
-  if (!currentUser?.email) { alert('Please login first'); return; }
-  document.getElementById('telegramModal').style.display = 'flex';
-  document.getElementById('telegramStep1').style.display = 'block';
-  document.getElementById('telegramStep2').style.display = 'none';
-  document.getElementById('verifyTelegramBtn').disabled = true;
-  document.getElementById('verifyTelegramBtn').style.opacity = '0.5';
-  document.getElementById('telegramStatus').textContent = '';
-  telegramOpened = false;
-
-  // Generate code
-  const result = await TIC_NOTIF.generateTelegramCode(db, currentUser.email);
-  telegramSetupCode = result.code;
-  document.getElementById('telegramLink').href = result.link;
-}
-
-function markTelegramOpened() {
-  telegramOpened = true;
-  document.getElementById('verifyTelegramBtn').disabled = false;
-  document.getElementById('verifyTelegramBtn').style.opacity = '1';
-  document.getElementById('telegramStatus').textContent = 'After clicking START in Telegram, come back and click Verify.';
-}
-
-async function verifyTelegram() {
-  const btn = document.getElementById('verifyTelegramBtn');
-  const status = document.getElementById('telegramStatus');
-  btn.disabled = true;
-  btn.textContent = 'Verifying...';
-  status.textContent = '';
-
-  try {
-    // Poll Telegram for the START command with our code
-    const TOKEN = '8924563406:AAHBxnGEHMb08bSXha_K1F-UZtFqZqNr3AA';
-    const res = await fetch('https://api.telegram.org/bot' + TOKEN + '/getUpdates');
-    const data = await res.json();
-
-    let chatId = null;
-    if (data.ok && data.result) {
-      // Look for /start CODE message
-      for (const update of data.result) {
-        if (update.message?.text === '/start ' + telegramSetupCode) {
-          chatId = update.message.chat.id;
-          break;
-        }
-      }
-    }
-
-    if (!chatId) {
-      status.textContent = '❌ Not detected. Did you click START in Telegram?';
-      btn.disabled = false;
-      btn.textContent = 'Verify Activation';
-      return;
-    }
-
-    // Save chatId to telegram_codes doc
-    await db.collection('telegram_codes').doc(telegramSetupCode).update({ chatId: chatId });
-
-    // Verify (saves chatId to user record + sends welcome msg)
-    const result = await TIC_NOTIF.verifyTelegramCode(db, currentUser.email, telegramSetupCode);
-
-    if (result.success) {
-      document.getElementById('telegramStep1').style.display = 'none';
-      document.getElementById('telegramStep2').style.display = 'block';
-    } else {
-      status.textContent = '❌ ' + (result.error || 'Verification failed');
-      btn.disabled = false;
-      btn.textContent = 'Verify Activation';
-    }
-  } catch(e) {
-    status.textContent = '❌ Error: ' + e.message;
-    btn.disabled = false;
-    btn.textContent = 'Verify Activation';
-  }
-}
-
-function closeTelegramModal() {
-  document.getElementById('telegramModal').style.display = 'none';
-}
-</script>
 
 </body>
 </html>

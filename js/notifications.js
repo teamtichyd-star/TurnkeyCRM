@@ -1,10 +1,5 @@
 // ─── TURNKEY CRM · NOTIFICATIONS ENGINE ───
 // Shared across all pages via <script src="js/notifications.js">
-// Writes to 'notifications' collection (matches index.html bell reader)
-// Also sends to Telegram if user has telegramChatId
-
-const TELEGRAM_BOT_TOKEN = '8924563406:AAHBxnGEHMb08bSXha_K1F-UZtFqZqNr3AA';
-const TELEGRAM_BOT_USERNAME = 'TurnkeyCRM_Alerts_Bot';
 
 const TIC_NOTIF = {
 
@@ -21,7 +16,6 @@ const TIC_NOTIF = {
 
       const userData = userSnap.docs[0].data();
       const userEmail = userData.email;
-      const telegramChatId = userData.telegramChatId;
 
       if (!userEmail) {
         console.warn('TIC_NOTIF: user has no email:', toUserName);
@@ -35,6 +29,7 @@ const TIC_NOTIF = {
       const icon = icons[type] || '🔔';
       const title = icon + ' ' + (type ? type.charAt(0).toUpperCase() + type.slice(1) : 'Notification');
 
+      // Save to Firestore (in-app bell + triggers web push via FCM token)
       await db.collection('notifications').add({
         to: userEmail,
         toName: toUserName,
@@ -46,12 +41,17 @@ const TIC_NOTIF = {
         createdAt: new Date().toISOString()
       });
 
-      console.log('✅ In-app notification sent to', toUserName);
+      console.log('✅ Notification sent to', toUserName);
 
-      if (telegramChatId) {
-        await TIC_NOTIF.sendTelegram(telegramChatId, title + '\n\n' + message, link);
+      // Trigger local web push if recipient has token & is online
+      if (userData.fcmToken) {
+        // Note: real push needs cloud function; for now show local notification if same user
+        if (typeof currentUser !== 'undefined' && currentUser?.email === userEmail) {
+          TIC_NOTIF.showLocalNotification(title, message, link);
+        }
       }
 
+      // Auto-refresh bell
       try {
         if (typeof listenNotifications === 'function') listenNotifications(userEmail);
         if (window.parent && window.parent.listenNotifications) window.parent.listenNotifications(userEmail);
@@ -61,57 +61,38 @@ const TIC_NOTIF = {
     }
   },
 
-  async sendTelegram(chatId, text, link) {
+  // Show OS-level notification (works when tab open/background)
+  showLocalNotification(title, body, link) {
+    if (!('Notification' in window)) return;
+    if (Notification.permission !== 'granted') return;
     try {
-      const url = 'https://api.telegram.org/bot' + TELEGRAM_BOT_TOKEN + '/sendMessage';
-      const body = {
-        chat_id: chatId,
-        text: text + (link ? '\n\n🔗 https://teamtichyd-star.github.io/TurnkeyCRM/' + link : ''),
-        parse_mode: 'HTML',
-        disable_web_page_preview: true
-      };
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
+      const n = new Notification(title, {
+        body: body,
+        icon: 'https://teamtichyd-star.github.io/TurnkeyCRM/icon-192.png',
+        badge: 'https://teamtichyd-star.github.io/TurnkeyCRM/icon-192.png',
+        tag: 'tic-' + Date.now(),
+        requireInteraction: false
       });
-      if (res.ok) console.log('📱 Telegram sent to', chatId);
-      else console.warn('Telegram failed:', await res.text());
-    } catch(e) {
-      console.warn('Telegram send error:', e);
+      n.onclick = () => {
+        window.focus();
+        if (link) window.location.href = link;
+        n.close();
+      };
+    } catch(e) { console.warn('Local notification failed:', e); }
+  },
+
+  // Request notification permission
+  async requestPermission() {
+    if (!('Notification' in window)) {
+      alert('Your browser does not support notifications');
+      return false;
     }
-  },
-
-  async generateTelegramCode(db, userEmail) {
-    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-    await db.collection('telegram_codes').doc(code).set({
-      email: userEmail,
-      createdAt: new Date().toISOString(),
-      used: false
-    });
-    return {
-      code: code,
-      link: 'https://t.me/' + TELEGRAM_BOT_USERNAME + '?start=' + code
-    };
-  },
-
-  async verifyTelegramCode(db, userEmail, code) {
-    const doc = await db.collection('telegram_codes').doc(code.toUpperCase()).get();
-    if (!doc.exists) return { success: false, error: 'Invalid code' };
-    const data = doc.data();
-    if (data.email !== userEmail) return { success: false, error: 'Code belongs to different user' };
-    if (!data.chatId) return { success: false, error: 'Please click START in the bot first' };
-
-    const userSnap = await db.collection('users').where('email','==',userEmail).limit(1).get();
-    if (userSnap.empty) return { success: false, error: 'User not found' };
-    await db.collection('users').doc(userSnap.docs[0].id).update({
-      telegramChatId: data.chatId,
-      telegramActivatedAt: new Date().toISOString()
-    });
-
-    await TIC_NOTIF.sendTelegram(data.chatId,
-      '✅ <b>Telegram alerts activated!</b>\n\nYou will now receive instant notifications from TurnkeyCRM.', '');
-
-    return { success: true };
+    if (Notification.permission === 'granted') return true;
+    if (Notification.permission === 'denied') {
+      alert('Notifications blocked. Please enable in browser settings.');
+      return false;
+    }
+    const result = await Notification.requestPermission();
+    return result === 'granted';
   }
 };
