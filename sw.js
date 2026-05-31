@@ -39,8 +39,8 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title || 'TurnkeyCRM', {
       body: data.body || '',
-      icon: 'icon-192.png',
-      badge: 'icon-192.png',
+      icon: 'https://teamtichyd-star.github.io/TurnkeyCRM/icon-192.png',
+      badge: 'https://teamtichyd-star.github.io/TurnkeyCRM/icon-192.png',
       vibrate: [300, 100, 300],
       requireInteraction: true,
       data: data
