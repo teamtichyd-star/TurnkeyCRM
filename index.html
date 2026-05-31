@@ -484,7 +484,7 @@
         <i class="fas fa-bell" style="font-size:17px; color:var(--subtext)" id="bellIcon"></i>
         <span id="notifCount" style="display:none; position:absolute; top:-4px; right:-4px; background:var(--danger); color:white; border-radius:50%; min-width:18px; height:18px; font-size:11px; align-items:center; justify-content:center; font-weight:700; padding:0 4px"></span>
       </div>
-      <button id="enableNotifBtn" onclick="initNotifications(currentUser?.email)" 
+      <button id="enableNotifBtn" onclick="enablePushNotifications()" 
         style="display:none; background:rgba(200,169,110,0.15); border:1px solid rgba(200,169,110,0.3); color:var(--primary); padding:6px 12px; border-radius:8px; cursor:pointer; font-size:12px; gap:5px; align-items:center">
         <i class="fas fa-bell"></i> Enable Alerts
       </button>
@@ -1038,6 +1038,8 @@ if (role === "supervisor") {
   // ─── NOTIFICATIONS LISTENER ───
   async function listenNotifications(userEmail) {
     if (window._notifUnsub) window._notifUnsub();
+    let isFirstLoad = true;
+    let lastIds = new Set();
     window._notifUnsub = db.collection('notifications').where('to','==',userEmail).where('read','==',false).onSnapshot(snap => {
       const count = snap.size;
       const badge = document.getElementById('notifCount');
@@ -1046,6 +1048,35 @@ if (role === "supervisor") {
         if (count > 0) { badge.textContent = count; badge.style.display = 'flex'; if (bell) bell.style.color = 'var(--primary)'; }
         else { badge.style.display = 'none'; if (bell) bell.style.color = 'var(--subtext)'; }
       }
+      // Show OS notification for NEW items only (skip first load)
+      if (!isFirstLoad && Notification.permission === 'granted') {
+        snap.docChanges().forEach(change => {
+          if (change.type === 'added') {
+            const n = change.doc.data();
+            if (!lastIds.has(change.doc.id)) {
+              try {
+                const notif = new Notification(n.title || 'TurnkeyCRM', {
+                  body: n.body || '',
+                  icon: 'icon-192.png',
+                  badge: 'icon-192.png',
+                  tag: change.doc.id,
+                  requireInteraction: false,
+                  vibrate: [200, 100, 200]
+                });
+                notif.onclick = () => {
+                  window.focus();
+                  if (n.link) window.location.href = n.link;
+                  notif.close();
+                };
+                // Play sound
+                try { new Audio('data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQwAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAACAAACAAAEhIIAAEKBJI7gBnLQEh1MZrlRkRBP+xNAFKEAcKLBVAAAAA==').play(); } catch(e) {}
+              } catch(e) { console.warn('Notification error:', e); }
+            }
+          }
+        });
+      }
+      snap.docs.forEach(d => lastIds.add(d.id));
+      isFirstLoad = false;
     });
     return;
     try {
@@ -1847,6 +1878,51 @@ if (role === "supervisor") {
   </div>
 </div>
 
+
+
+<script>
+async function enablePushNotifications() {
+  if (!('Notification' in window)) {
+    alert('Your browser does not support notifications');
+    return;
+  }
+  if (Notification.permission === 'granted') {
+    alert('✅ Notifications already enabled!');
+    document.getElementById('enableNotifBtn').style.display = 'none';
+    return;
+  }
+  if (Notification.permission === 'denied') {
+    alert('❌ Notifications blocked. Please enable in browser Settings → Site Settings → Notifications.');
+    return;
+  }
+  const result = await Notification.requestPermission();
+  if (result === 'granted') {
+    alert('✅ Notifications enabled! You will now get popup alerts.');
+    document.getElementById('enableNotifBtn').style.display = 'none';
+    // Test notification
+    new Notification('TurnkeyCRM', {
+      body: 'Notifications are now active! 🎉',
+      icon: 'icon-192.png'
+    });
+  } else {
+    alert('Notifications were not enabled.');
+  }
+}
+
+// Auto-show "Enable" button if permission not granted
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      const btn = document.getElementById('enableNotifBtn');
+      if (btn) btn.style.display = 'flex';
+    }
+    if ('Notification' in window && Notification.permission === 'granted') {
+      const btn = document.getElementById('enableNotifBtn');
+      if (btn) btn.style.display = 'none';
+    }
+  }, 2000);
+});
+</script>
 
 </body>
 </html>
