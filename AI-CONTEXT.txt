@@ -1,8 +1,8 @@
 =======================================================
 TURNKEY CRM — AI CONTEXT FILE
 =======================================================
-Last Updated: 31 May 2025
-Current Session Working On: Notification System (Web Push)
+Last Updated: 01 June 2026
+Current Session Working On: Ready for next task
 Next Session Should Start With: Test push reliability on mobile
 =======================================================
 
@@ -72,7 +72,7 @@ CURRENT MODULE STATUS:
 - Export:         complete
 - Admin Panel:    complete
 - Client Portal:  complete (snag notifications added)
-- Notifications:  complete (in-app + web push, push intermittent on mobile)
+- Notifications:  complete (in-app + web push; mobile shows white silhouette in status bar - Android PWA limitation, not bug)
 
 FIRESTORE COLLECTIONS (DO NOT RENAME):
 - users               → name, email, role, notifications[]
