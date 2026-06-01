@@ -2,7 +2,7 @@
 TURNKEY CRM — AI CONTEXT FILE
 =======================================================
 Last Updated: 01 June 2026
-Current Session Working On: Ready for next task
+Current Session Working On: Google Ads -> CRM Lead Integration (IN PROGRESS)
 Next Session Should Start With: Test push reliability on mobile
 =======================================================
 
@@ -200,5 +200,75 @@ DEBUGGING TIPS:
 - Web push not firing? → Check Notification.permission === 'granted'
 - Service worker cached? → Chrome → site settings → clear & reset
 - Check console for: "✅ Notification sent to..." (confirms TIC_NOTIF works)
+
+=======================================================
+
+
+=======================================================
+SESSION UPDATE - 01 June 2026
+=======================================================
+
+WORKING ON: Google Ads Lead Form -> CRM Auto-Integration
+
+PROGRESS:
+- Decided: Zapier (Option E) - extend existing Google Ads -> Telegram zap
+- Added Firebase Firestore action to Zap (3rd step)
+- Test sent record to Firestore successfully
+- BUT broke leads page (missing fields error)
+- Discovered 90+ existing leads also missing 'assignedTo' field
+- FIXED: Added empty defaults to all existing leads
+- DELETED: Bad Zapier test lead (QhXIsDZrq8ZnK7zsMpue)
+- Leads page working again
+
+WHERE TO RESUME:
+- Zapier Firebase action is configured but NOT published
+- Need to: properly map ALL required fields in Zapier
+- Need to: test again with safe defaults
+- Need to: add notification trigger when lead created via Zapier
+
+REQUIRED LEAD FIELDS (from leads.html saveLead function):
+- name (required)
+- phone (required)
+- email
+- company
+- projectType
+- location
+- budget
+- source
+- status (default: 'New')
+- followupDate
+- followupNote
+- assignedTo (default: 'Mustaq')
+- area
+- notes
+- date
+- createdAt
+- updatedAt
+
+ASSIGNMENT RULE:
+- All Google Ads leads -> assignedTo: "Mustaq" (manager role)
+- Mustaq email: admin@sbinteriorsolutions.net
+
+LEAD SOURCE FORMAT FROM TELEGRAM:
+- Name + Last Name -> combine into 'name'
+- Phone -> phone (strip country code if present)
+- Email -> email
+- Requirements -> notes
+- Form Name -> source as "Google Ads - [Form Name]"
+- Submitted date -> date field
+
+PENDING NEXT SESSION:
+1. Re-configure Zapier Firebase action with ALL fields mapped
+2. Use empty strings for blank fields (NOT undefined)
+3. Test once - verify leads page works
+4. Add: When Zapier creates lead -> also write to 'notifications' collection
+   so Mustaq gets bell notification
+5. Then publish Zap
+6. Later: add notifications to other pages from PENDING UI section
+
+CRITICAL LEARNING:
+- Firestore documents from Zapier MUST have ALL fields with proper types
+- Missing field = undefined = breaks .toLowerCase() in filterLeads
+- Always send empty string '' instead of leaving field out
 
 =======================================================
