@@ -272,3 +272,69 @@ CRITICAL LEARNING:
 - Always send empty string '' instead of leaving field out
 
 =======================================================
+
+=======================================================
+SESSION UPDATE - 03 June 2026
+=======================================================
+
+✅ COMPLETED: Google Ads -> Zapier -> CRM Integration LIVE!
+
+ARCHITECTURE (FREE PLAN OPTIMIZED):
+- Zap 1: "Tic leads to telegram" (existing)
+    Google Ads -> Telegram alert (1 task)
+- Zap 2: "Google Ads to CRM" (NEW, LIVE)
+    Google Ads -> Firestore 'leads' collection (1 task)
+- Total: 2 tasks per lead = 50 leads/month FREE
+
+ZAPIER FIELD MAPPING (Zap 2):
+- name: Full Name
+- phone: Phone Number (raw, with +91)
+- notes: Could You Tell Us More About Your Project
+- source: "Google Ads" (hardcoded)
+- status: "New" (hardcoded)
+- assignedTo: "Mustaq" (hardcoded)
+- email: (empty space - form has email but not required)
+- 8 other empty fields skipped (CRM auto-fills)
+- date/createdAt/updatedAt: skipped (CRM auto-fills)
+
+CRM PATCH (leads.html loadLeads function):
+- Strips +91 prefix from phone on display
+- Auto-fills missing createdAt/date/updatedAt
+- Defaults blank fields to empty strings (prevents .toLowerCase crashes)
+- Defaults status to 'New', assignedTo to '' if missing
+- Won't affect existing 90+ leads (they already have all fields)
+
+KNOWN BEHAVIOR:
+- Phone stored in Firestore WITH +91 (raw from Google Ads)
+- Phone displayed in CRM WITHOUT +91 (normalized on load)
+- WhatsApp links work correctly: https://wa.me/91{stripped_phone}
+- Test lead "Adinath k Wadekar" exists in CRM (can delete)
+
+GOOGLE ADS FORM FIELDS:
+- Full Name (required)
+- Phone Number (required, +91 format)
+- Email (optional, NOT required by Google Ads rule)
+- Could You Tell Us More About Your Project (free text)
+
+ZAPIER FREE PLAN LIMITS:
+- 100 tasks/month total
+- 2-step Zaps only (3+ steps = Pro plan trigger)
+- Formatter steps require Pro
+- Triggers are FREE (don't count)
+
+PENDING NEXT SESSION:
+1. Add bell notification for Mustaq when Zapier lead arrives
+   - Implementation: Firestore onSnapshot listener in leads.html
+   - Detect new leads where source='Google Ads' AND assignedTo='Mustaq'
+   - Call TIC_NOTIF.send() to write notification + trigger bell
+   - FREE - runs in browser, no Zapier task used
+2. Test web push reliability on mobile (carry over from previous session)
+3. Pending UI fixes (WhatsApp green, Email blue buttons, GST breakdown)
+
+RESTORE POINTS:
+- v5-google-ads-integration-live = CURRENT STABLE
+- v4-google-ads-integration-wip = before this session
+- v3-notifications-final = before Google Ads work
+- v2-webpush-stable = web push baseline
+- v1-notifications-complete = in-app notif baseline
+
