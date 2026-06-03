@@ -1159,23 +1159,22 @@
 
 // ─── ZAPIER LEAD NOTIFICATION LISTENER ───
 // Listens for new Google Ads leads and notifies Mustaq & Admin
+let zapierListenerReady = false;
+setTimeout(() => { zapierListenerReady = true; console.log('🔔 Zapier listener now armed'); }, 3000);
+
 db.collection('leads').onSnapshot(snapshot => {
+    console.log('📡 Firestore snapshot received, changes:', snapshot.docChanges().length);
     snapshot.docChanges().forEach(change => {
         if (change.type === "added") {
             const lead = change.doc.data();
-            const now = new Date().getTime();
-            const createdAt = new Date(lead.createdAt || now).getTime();
+            console.log('➕ Added lead:', lead.name, '| source:', lead.source, '| armed:', zapierListenerReady);
             
-            // Only trigger if: 
-            // 1. Source is Google Ads
-            // 2. Lead is less than 60 seconds old (prevents old leads triggering on page load)
-            if (lead.source === 'Google Ads' && (now - createdAt) < 60000) {
-                console.log('✅ New Google Ads lead detected!');
-                
-                // Notify Mustaq
+            // Only fire for new leads after listener arms (skip initial load)
+            if (!zapierListenerReady) return;
+            
+            if (lead.source === 'Google Ads') {
+                console.log('✅ New Google Ads lead detected! Sending notifications...');
                 TIC_NOTIF.send(db, 'Mustaq', '👤 New Google Ads Lead: ' + (lead.name || 'Unknown'), 'lead', 'leads.html');
-                
-                // Notify Main Admin
                 TIC_NOTIF.send(db, 'admin@sbinteriorsolutions.net', '👤 New Google Ads Lead: ' + (lead.name || 'Unknown'), 'lead', 'leads.html');
             }
         }
