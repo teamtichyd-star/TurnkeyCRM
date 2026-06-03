@@ -1157,6 +1157,7 @@
 <script src="js/notifications.js"></script>
 
 
+<script>
 // ─── ZAPIER LEAD NOTIFICATION LISTENER ───
 // Listens for new Google Ads leads and notifies Mustaq & Admin
 let zapierListenerReady = false;
@@ -1180,6 +1181,7 @@ db.collection('leads').onSnapshot(snapshot => {
         }
     });
 });
+</script>
 
 </body>
 </html>
