@@ -614,7 +614,30 @@
       const snapshot = await leadsRef.get();;
       leads = [];
       snapshot.forEach(doc => {
-        leads.push({ id: doc.id, ...doc.data() });
+        const data = doc.data();
+        if (data.phone && data.phone.startsWith('+91')) {
+          data.phone = data.phone.replace('+91', '').trim();
+        }
+        const nowISO = new Date().toISOString();
+        const todayDate = nowISO.split('T')[0];
+        if (!data.createdAt) data.createdAt = nowISO;
+        if (!data.updatedAt) data.updatedAt = nowISO;
+        if (!data.date) data.date = todayDate;
+        if (!data.status || !data.status.trim()) data.status = 'New';
+        if (!data.assignedTo || !data.assignedTo.trim()) data.assignedTo = '';
+        if (!data.name) data.name = '(Unnamed Lead)';
+        if (!data.phone) data.phone = '';
+        if (!data.email) data.email = '';
+        if (!data.company) data.company = '';
+        if (!data.projectType) data.projectType = '';
+        if (!data.location) data.location = '';
+        if (!data.budget) data.budget = '';
+        if (!data.source) data.source = '';
+        if (!data.followupDate) data.followupDate = '';
+        if (!data.followupNote) data.followupNote = '';
+        if (!data.area) data.area = '';
+        if (!data.notes) data.notes = '';
+        leads.push({ id: doc.id, ...data });
       });
       filteredLeads = [...leads];
       filterLeads();
