@@ -338,3 +338,47 @@ RESTORE POINTS:
 - v2-webpush-stable = web push baseline
 - v1-notifications-complete = in-app notif baseline
 
+
+=======================================================
+SESSION UPDATE - 03 June 2026 (Part 2)
+=======================================================
+
+✅ COMPLETED: Auto-Bell Notification for Google Ads Leads
+
+IMPLEMENTATION:
+- Added Firestore onSnapshot listener at bottom of leads.html
+- Listener wrapped in <script> tags (was floating outside, didn't run)
+- Uses zapierListenerReady flag (3s timeout) to skip initial page load
+- Filters: lead.source === 'Google Ads' only
+- Notifies BOTH:
+    * Mustaq (manager)
+    * admin@sbinteriorsolutions.net (main admin)
+- Cost: ZERO Zapier tasks (runs in browser)
+
+DEBUG LOGS IN CONSOLE:
+- 📡 Firestore snapshot received, changes: N
+- ➕ Added lead: NAME | source: X | armed: true/false
+- 🔔 Zapier listener now armed (after 3s)
+- ✅ New Google Ads lead detected! Sending notifications...
+
+KNOWN LIMITATION (CARRY OVER):
+- Mobile push notification favicon sometimes missing
+- Android status bar shows white silhouette (OS-level, not bug)
+- Documented as known issue, deferred for dedicated session
+
+RESTORE POINTS:
+- v6-zapier-notifications-live = CURRENT STABLE (auto-bell working)
+- v5-google-ads-integration-live = before notifications
+- v4-google-ads-integration-wip = before this session
+
+PENDING NEXT SESSION:
+1. Debug mobile push reliability (favicon + intermittent delivery)
+   - Check service worker cache strategy
+   - Verify icon URL works on mobile data
+   - Test PWA install vs browser tab behavior
+2. Pending UI fixes:
+   - WhatsApp button green (share tab)
+   - Email button blue (share tab)
+   - GST breakdown in client portal payments
+3. Consider: Add Telegram step removal if redundant (save 50 leads/month)
+
