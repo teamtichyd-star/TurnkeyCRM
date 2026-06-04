@@ -1151,8 +1151,14 @@
   });
 
   // ─── INIT ───
-  loadLeads();
-  loadUsersForAssign();
+  firebase.auth().onAuthStateChanged(user => {
+    if (user) {
+      loadLeads();
+      loadUsersForAssign();
+    } else {
+      window.location.href = "index.html";
+    }
+  });
 </script>
 <script src="js/notifications.js"></script>
 
@@ -1163,8 +1169,10 @@
 let zapierListenerReady = false;
 setTimeout(() => { zapierListenerReady = true; console.log('🔔 Zapier listener now armed'); }, 3000);
 
-db.collection('leads').onSnapshot(snapshot => {
-    console.log('📡 Firestore snapshot received, changes:', snapshot.docChanges().length);
+firebase.auth().onAuthStateChanged(user => {
+  if (!user) return;
+  db.collection("leads").onSnapshot(snapshot => {
+    console.log("📡 Firestore snapshot received, changes:', snapshot.docChanges().length);
     snapshot.docChanges().forEach(change => {
         if (change.type === "added") {
             const lead = change.doc.data();
@@ -1180,6 +1188,7 @@ db.collection('leads').onSnapshot(snapshot => {
             }
         }
     });
+});
 });
 </script>
 
