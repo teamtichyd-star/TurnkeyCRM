@@ -1152,16 +1152,14 @@
   });
 
   // ─── INIT ───
-  (async () => {
-    await firebase.auth().authStateReady();
-    const user = firebase.auth().currentUser;
+  firebase.auth().onAuthStateChanged(function(user) {
     if (user) {
       loadLeads();
       loadUsersForAssign();
     } else {
       window.location.href = "index.html";
     }
-  })();
+  });
 </script>
 <script src="js/notifications.js"></script>
 
@@ -1172,9 +1170,8 @@
 let zapierListenerReady = false;
 setTimeout(() => { zapierListenerReady = true; console.log('🔔 Zapier listener now armed'); }, 3000);
 
-(async () => {
-  await firebase.auth().authStateReady();
-  if (!firebase.auth().currentUser) return;
+firebase.auth().onAuthStateChanged(function(user) {
+  if (!user) return;
   db.collection("leads").onSnapshot(snapshot => {
     console.log("📡 Firestore snapshot received, changes:", snapshot.docChanges().length);
     snapshot.docChanges().forEach(change => {
@@ -1193,7 +1190,7 @@ setTimeout(() => { zapierListenerReady = true; console.log('🔔 Zapier listener
         }
     });
 });
-})();
+});
 </script>
 
 </body>
