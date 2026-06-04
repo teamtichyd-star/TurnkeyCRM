@@ -1036,8 +1036,14 @@
   });
 
   // ─── INIT ───
-  loadTasks();
-  loadUsersDropdown();
+  firebase.auth().onAuthStateChanged(function(user) {
+    if (user) {
+      loadTasks();
+      loadUsersDropdown();
+    } else {
+      window.location.href = "index.html";
+    }
+  });
 </script>
 <script src="js/notifications.js"></script>
 </body>

@@ -1094,7 +1094,13 @@
   });
 
   // ─── INIT ───
-  loadFollowups();
+  firebase.auth().onAuthStateChanged(function(user) {
+    if (user) {
+      loadFollowups();
+    } else {
+      window.location.href = "index.html";
+    }
+  });
 </script>
 </body>
 </html>
