@@ -850,13 +850,13 @@
 
   // ─── ROLE MODULES ───
   const roleModules = {
-    superadmin:  ['leads','tasks','projects','sheets','export','users'],
-    admin:       ['leads','tasks','projects','sheets','export','users'],
-    manager:     ['leads','tasks','projects','sheets','export'],
-    supervisor:  ['tasks','projects'],
-    purchase:    ['tasks','projects','sheets','export'],
-    designer:    ['tasks','projects'],
-    accounts:    ['leads','tasks','sheets','export']
+    superadmin:  ['leads','tasks','projects','sheets','export','users','vendors'],
+    admin:       ['leads','tasks','projects','sheets','export','users','vendors'],
+    manager:     ['leads','tasks','projects','sheets','export','vendors'],
+    supervisor:  ['tasks','projects','vendors'],
+    purchase:    ['tasks','projects','sheets','export','vendors'],
+    designer:    ['tasks','projects','vendors'],
+    accounts:    ['leads','tasks','sheets','export','vendors']
   };
 
   const roleNames = {
@@ -1309,6 +1309,7 @@ if (role === "supervisor") {
     followups:  '💬 Follow-ups',
     sheets:     '🔄 Google Sheets Sync',
     export:     '📤 Export CSV',
+    vendors:    '🏪 Vendors',
     users:      '👥 User Management'
   };
 
