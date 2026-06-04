@@ -1171,10 +1171,11 @@
 let zapierListenerReady = false;
 setTimeout(() => { zapierListenerReady = true; console.log('🔔 Zapier listener now armed'); }, 3000);
 
-firebase.auth().onAuthStateChanged(user => {
-  if (!user) return;
+(async () => {
+  await firebase.auth().authStateReady();
+  if (!firebase.auth().currentUser) return;
   db.collection("leads").onSnapshot(snapshot => {
-    console.log("📡 Firestore snapshot received, changes:', snapshot.docChanges().length);
+    console.log("📡 Firestore snapshot received, changes:", snapshot.docChanges().length);
     snapshot.docChanges().forEach(change => {
         if (change.type === "added") {
             const lead = change.doc.data();
@@ -1191,7 +1192,7 @@ firebase.auth().onAuthStateChanged(user => {
         }
     });
 });
-});
+})();
 </script>
 
 </body>
