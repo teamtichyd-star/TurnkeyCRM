@@ -670,33 +670,33 @@
     </div>
 
     <!-- ═══ LEADS ═══ -->
+    
     <div class="page iframe-page" id="page-leads">
       <iframe data-src="leads.html" src="about:blank" style="width:100%; height:calc(100vh - 70px); border:none; display:block; background:var(--darker); margin-left:0;"></iframe>
     </div>
 
-    <!-- ═══ TASKS ═══ -->
     <div class="page iframe-page" id="page-tasks">
       <iframe data-src="tasks.html" src="about:blank" style="width:100%; height:calc(100vh - 70px); border:none; display:block; background:var(--darker); margin-left:0;"></iframe>
     </div>
 
-    <!-- ═══ PROJECTS ═══ -->
     <div class="page iframe-page" id="page-projects">
       <iframe data-src="projects.html" src="about:blank" style="width:100%; height:calc(100vh - 70px); border:none; display:block; background:var(--darker); margin-left:0;"></iframe>
     </div>
 
-    <!-- ═══ FOLLOWUPS ═══ -->
     <div class="page iframe-page" id="page-followups">
       <iframe data-src="followups.html" src="about:blank" style="width:100%; height:calc(100vh - 70px); border:none; display:block; background:var(--darker); margin-left:0;"></iframe>
     </div>
 
-    <!-- ═══ SHEETS ═══ -->
     <div class="page iframe-page" id="page-sheets">
       <iframe data-src="sheets.html" src="about:blank" style="width:100%; height:calc(100vh - 70px); border:none; display:block; background:var(--darker); margin-left:0;"></iframe>
     </div>
 
-    <!-- ═══ EXPORT ═══ -->
     <div class="page iframe-page" id="page-export">
       <iframe data-src="export.html" src="about:blank" style="width:100%; height:calc(100vh - 70px); border:none; display:block; background:var(--darker); margin-left:0;"></iframe>
+    </div>
+
+    <div class="page iframe-page" id="page-vendors">
+      <iframe data-src="vendors.html" src="about:blank" style="width:100%; height:calc(100vh - 70px); border:none; display:block; background:var(--darker); margin-left:0;"></iframe>
     </div>
 
     <!-- ═══ USER MANAGEMENT ═══ -->
@@ -856,7 +856,8 @@
     supervisor:  ['tasks','projects','vendors'],
     purchase:    ['tasks','projects','sheets','export','vendors'],
     designer:    ['tasks','projects','vendors'],
-    accounts:    ['leads','tasks','sheets','export','vendors']
+    accounts:    ['leads','tasks','sheets','export','vendors'],
+    projectmanager:['leads','tasks','projects','sheets','export','vendors']
   };
 
   const roleNames = {
@@ -971,7 +972,7 @@ if (role === "supervisor") {
   }
 }
     // Show/Hide menu items based on role
-    const allMenus = ['leads','tasks','projects','followups','sheets','export'];
+    const allMenus = ['leads','tasks','projects','followups','sheets','export','vendors'];
     allMenus.forEach(module => {
       const menuItem = document.getElementById('menu-' + module);
       if (menuItem) {
@@ -986,13 +987,13 @@ if (role === "supervisor") {
     }
 
     // Show/Hide bottom nav
-    ['leads','tasks','projects'].forEach(m => {
+    ['leads','tasks','projects','vendors'].forEach(m => {
       const bnav = document.getElementById('bnav-' + m);
       if (bnav) bnav.classList.toggle('hidden', !modules.includes(m));
     });
 
     // Show/Hide quick actions
-    ['leads','tasks','projects','followups'].forEach(m => {
+    ['leads','tasks','projects','followups','vendors'].forEach(m => {
       const qa = document.getElementById('qa-' + m);
       if (qa) qa.classList.toggle('hidden', !modules.includes(m));
     });
@@ -1309,6 +1310,7 @@ if (role === "supervisor") {
     followups:  '💬 Follow-ups',
     sheets:     '🔄 Google Sheets Sync',
     export:     '📤 Export CSV',
+    vendors:    '🏪 Vendors',
     vendors:    '🏪 Vendors',
     users:      '👥 User Management'
   };
