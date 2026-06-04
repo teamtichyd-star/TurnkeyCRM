@@ -449,3 +449,54 @@ RESTORE POINTS:
 - v6-zapier-notifications-live = STABLE (use for rollback)
 - v5-google-ads-integration-live
 - v4-google-ads-integration-wip
+
+═══════════════════════════════════════════════════════════
+SESSION UPDATE - 04 June 2026
+═══════════════════════════════════════════════════════════
+
+✅ FIRESTORE RULES SUCCESSFULLY LOCKED
+
+ROOT CAUSES IDENTIFIED:
+1. firebase-auth-compat.js was missing from 6 HTML files
+2. Init functions ran BEFORE auth state was ready (race condition)
+3. authStateReady() doesn't exist in Firebase compat SDK 10.12.0
+
+FIXES APPLIED:
+- Added firebase-auth-compat.js to all pages
+- Wrapped all init calls in firebase.auth().onAuthStateChanged()
+- Locked Firestore rules to per-collection with isSignedIn()
+
+COLLECTIONS ALLOWED:
+leads, users, tasks, projects, followups, notifications
+
+STABLE TAG: v7-firestore-rules-locked
+
+═══════════════════════════════════════════════════════════
+SESSION UPDATE - 04 June 2026 (Firestore Rules Fixed)
+═══════════════════════════════════════════════════════════
+
+✅ FIRESTORE RULES SUCCESSFULLY LOCKED FROM OPEN
+
+ROOT CAUSES (took full day to diagnose):
+1. firebase-auth-compat.js was MISSING from 6 HTML files
+   (only firebase-app + firebase-firestore were loaded)
+2. Init functions ran BEFORE auth state was ready (race condition)
+3. authStateReady() does NOT exist in Firebase compat SDK 10.12.0
+   (only available in modular v9+ modules)
+
+FIXES APPLIED:
+- Added firebase-auth-compat.js to:
+  client-view.html, export.html, followups.html,
+  leads.html, sheets.html, tasks.html
+- Wrapped all loadX() init calls in firebase.auth().onAuthStateChanged()
+- Locked Firestore rules to per-collection with isSignedIn()
+
+COLLECTIONS WITH RULES:
+leads, users, tasks, projects, followups, notifications
+(All others blocked with `if false`)
+
+STABLE TAG: v7-firestore-rules-locked
+
+NEXT POSSIBLE TASK:
+- Role-based access control (admin / sales / supervisor)
+- Currently any signed-in user can read/write all collections
