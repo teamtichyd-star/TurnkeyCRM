@@ -382,3 +382,70 @@ PENDING NEXT SESSION:
    - GST breakdown in client portal payments
 3. Consider: Add Telegram step removal if redundant (save 50 leads/month)
 
+
+
+=======================================================
+SESSION UPDATE - 03 June 2026 (Part 3)
+=======================================================
+
+ATTEMPTED: Firestore Security Rules Hardening - FAILED
+
+CURRENT STATE:
+- Firestore rules are OPEN (allow read, write: if true)
+- CRM working perfectly with open rules
+- Database is publicly accessible via API (CRITICAL VULNERABILITY)
+
+WHAT WAS TRIED:
+1. Strict role-based rules with isAdmin() helper - FAILED (permission denied)
+2. Simpler isAuth() only rules - FAILED (permission denied)
+3. Multiple rule variations - all FAILED
+
+DIAGNOSTICS CONFIRMED:
+- Firebase Auth works in iframes (currentUser populated)
+- User email: info@sbinteriorsolutions.net
+- User doc exists at /users/{email} with role: admin
+- Auth token has email field
+- BUT rules still block all reads/writes when isAuth() check applied
+
+UNKNOWN ROOT CAUSE - NEEDS INVESTIGATION:
+- Possibly: service worker caching old auth state
+- Possibly: iframe origin not matching auth domain
+- Possibly: email not in token claims (may need email verification)
+- Possibly: rule syntax issue with get() lookup
+- Possibly: token timing - rules check before token fully ready
+
+CRM AUTH ARCHITECTURE:
+- Login: index.html uses auth.signInWithEmailAndPassword()
+- User creation: admin-panel.html uses secondaryAuth.createUserWithEmailAndPassword()
+- Users collection: doc ID = email, has uid field
+- Pages use iframes (each child page loaded inside index.html)
+- URL params like role=admin are DISPLAY ONLY, not security
+- Real auth handled by Firebase
+
+PENDING NEXT SESSION (PRIORITY 1):
+1. Debug WHY strict Firestore rules fail despite valid auth
+2. Deploy working strict rules
+3. Tag stable: v7-secure-auth
+
+PENDING AFTER SECURITY FIX:
+1. Build Vendors page (vendors.html)
+2. Build Expenditure tab in projects.html with Job Work Contracts and payment log
+3. Mobile push reliability fix
+4. UI fixes (WhatsApp green, Email blue, GST breakdown)
+
+DESIGN AGREED FOR VENDOR/EXPENDITURE:
+- New collection: vendors (name, phone, workType, gst, pan, upi)
+- Job works and expenditures as nested arrays in projects docs
+- Payment modes: Cash, UPI, Transfer
+- Admin can change job work value
+- No GST tracking, no bill uploads
+- Labour only (material via Zoho)
+- One job work per vendor per project
+- All except client can view/add expenditure
+- Mobile-responsive matching existing UI theme
+
+RESTORE POINTS:
+- v6.1-pre-vendor-feature = before security attempt
+- v6-zapier-notifications-live = STABLE (use for rollback)
+- v5-google-ads-integration-live
+- v4-google-ads-integration-wip
