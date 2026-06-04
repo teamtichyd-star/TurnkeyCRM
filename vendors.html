@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Vendor Management — TurnkeyCRM</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+<style>
+:root {
+  --bg: #0f1419;
+  --card: #1a2129;
+  --card-2: #232b35;
+  --primary: #c9a55a;
+  --primary-dark: #a88840;
+  --text: #e8eaed;
+  --subtext: #9aa0a6;
+  --border: #2d3742;
+  --success: #4caf50;
+  --danger: #f44336;
+  --warning: #ff9800;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding-bottom: 80px; }
+.header { background: var(--card); padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
+.header h1 { font-size: 18px; color: var(--primary); display: flex; align-items: center; gap: 10px; }
+.header-actions { display: flex; gap: 10px; align-items: center; }
+.btn { padding: 10px 16px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s; }
+.btn-primary { background: var(--primary); color: #000; }
+.btn-primary:hover { background: var(--primary-dark); }
+.btn-secondary { background: var(--card-2); color: var(--text); border: 1px solid var(--border); }
+.btn-danger { background: var(--danger); color: white; }
+.btn-icon { padding: 8px 10px; }
+.container { padding: 15px; max-width: 1200px; margin: 0 auto; }
+.search-bar { background: var(--card); padding: 12px; border-radius: 10px; margin-bottom: 15px; display: flex; gap: 10px; }
+.search-bar input { flex: 1; background: var(--card-2); border: 1px solid var(--border); color: var(--text); padding: 10px 14px; border-radius: 8px; font-size: 14px; }
+.search-bar input:focus { outline: none; border-color: var(--primary); }
+.vendor-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+.vendor-card { background: var(--card); padding: 15px; border-radius: 10px; border: 1px solid var(--border); transition: all 0.2s; }
+.vendor-card:hover { border-color: var(--primary); }
+.vendor-card-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px; }
+.vendor-name { font-size: 16px; font-weight: 600; color: var(--primary); }
+.vendor-work { font-size: 12px; color: var(--subtext); margin-top: 3px; }
+.vendor-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 13px; color: var(--text); }
+.vendor-row i { color: var(--primary); width: 16px; }
+.vendor-actions { display: flex; gap: 6px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+.vendor-actions .btn { flex: 1; justify-content: center; font-size: 12px; padding: 8px; }
+.empty-state { text-align: center; padding: 60px 20px; color: var(--subtext); }
+.empty-state i { font-size: 50px; margin-bottom: 15px; opacity: 0.4; }
+.empty-state h3 { font-size: 18px; margin-bottom: 8px; color: var(--text); }
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 15px; }
+.modal-overlay.show { display: flex; }
+.modal { background: var(--card); border-radius: 12px; padding: 20px; max-width: 480px; width: 100%; max-height: 90vh; overflow-y: auto; }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+.modal-header h2 { font-size: 18px; color: var(--primary); }
+.modal-close { background: none; border: none; color: var(--subtext); font-size: 22px; cursor: pointer; }
+.form-group { margin-bottom: 14px; }
+.form-group label { display: block; font-size: 13px; color: var(--subtext); margin-bottom: 6px; }
+.form-group input, .form-group select { width: 100%; background: var(--card-2); border: 1px solid var(--border); color: var(--text); padding: 10px 12px; border-radius: 8px; font-size: 14px; }
+.form-group input:focus, .form-group select:focus { outline: none; border-color: var(--primary); }
+.modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--border); }
+.toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: var(--success); color: white; padding: 12px 20px; border-radius: 8px; font-size: 14px; display: none; z-index: 2000; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+.bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card); border-top: 1px solid var(--border); display: flex; justify-content: space-around; padding: 10px 0; z-index: 100; }
+.bottom-nav a { color: var(--subtext); text-decoration: none; font-size: 11px; text-align: center; padding: 5px 10px; }
+.bottom-nav a i { display: block; font-size: 20px; margin-bottom: 3px; }
+.bottom-nav a.active { color: var(--primary); }
+.loader { text-align: center; padding: 60px 20px; color: var(--subtext); }
+.loader i { font-size: 40px; margin-bottom: 15px; color: var(--primary); }
+@media (max-width: 600px) {
+  .vendor-grid { grid-template-columns: 1fr; }
+  .header h1 { font-size: 16px; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1><i class="fas fa-store"></i> Vendor Management</h1>
+  <div class="header-actions">
+    <button class="btn btn-primary" onclick="openAddVendor()">
+      <i class="fas fa-plus"></i> Add
+    </button>
+  </div>
+</div>
+
+<div class="container">
+  <div class="search-bar">
+    <input type="text" id="searchInput" placeholder="🔍 Search by name, phone, work type..." oninput="filterVendors()"/>
+  </div>
+
+  <div id="pageLoader" class="loader">
+    <i class="fas fa-spinner fa-spin"></i>
+    <div>Loading vendors from Firebase...</div>
+  </div>
+
+  <div id="mainPage" style="display:none">
+    <div id="vendorGrid" class="vendor-grid"></div>
+    <div id="emptyState" class="empty-state" style="display:none">
+      <i class="fas fa-store-slash"></i>
+      <h3>No Vendors Yet</h3>
+      <p>Click the Add button to create your first vendor</p>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="vendorModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modalTitle"><i class="fas fa-store"></i> Add Vendor</h2>
+      <button class="modal-close" onclick="closeModal('vendorModal')">&times;</button>
+    </div>
+    <div class="form-group">
+      <label>Vendor Name *</label>
+      <input type="text" id="vendorName" placeholder="e.g. Ramesh Carpentry Works"/>
+    </div>
+    <div class="form-group">
+      <label>Phone *</label>
+      <input type="tel" id="vendorPhone" placeholder="e.g. 9876543210"/>
+    </div>
+    <div class="form-group">
+      <label>Work Type *</label>
+      <select id="vendorWorkType">
+        <option value="">Select Work Type</option>
+        <option value="Carpentry">Carpentry</option>
+        <option value="Electrical">Electrical</option>
+        <option value="Plumbing">Plumbing</option>
+        <option value="Painting">Painting</option>
+        <option value="Tiling">Tiling</option>
+        <option value="False Ceiling">False Ceiling</option>
+        <option value="POP Work">POP Work</option>
+        <option value="Modular Kitchen">Modular Kitchen</option>
+        <option value="Aluminium Fabrication">Aluminium Fabrication</option>
+        <option value="Glass Work">Glass Work</option>
+        <option value="Civil Work">Civil Work</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>GST Number (optional)</label>
+      <input type="text" id="vendorGst" placeholder="e.g. 36ABCDE1234F1Z5"/>
+    </div>
+    <div class="form-group">
+      <label>PAN Number (optional)</label>
+      <input type="text" id="vendorPan" placeholder="e.g. ABCDE1234F"/>
+    </div>
+    <div class="form-group">
+      <label>UPI ID (optional)</label>
+      <input type="text" id="vendorUpi" placeholder="e.g. ramesh@upi"/>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('vendorModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveVendor()"><i class="fas fa-save"></i> Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-header">
+      <h2><i class="fas fa-exclamation-triangle" style="color:var(--danger)"></i> Delete Vendor</h2>
+      <button class="modal-close" onclick="closeModal('deleteModal')">&times;</button>
+    </div>
+    <p style="margin:10px 0">Are you sure you want to delete this vendor? This action cannot be undone.</p>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('deleteModal')">Cancel</button>
+      <button class="btn btn-danger" onclick="confirmDelete()"><i class="fas fa-trash"></i> Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<nav class="bottom-nav">
+  <a href="index.html"><i class="fas fa-home"></i>Home</a>
+  <a href="leads.html"><i class="fas fa-user-plus"></i>Leads</a>
+  <a href="projects.html"><i class="fas fa-building"></i>Projects</a>
+  <a href="tasks.html"><i class="fas fa-tasks"></i>Tasks</a>
+  <a href="vendors.html" class="active"><i class="fas fa-store"></i>Vendors</a>
+</nav>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyBLQhUZA-VN4_A9FhQWmlRSQZC2D95KoE8",
+  authDomain: "turnkeycrm-ce7b8.firebaseapp.com",
+  projectId: "turnkeycrm-ce7b8",
+  storageBucket: "turnkeycrm-ce7b8.firebasestorage.app",
+  messagingSenderId: "487224108102",
+  appId: "1:487224108102:web:dbe9d4ea6abdb2db581647"
+};
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+const vendorsRef = db.collection('vendors');
+
+let vendors = [];
+let filteredVendors = [];
+let editingId = null;
+let deletingId = null;
+
+function showToast(msg, type) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.style.background = type === 'error' ? 'var(--danger)' : 'var(--success)';
+  toast.style.display = 'block';
+  setTimeout(() => { toast.style.display = 'none'; }, 3000);
+}
+
+function openAddVendor() {
+  editingId = null;
+  document.getElementById('modalTitle').innerHTML = '<i class="fas fa-store"></i> Add Vendor';
+  document.getElementById('vendorName').value = '';
+  document.getElementById('vendorPhone').value = '';
+  document.getElementById('vendorWorkType').value = '';
+  document.getElementById('vendorGst').value = '';
+  document.getElementById('vendorPan').value = '';
+  document.getElementById('vendorUpi').value = '';
+  document.getElementById('vendorModal').classList.add('show');
+}
+
+function editVendor(id) {
+  const v = vendors.find(x => x.id === id);
+  if (!v) return;
+  editingId = id;
+  document.getElementById('modalTitle').innerHTML = '<i class="fas fa-edit"></i> Edit Vendor';
+  document.getElementById('vendorName').value = v.name || '';
+  document.getElementById('vendorPhone').value = v.phone || '';
+  document.getElementById('vendorWorkType').value = v.workType || '';
+  document.getElementById('vendorGst').value = v.gst || '';
+  document.getElementById('vendorPan').value = v.pan || '';
+  document.getElementById('vendorUpi').value = v.upi || '';
+  document.getElementById('vendorModal').classList.add('show');
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('show');
+  editingId = null;
+  deletingId = null;
+}
+
+async function saveVendor() {
+  const name = document.getElementById('vendorName').value.trim();
+  const phone = document.getElementById('vendorPhone').value.trim();
+  const workType = document.getElementById('vendorWorkType').value;
+  if (!name || !phone || !workType) {
+    showToast('Name, Phone & Work Type are required', 'error');
+    return;
+  }
+  const data = {
+    name,
+    phone,
+    workType,
+    gst: document.getElementById('vendorGst').value.trim(),
+    pan: document.getElementById('vendorPan').value.trim(),
+    upi: document.getElementById('vendorUpi').value.trim(),
+    updatedAt: new Date().toISOString()
+  };
+  try {
+    if (editingId) {
+      await vendorsRef.doc(editingId).update(data);
+      showToast('Vendor updated');
+    } else {
+      data.createdAt = new Date().toISOString();
+      data.addedBy = auth.currentUser ? auth.currentUser.email : '';
+      await vendorsRef.add(data);
+      showToast('Vendor added');
+    }
+    closeModal('vendorModal');
+    await loadVendors();
+  } catch (err) {
+    console.error(err);
+    showToast('Error: ' + err.message, 'error');
+  }
+}
+
+function deleteVendor(id) {
+  deletingId = id;
+  document.getElementById('deleteModal').classList.add('show');
+}
+
+async function confirmDelete() {
+  if (!deletingId) return;
+  try {
+    await vendorsRef.doc(deletingId).delete();
+    showToast('Vendor deleted');
+    closeModal('deleteModal');
+    await loadVendors();
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+}
+
+async function loadVendors() {
+  try {
+    const snap = await vendorsRef.orderBy('name').get();
+    vendors = [];
+    snap.forEach(doc => vendors.push({ id: doc.id, ...doc.data() }));
+    filteredVendors = [...vendors];
+    renderVendors();
+    document.getElementById('pageLoader').style.display = 'none';
+    document.getElementById('mainPage').style.display = 'block';
+  } catch (err) {
+    console.error('Load error:', err);
+    document.getElementById('pageLoader').innerHTML = '<div style="color:var(--danger)"><i class="fas fa-exclamation-triangle"></i><br>Error loading vendors<br><button class="btn btn-primary" onclick="loadVendors()" style="margin-top:15px">Retry</button></div>';
+  }
+}
+
+function filterVendors() {
+  const q = document.getElementById('searchInput').value.toLowerCase().trim();
+  if (!q) {
+    filteredVendors = [...vendors];
+  } else {
+    filteredVendors = vendors.filter(v =>
+      (v.name || '').toLowerCase().includes(q) ||
+      (v.phone || '').toLowerCase().includes(q) ||
+      (v.workType || '').toLowerCase().includes(q)
+    );
+  }
+  renderVendors();
+}
+
+function renderVendors() {
+  const grid = document.getElementById('vendorGrid');
+  const empty = document.getElementById('emptyState');
+  if (!filteredVendors.length) {
+    grid.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  grid.innerHTML = filteredVendors.map(v => `
+    <div class="vendor-card">
+      <div class="vendor-card-header">
+        <div>
+          <div class="vendor-name">${v.name || '-'}</div>
+          <div class="vendor-work"><i class="fas fa-tools"></i> ${v.workType || '-'}</div>
+        </div>
+      </div>
+      <div class="vendor-row"><i class="fas fa-phone"></i>
+        <a href="tel:${v.phone}" style="color:var(--text);text-decoration:none">${v.phone || '-'}</a>
+      </div>
+      ${v.gst ? `<div class="vendor-row"><i class="fas fa-receipt"></i>GST: ${v.gst}</div>` : ''}
+      ${v.pan ? `<div class="vendor-row"><i class="fas fa-id-card"></i>PAN: ${v.pan}</div>` : ''}
+      ${v.upi ? `<div class="vendor-row"><i class="fas fa-mobile-alt"></i>UPI: ${v.upi}</div>` : ''}
+      <div class="vendor-actions">
+        ${v.phone ? `<a class="btn btn-secondary" href="https://wa.me/91${v.phone}" target="_blank"><i class="fab fa-whatsapp" style="color:#25D366"></i></a>` : ''}
+        <button class="btn btn-secondary" onclick="editVendor('${v.id}')"><i class="fas fa-edit"></i></button>
+        <button class="btn btn-danger" onclick="deleteVendor('${v.id}')"><i class="fas fa-trash"></i></button>
+      </div>
+    </div>
+  `).join('');
+}
+
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', function(e) {
+    if (e.target === this) closeModal(this.id);
+  });
+});
+
+// INIT
+firebase.auth().onAuthStateChanged(function(user) {
+  if (user) {
+    loadVendors();
+  } else {
+    window.location.href = 'index.html';
+  }
+});
+</script>
+
+</body>
+</html>
