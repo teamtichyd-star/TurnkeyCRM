@@ -439,6 +439,10 @@
       <div class="menu-item" onclick="showPage('leads')" id="menu-leads">
         <i class="fas fa-user-plus"></i> Leads
       </div>
+      <div class="menu-item" id="menu-vendors" onclick="showPage('vendors')">
+        <i class="fas fa-store"></i>
+        <span>Vendors</span>
+      </div>
       <div class="menu-item" onclick="showPage('tasks')" id="menu-tasks">
         <i class="fas fa-check-square"></i> Tasks
       </div>
@@ -705,6 +709,11 @@
           <i class="fas fa-user-plus"></i> Add User
         </button>
       </div>
+
+    <!-- VENDORS PAGE -->
+    <div class="page iframe-page" id="page-vendors">
+      <iframe data-src="vendors.html" src="about:blank" style="width:100%;height:100%;border:none;display:block;"></iframe>
+    </div>
       <div class="users-grid" id="usersGrid">
         <div style="text-align:center; color:var(--subtext); padding:40px">
           Loading users...
@@ -723,6 +732,10 @@
       <div class="bottom-nav-item hidden" onclick="showPage('leads')" id="bnav-leads">
         <i class="fas fa-user-plus"></i><span>Leads</span>
       </div>
+        <div class="bottom-nav-item" id="bnav-vendors" onclick="showPage('vendors')">
+          <i class="fas fa-store"></i>
+          <span>Vendors</span>
+        </div>
       <div class="bottom-nav-item hidden" onclick="showPage('tasks')" id="bnav-tasks">
         <i class="fas fa-check-square"></i><span>Tasks</span>
       </div>
