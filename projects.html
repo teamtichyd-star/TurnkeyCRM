@@ -2266,8 +2266,16 @@
   }
 
   // ─── INIT ───
-  loadProjects();
-  loadUsersDropdown();
+  (async () => {
+    await firebase.auth().authStateReady();
+    const user = firebase.auth().currentUser;
+    if (user) {
+      loadProjects();
+      loadUsersDropdown();
+    } else {
+      window.location.href = "index.html";
+    }
+  })();
 </script>
 <script src="js/notifications.js"></script>
 </body>
