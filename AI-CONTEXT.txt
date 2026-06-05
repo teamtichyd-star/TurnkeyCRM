@@ -500,3 +500,73 @@ STABLE TAG: v7-firestore-rules-locked
 NEXT POSSIBLE TASK:
 - Role-based access control (admin / sales / supervisor)
 - Currently any signed-in user can read/write all collections
+
+=======================================================
+SESSION LOG — 05 June 2026
+=======================================================
+
+✅ COMPLETED TODAY:
+
+1. VENDORS MODULE — Integrated into SPA
+   - vendors.html rewritten to match leads.html style exactly
+   - Removed standalone bottom nav (index.html handles it)
+   - Added to index.html: iframe page block, sidebar menu item, bottom nav item
+   - Added 'vendors' to all roleModules (superadmin, admin, manager, supervisor, purchase, designer, accounts)
+   - Added 'vendors' to pageTitles + allMenus loop + role-restriction loops
+   - Added projectmanager + client roles to roleModules/roleNames
+   - Role-based delete: only admin/superadmin can delete vendors
+   - All other roles: view + add + edit
+   - Fields: name, phone, workType, gst, pan, upi
+   - Search + filter by work type + sort
+   - Quick call + WhatsApp action buttons
+
+2. EXPENDITURE TAB in projects.html
+   - New tab inside project portal modal
+   - 2 sub-tabs: "Job Works" and "Vendor Payouts"
+   - Job Works sub-tab:
+     * Add Job Work modal (work type, vendor from dropdown, contract value, notes)
+     * Card shows: contract, paid, balance, payout %, progress bar
+     * SETTLED badge when fully paid
+     * Vendor call + WhatsApp buttons (cached from vendors collection)
+     * Admin only: edit + delete
+   - Vendor Payouts sub-tab:
+     * Filter by job work
+     * Log Payout button (with job work picker)
+     * All payouts list (sorted by date desc)
+     * Admin only: delete payout
+   - Summary card (always visible): Total Contract / Total Paid / Balance
+   - HARD BLOCK: cannot log payout exceeding remaining contract value
+   - Data stored as nested arrays in projects/{id}.jobWorks[]
+
+3. MOBILE UX FIXES (project portal)
+   - Removed Share tab (already available from project card)
+   - Portal tabs now 2-row grid (3 columns) — no horizontal scroll
+   - Sticky footer for Edit/Close buttons — always visible
+   - Better tab spacing + min-height for touch targets
+
+GIT TAGS:
+- v8-vendors-module-live — Vendors module integrated into SPA
+- v9-expenditure-mobile-ux — Expenditure + mobile UX improvements
+
+FIRESTORE COLLECTIONS NOW IN USE:
+- leads, users, tasks, projects, followups, notifications, vendors
+- projects docs now have nested array: jobWorks[] (each with payments[])
+
+KEY GOTCHAS LEARNED:
+1. SPA integration requires updates in 5 places:
+   - iframe-page block in HTML
+   - sidebar menu-item
+   - bottom-nav-item
+   - roleModules[] for each role
+   - pageTitles[]
+   - allMenus[] forEach loop
+   - role-restriction forEach loops (multiple)
+2. Iframe height must be calc(100vh - 70px) to match other iframe pages
+3. Heredoc with backticks (template literals) breaks bash — use Python file with string concat instead
+4. currentProjectIdForExp must be set inside openPortal() function
+
+NEXT SESSION SHOULD START WITH:
+- Mobile push notification reliability fix
+- UI polish: WhatsApp green, Email blue, GST breakdown
+- Optional: bell notifications for new job works/payouts
+
