@@ -802,7 +802,17 @@
 
       <!-- ─── PAYMENTS TAB ─── -->
       <div class="portal-section" id="psec-expenditure">
-        <!-- Summary Card -->
+        <!-- Sub-Tabs -->
+        <div style="display:flex;gap:8px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:10px;">
+          <button class="exp-subtab active" onclick="switchExpSubTab('jobworks')" id="exptab-jobworks" style="padding:8px 16px;border-radius:10px;border:1px solid var(--border);background:var(--primary-glow);color:var(--primary);cursor:pointer;font-size:13px;font-weight:600;">
+            <i class="fas fa-hard-hat"></i> Job Works
+          </button>
+          <button class="exp-subtab" onclick="switchExpSubTab('payouts')" id="exptab-payouts" style="padding:8px 16px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--subtext);cursor:pointer;font-size:13px;font-weight:600;">
+            <i class="fas fa-money-bill-wave"></i> Vendor Payouts
+          </button>
+        </div>
+
+        <!-- Summary Card (shared) -->
         <div id="expSummaryCard" style="background:linear-gradient(145deg,var(--card2),var(--card));border-radius:14px;padding:16px;margin-bottom:16px;border:1px solid var(--border);display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;">
           <div style="text-align:center;">
             <div style="font-size:11px;color:var(--subtext);text-transform:uppercase;letter-spacing:1px;">Total Contract</div>
@@ -818,15 +828,28 @@
           </div>
         </div>
 
-        <!-- Add Job Work Button -->
-        <div style="display:flex;justify-content:flex-end;margin-bottom:14px;" id="expAddJobBtnWrap">
-          <button class="btn btn-primary" onclick="openAddJobWork()" style="font-size:13px;padding:9px 18px;">
-            <i class="fas fa-plus"></i> Add Job Work
-          </button>
+        <!-- JOB WORKS SUB-SECTION -->
+        <div id="expsec-jobworks">
+          <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
+            <button class="btn btn-primary" onclick="openAddJobWork()" style="font-size:13px;padding:9px 18px;">
+              <i class="fas fa-plus"></i> Add Job Work
+            </button>
+          </div>
+          <div id="jobWorksList"></div>
         </div>
 
-        <!-- Job Works List -->
-        <div id="jobWorksList"></div>
+        <!-- VENDOR PAYOUTS SUB-SECTION -->
+        <div id="expsec-payouts" style="display:none;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:10px;flex-wrap:wrap;">
+            <select id="payoutFilter" onchange="renderPayouts()" style="padding:9px 14px;background:var(--card);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:13px;">
+              <option value="">All Job Works</option>
+            </select>
+            <button class="btn btn-primary" onclick="openLogPayoutFromTab()" style="font-size:13px;padding:9px 18px;">
+              <i class="fas fa-plus"></i> Log Payout
+            </button>
+          </div>
+          <div id="payoutsList"></div>
+        </div>
       </div>
 
       <div class="portal-section" id="psec-payments">
@@ -2330,6 +2353,7 @@
   function renderJobWorks() {
     const container = document.getElementById('jobWorksList');
     if (!container) return;
+    renderPayouts();
     let totalContract = 0, totalPaid = 0;
     currentJobWorks.forEach(jw => {
       totalContract += parseFloat(jw.contractValue || 0);
@@ -2365,15 +2389,16 @@
         '<div class="jobwork-title">' + (jw.workType||'Job Work') + '</div>' +
         '<div class="jobwork-vendor"><i class="fas fa-store"></i> ' + (jw.vendorName||'-') + '</div>' +
         '</div><div style="display:flex;gap:6px;">' +
-        (isAdmin ? '<button class="icon-btn edit" onclick="editJobWork(' + idx + ')"><i class="fas fa-edit"></i></button>' : '') +
-        '<button class="icon-btn" style="background:rgba(76,175,80,0.15);color:var(--success);" onclick="openAddPayment(' + idx + ')"><i class="fas fa-plus"></i></button>' +
+        '<button class="icon-btn" style="background:rgba(76,175,80,0.15);color:var(--success);" onclick="openAddPayment(' + idx + ')" title="Log Payout"><i class="fas fa-plus"></i></button>' +
+        (isAdmin ? '<button class="icon-btn edit" onclick="editJobWork(' + idx + ')" title="Edit"><i class="fas fa-edit"></i></button>' : '') +
+        (isAdmin ? '<button class="icon-btn delete" onclick="deleteJobWork(' + idx + ')" title="Delete"><i class="fas fa-trash"></i></button>' : '') +
         '</div></div>' +
         '<div class="jobwork-amounts">' +
         '<div class="jobwork-amount-item"><div class="jobwork-amount-label">Contract</div><div class="jobwork-amount-val" style="color:var(--primary);">₹' + parseFloat(jw.contractValue||0).toLocaleString('en-IN') + '</div></div>' +
         '<div class="jobwork-amount-item"><div class="jobwork-amount-label">Paid</div><div class="jobwork-amount-val" style="color:var(--success);">₹' + paid.toLocaleString('en-IN') + '</div></div>' +
         '<div class="jobwork-amount-item"><div class="jobwork-amount-label">Balance</div><div class="jobwork-amount-val" style="color:' + (overBudget ? 'var(--danger)' : 'var(--warning)') + ';">₹' + Math.abs(bal).toLocaleString('en-IN') + (overBudget ? ' ⚠️' : '') + '</div></div>' +
         '</div>' +
-        (paymentRows ? '<div style="margin-top:8px;"><div style="font-size:11px;color:var(--subtext);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Payment Log</div>' + paymentRows + '</div>' : '') +
+        ''+
         '</div>';
     }).join('');
   }
@@ -2439,6 +2464,8 @@
 
   function openAddPayment(jwIdx) {
     window._payingJwIdx = jwIdx;
+    const picker = document.getElementById('payJobWorkPicker');
+    if (picker) picker.style.display = 'none';
     document.getElementById('payAmount').value = '';
     document.getElementById('payMode').value = 'Cash';
     document.getElementById('payDate').value = new Date().toISOString().split('T')[0];
@@ -2451,20 +2478,114 @@
     const mode = document.getElementById('payMode').value;
     const date = document.getElementById('payDate').value;
     const note = document.getElementById('payNote').value.trim();
-    if (!amount || isNaN(amount)) { showToast('Enter valid amount', 'danger'); return; }
-    const payment = { amount: amount, mode: mode, date: date, note: note, addedAt: new Date().toISOString() };
-    currentJobWorks[window._payingJwIdx].payments = currentJobWorks[window._payingJwIdx].payments || [];
-    currentJobWorks[window._payingJwIdx].payments.push(payment);
+    if (!amount || isNaN(amount) || amount <= 0) { showToast('Enter valid amount', 'danger'); return; }
     const jw = currentJobWorks[window._payingJwIdx];
-    const totalPaid = jw.payments.reduce(function(s,p){ return s + parseFloat(p.amount||0); }, 0);
+    if (!jw) { showToast('Job work not found', 'danger'); return; }
+    const currentPaid = (jw.payments||[]).reduce(function(s,p){ return s + parseFloat(p.amount||0); }, 0);
+    const contractVal = parseFloat(jw.contractValue||0);
+    const remaining = contractVal - currentPaid;
+    if (amount > remaining) {
+      showToast('Cannot exceed contract! Remaining: ₹' + remaining.toLocaleString('en-IN'), 'danger');
+      return;
+    }
+    const payment = { amount: amount, mode: mode, date: date, note: note, addedAt: new Date().toISOString() };
+    jw.payments = jw.payments || [];
+    jw.payments.push(payment);
     await saveJobWorksToFirestore();
     document.getElementById('addPaymentModal').classList.remove('show');
     renderJobWorks();
-    if (totalPaid > parseFloat(jw.contractValue||0)) {
-      showToast('Warning: Payments exceed contract value!', 'warning');
-    } else {
-      showToast('Payment logged!');
+    showToast('Payout logged!');
+  }
+
+  function deleteJobWork(idx) {
+    if (!confirm('Delete this entire job work and all its payouts?')) return;
+    currentJobWorks.splice(idx, 1);
+    saveJobWorksToFirestore().then(function(){
+      renderJobWorks();
+      showToast('Job work deleted', 'danger');
+    });
+  }
+
+  function switchExpSubTab(tab) {
+    document.querySelectorAll('.exp-subtab').forEach(function(t){
+      t.classList.remove('active');
+      t.style.background = 'transparent';
+      t.style.color = 'var(--subtext)';
+    });
+    const activeBtn = document.getElementById('exptab-' + tab);
+    if (activeBtn) {
+      activeBtn.classList.add('active');
+      activeBtn.style.background = 'var(--primary-glow)';
+      activeBtn.style.color = 'var(--primary)';
     }
+    document.getElementById('expsec-jobworks').style.display = (tab === 'jobworks') ? 'block' : 'none';
+    document.getElementById('expsec-payouts').style.display = (tab === 'payouts') ? 'block' : 'none';
+    if (tab === 'payouts') renderPayouts();
+  }
+
+  function openLogPayoutFromTab() {
+    if (!currentJobWorks.length) {
+      showToast('Add a job work first', 'danger');
+      return;
+    }
+    // Show modal with job work picker
+    window._payingJwIdx = 0;
+    document.getElementById('payJobWorkPicker').style.display = 'block';
+    const picker = document.getElementById('payJobWork');
+    picker.innerHTML = currentJobWorks.map(function(jw, i) {
+      const paid = (jw.payments||[]).reduce(function(s,p){ return s + parseFloat(p.amount||0); }, 0);
+      const remain = parseFloat(jw.contractValue||0) - paid;
+      return '<option value="' + i + '">' + jw.workType + ' - ' + (jw.vendorName||'No vendor') + ' (Bal: ₹' + remain.toLocaleString('en-IN') + ')</option>';
+    }).join('');
+    picker.onchange = function(){ window._payingJwIdx = parseInt(this.value); };
+    document.getElementById('payAmount').value = '';
+    document.getElementById('payMode').value = 'Cash';
+    document.getElementById('payDate').value = new Date().toISOString().split('T')[0];
+    document.getElementById('payNote').value = '';
+    document.getElementById('addPaymentModal').classList.add('show');
+  }
+
+  function renderPayouts() {
+    const container = document.getElementById('payoutsList');
+    if (!container) return;
+    const role = window.currentUserRole || sessionStorage.getItem('crm_role') || '';
+    const isAdmin = ['admin','superadmin'].includes(role);
+    const filter = document.getElementById('payoutFilter');
+    if (filter) {
+      const currentVal = filter.value;
+      filter.innerHTML = '<option value="">All Job Works</option>' + currentJobWorks.map(function(jw,i){
+        return '<option value="' + i + '">' + jw.workType + ' - ' + (jw.vendorName||'') + '</option>';
+      }).join('');
+      filter.value = currentVal;
+    }
+    const filterIdx = filter ? filter.value : '';
+    let allPayouts = [];
+    currentJobWorks.forEach(function(jw, jwIdx) {
+      if (filterIdx !== '' && parseInt(filterIdx) !== jwIdx) return;
+      (jw.payments||[]).forEach(function(p, pi) {
+        allPayouts.push({ jwIdx: jwIdx, payIdx: pi, jw: jw, p: p });
+      });
+    });
+    allPayouts.sort(function(a,b){ return (b.p.date||'').localeCompare(a.p.date||''); });
+    if (!allPayouts.length) {
+      container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--subtext)"><i class="fas fa-money-bill-wave" style="font-size:40px;opacity:0.3;display:block;margin-bottom:12px"></i><p>No payouts logged yet</p></div>';
+      return;
+    }
+    container.innerHTML = allPayouts.map(function(item) {
+      const p = item.p, jw = item.jw;
+      const modeCls = 'mode-' + (p.mode||'cash').toLowerCase();
+      return '<div class="payment-log-item" style="padding:12px 14px;margin-bottom:8px;">' +
+        '<div style="flex:1;">' +
+        '<div style="font-weight:600;color:var(--text);font-size:13px;">' + jw.workType + ' - ' + (jw.vendorName||'No vendor') + '</div>' +
+        '<div style="margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
+        '<span class="payment-mode-badge ' + modeCls + '">' + (p.mode||'Cash') + '</span>' +
+        '<span style="color:var(--success);font-weight:600;">₹' + parseFloat(p.amount||0).toLocaleString('en-IN') + '</span>' +
+        '<span style="font-size:11px;color:var(--subtext);">' + (p.date||'') + '</span>' +
+        (p.note ? '<span style="font-size:12px;color:var(--subtext);">- ' + p.note + '</span>' : '') +
+        '</div></div>' +
+        (isAdmin ? '<button class="icon-btn delete" onclick="deletePayment(' + item.jwIdx + ',' + item.payIdx + ')" style="width:28px;height:28px;"><i class="fas fa-trash"></i></button>' : '') +
+        '</div>';
+    }).join('');
   }
 
   async function deletePayment(jwIdx, payIdx) {
@@ -2538,6 +2659,10 @@
       <button class="modal-close" onclick="document.getElementById('addPaymentModal').classList.remove('show')"><i class="fas fa-times"></i></button>
     </div>
     <div class="modal-body">
+      <div class="mform-group" id="payJobWorkPicker" style="display:none;">
+        <label>Job Work *</label>
+        <select id="payJobWork"></select>
+      </div>
       <div class="mform-group">
         <label>Amount (Rs) *</label>
         <input type="number" id="payAmount" placeholder="e.g. 10000"/>
