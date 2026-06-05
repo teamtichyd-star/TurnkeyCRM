@@ -996,21 +996,7 @@ if (role === "supervisor") {
 }
     // Show/Hide menu items based on role
     const allMenus = ['leads','tasks','projects','followups','sheets','export','vendors','attendance','attendanceadmin'];
-    // STAGE 2: Override role-based modules with custom permissions if present
-    const customPerms = currentUserData?.permissions || null;
-    const isAdminUser = ['admin','superadmin'].includes(role);
-    function canRead(moduleKey) {
-      if (isAdminUser) return true;
-      if (customPerms && customPerms[moduleKey]) return customPerms[moduleKey].read === true;
-      return modules.includes(moduleKey);
-    }
-    window._canRead = canRead;
-    window._customPerms = customPerms;
     allMenus.forEach(module => {
-      const menuItem = document.getElementById('menu-' + module);
-      if (menuItem) menuItem.classList.toggle('hidden', !canRead(module));
-      const PERM_HANDLED = true;
-      if (PERM_HANDLED) return;
       const menuItem = document.getElementById('menu-' + module);
       if (menuItem) {
         menuItem.classList.toggle('hidden', !modules.includes(module));
@@ -1018,25 +1004,19 @@ if (role === "supervisor") {
     });
 
     // Show User Management for superadmin only
-    if (canRead('users') || ['admin','superadmin'].includes(role)) {
+    if (role === 'superadmin') {
       document.getElementById('menu-users').classList.remove('hidden');
       document.getElementById('admin-label').style.display = 'block';
     }
 
     // Show/Hide bottom nav
     ['leads','tasks','projects','vendors','attendance'].forEach(m => {
-      const bnavItem = document.getElementById('bnav-' + m);
-      if (bnavItem) bnavItem.classList.toggle('hidden', !canRead(m));
-      const _SKIP_BNAV = true; if (_SKIP_BNAV) return;
       const bnav = document.getElementById('bnav-' + m);
       if (bnav) bnav.classList.toggle('hidden', !modules.includes(m));
     });
 
     // Show/Hide quick actions
     ['leads','tasks','projects','followups','vendors','attendance'].forEach(m => {
-      const qaItem = document.getElementById('qa-' + m);
-      if (qaItem) qaItem.classList.toggle('hidden', !canRead(m));
-      const _SKIP_QA = true; if (_SKIP_QA) return;
       const qa = document.getElementById('qa-' + m);
       if (qa) qa.classList.toggle('hidden', !modules.includes(m));
     });
@@ -1367,15 +1347,9 @@ if (role === "supervisor") {
     const modules = roleModules[role] || roleModules['manager'];
 
     // Check access
-    if (page !== 'dashboard') {
-      // STAGE 2: Check custom permissions first, then fall back to role modules
-      const cp = currentUserData?.permissions || null;
-      const adminBypass = ['admin','superadmin'].includes(role);
-      let hasAccess = false;
-      if (adminBypass) hasAccess = true;
-      else if (cp && cp[page]) hasAccess = cp[page].read === true;
-      else hasAccess = modules.includes(page) || page === 'users';
-      if (!hasAccess) { showAccessDenied(page); return; }
+    if (page !== 'dashboard' && page !== 'users' && !modules.includes(page)) {
+      showAccessDenied(page);
+      return;
     }
 
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
