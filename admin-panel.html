@@ -492,7 +492,7 @@
     if (!user) { window.location.href = "index.html"; return; }
     try {
       const doc = await db.collection("users").doc(user.email).get();
-      if (!doc.exists || doc.data().role !== "admin") {
+      if (!doc.exists || !["admin","superadmin"].includes(doc.data().role)) {
         alert("⛔ Access denied. Admins only.");
         window.location.href = "index.html";
         return;
@@ -523,7 +523,7 @@
             <tr>
               <td>${u.name || "—"}</td>
               <td style="color:#93c5fd;">${u.email || u.id}</td>
-              <td><span class="role-badge ${roleClass}">${role}</span></td>
+              <td><span class="role-badge ${roleClass}">${role}</span> <button onclick="openPermModal('${u.email}')" style="margin-left:6px;padding:4px 10px;border-radius:6px;background:rgba(200,169,110,0.15);color:#c8a96e;border:1px solid rgba(200,169,110,0.3);cursor:pointer;font-size:11px;font-weight:600;">Permissions</button></td>
               <td style="color:#6b7280;">${created}</td>
               <td>
                 <button class="btn-remove"
@@ -695,5 +695,131 @@
   window.exportUsers    = exportUsers;
   window.doSignOut      = doSignOut;
 </script>
+
+<div id="permModal" style="position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:5000;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px);">
+  <div style="background:linear-gradient(145deg,#1e2d5e,#16213e);border-radius:20px;width:100%;max-width:680px;max-height:90vh;overflow-y:auto;border:1px solid rgba(200,169,110,0.18);box-shadow:0 30px 80px rgba(0,0,0,0.6);">
+    <div style="padding:20px 24px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:#1e2d5e;z-index:1;border-radius:20px 20px 0 0;">
+      <h3 style="color:#c8a96e;font-size:16px;"><i class="fas fa-key"></i> Edit Permissions — <span id="permUserName">-</span></h3>
+      <button onclick="closePermModal()" style="background:rgba(255,255,255,0.05);border:none;color:#f0f0f0;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:15px;">&times;</button>
+    </div>
+    <div style="padding:20px 24px;">
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+        <button onclick="applyPermPreset('full')" style="padding:8px 14px;border-radius:8px;border:1px solid rgba(76,175,80,0.3);background:rgba(76,175,80,0.1);color:#4caf50;cursor:pointer;font-size:12px;font-weight:600;">Full Access</button>
+        <button onclick="applyPermPreset('readonly')" style="padding:8px 14px;border-radius:8px;border:1px solid rgba(33,150,243,0.3);background:rgba(33,150,243,0.1);color:#2196f3;cursor:pointer;font-size:12px;font-weight:600;">Read Only</button>
+        <button onclick="applyPermPreset('roledefault')" style="padding:8px 14px;border-radius:8px;border:1px solid rgba(200,169,110,0.3);background:rgba(200,169,110,0.1);color:#c8a96e;cursor:pointer;font-size:12px;font-weight:600;">Role Default</button>
+        <button onclick="applyPermPreset('none')" style="padding:8px 14px;border-radius:8px;border:1px solid rgba(244,67,54,0.3);background:rgba(244,67,54,0.1);color:#f44336;cursor:pointer;font-size:12px;font-weight:600;">Clear All</button>
+      </div>
+      <table style="width:100%;border-collapse:collapse;">
+        <thead>
+          <tr style="background:rgba(255,255,255,0.03);">
+            <th style="padding:10px;text-align:left;font-size:11px;text-transform:uppercase;color:#8888aa;">Module</th>
+            <th style="padding:10px;text-align:center;font-size:11px;color:#8888aa;">Read</th>
+            <th style="padding:10px;text-align:center;font-size:11px;color:#8888aa;">Edit</th>
+            <th style="padding:10px;text-align:center;font-size:11px;color:#8888aa;">Delete</th>
+          </tr>
+        </thead>
+        <tbody id="permTableBody"></tbody>
+      </table>
+      <p style="margin-top:14px;font-size:12px;color:#8888aa;">Read=view menu/page. Edit=add/modify. Delete=remove. If empty, role defaults apply.</p>
+    </div>
+    <div style="padding:14px 24px;border-top:1px solid rgba(255,255,255,0.08);display:flex;gap:10px;justify-content:flex-end;">
+      <button onclick="closePermModal()" style="padding:10px 18px;border-radius:10px;background:rgba(244,67,54,0.1);color:#f44336;border:1px solid rgba(244,67,54,0.25);cursor:pointer;font-size:13px;font-weight:600;">Cancel</button>
+      <button onclick="savePermissions()" style="padding:10px 18px;border-radius:10px;background:linear-gradient(135deg,#c8a96e,#a07840);color:white;border:none;cursor:pointer;font-size:13px;font-weight:600;">Save Permissions</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const PERM_MODULES = [
+  { key:'leads',      label:'Leads' },
+  { key:'tasks',      label:'Tasks' },
+  { key:'projects',   label:'Projects' },
+  { key:'followups',  label:'Followups' },
+  { key:'sheets',     label:'Sheets Sync' },
+  { key:'export',     label:'Export CSV' },
+  { key:'vendors',    label:'Vendors' },
+  { key:'attendance', label:'Attendance' },
+  { key:'users',      label:'User Mgmt' }
+];
+const ROLE_DEFAULT_MODULES = {
+  superadmin:   ['leads','tasks','projects','sheets','export','users','vendors','attendance'],
+  admin:        ['leads','tasks','projects','sheets','export','users','vendors','attendance'],
+  manager:      ['leads','tasks','projects','sheets','export','vendors','attendance'],
+  supervisor:   ['tasks','projects','vendors','attendance'],
+  purchase:     ['tasks','projects','sheets','export','vendors','attendance'],
+  designer:     ['tasks','projects','vendors','attendance'],
+  accounts:     ['leads','tasks','sheets','export','vendors','attendance'],
+  projectmanager:['leads','tasks','projects','sheets','export','vendors','attendance']
+};
+let currentPermUser = null;
+function openPermModal(email) {
+  db.collection('users').doc(email).get().then(function(snap) {
+    if (!snap.exists) { alert('User not found'); return; }
+    const u = snap.data();
+    currentPermUser = { email: email, role: u.role || 'manager', name: u.name || email, permissions: u.permissions || null };
+    document.getElementById('permUserName').textContent = currentPermUser.name + ' (' + currentPermUser.role + ')';
+    renderPermTable(currentPermUser.permissions);
+    document.getElementById('permModal').style.display = 'flex';
+  });
+}
+function closePermModal() {
+  document.getElementById('permModal').style.display = 'none';
+  currentPermUser = null;
+}
+function getRoleDefault(role) {
+  const allowed = ROLE_DEFAULT_MODULES[role] || [];
+  const out = {};
+  PERM_MODULES.forEach(function(m) {
+    if (allowed.indexOf(m.key) > -1) {
+      out[m.key] = { read: true, edit: true, delete: (['admin','superadmin'].indexOf(role) > -1) };
+    } else {
+      out[m.key] = { read: false, edit: false, delete: false };
+    }
+  });
+  return out;
+}
+function renderPermTable(perms) {
+  if (!perms) perms = getRoleDefault(currentPermUser.role);
+  const tbody = document.getElementById('permTableBody');
+  tbody.innerHTML = PERM_MODULES.map(function(m) {
+    const p = perms[m.key] || { read:false, edit:false, delete:false };
+    return '<tr style="border-bottom:1px solid rgba(255,255,255,0.04);">' +
+      '<td style="padding:10px;font-size:13px;color:#f0f0f0;">' + m.label + '</td>' +
+      '<td style="padding:10px;text-align:center;"><input type="checkbox" id="perm_' + m.key + '_read" ' + (p.read?'checked':'') + ' style="width:18px;height:18px;cursor:pointer;accent-color:#c8a96e;"/></td>' +
+      '<td style="padding:10px;text-align:center;"><input type="checkbox" id="perm_' + m.key + '_edit" ' + (p.edit?'checked':'') + ' style="width:18px;height:18px;cursor:pointer;accent-color:#c8a96e;"/></td>' +
+      '<td style="padding:10px;text-align:center;"><input type="checkbox" id="perm_' + m.key + '_delete" ' + (p.delete?'checked':'') + ' style="width:18px;height:18px;cursor:pointer;accent-color:#c8a96e;"/></td>' +
+      '</tr>';
+  }).join('');
+}
+function applyPermPreset(type) {
+  let perms = {};
+  PERM_MODULES.forEach(function(m) {
+    if (type === 'full') perms[m.key] = { read:true, edit:true, delete:true };
+    else if (type === 'readonly') perms[m.key] = { read:true, edit:false, delete:false };
+    else if (type === 'none') perms[m.key] = { read:false, edit:false, delete:false };
+  });
+  if (type === 'roledefault') perms = getRoleDefault(currentPermUser.role);
+  renderPermTable(perms);
+}
+function savePermissions() {
+  if (!currentPermUser) return;
+  const perms = {};
+  PERM_MODULES.forEach(function(m) {
+    perms[m.key] = {
+      read:   document.getElementById('perm_' + m.key + '_read').checked,
+      edit:   document.getElementById('perm_' + m.key + '_edit').checked,
+      delete: document.getElementById('perm_' + m.key + '_delete').checked
+    };
+  });
+  db.collection('users').doc(currentPermUser.email).update({ permissions: perms })
+    .then(function() {
+      alert('Permissions saved!');
+      closePermModal();
+      if (typeof loadUsers === 'function') loadUsers();
+    })
+    .catch(function(e) { alert('Error: ' + e.message); });
+}
+</script>
+
 </body>
 </html>

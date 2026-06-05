@@ -947,6 +947,9 @@
     document.getElementById('userName').textContent = name;
     document.getElementById('sidebarUserName').textContent = name;
     document.getElementById('sidebarUserRole').textContent = roleNames[role] || role;
+    // Show admin shield icon for admin/superadmin
+    const adminWrap = document.getElementById('adminIconWrapper');
+    if (adminWrap) adminWrap.style.display = (['admin','superadmin'].includes(role)) ? 'block' : 'none';
     document.getElementById('sidebarUserEmail').textContent = currentUser?.email || '';
 
     // Store user info for iframes
