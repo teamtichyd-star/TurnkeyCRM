@@ -570,3 +570,68 @@ NEXT SESSION SHOULD START WITH:
 - UI polish: WhatsApp green, Email blue, GST breakdown
 - Optional: bell notifications for new job works/payouts
 
+
+=======================================================
+SESSION LOG — 06 June 2026 (Attendance Module)
+=======================================================
+
+✅ COMPLETED:
+
+1. ATTENDANCE MODULE (full build)
+   Files created:
+   - attendance.html (user-facing: mark + view own history)
+   - attendance-admin.html (admin: all users + CSV export)
+
+   Features:
+   - GPS REQUIRED (Geolocation API) — denied = can't submit
+   - Reverse geocoding via Nominatim (OpenStreetMap) — FREE, no API key
+   - 3 mark types: Present / Weekly Off / Holiday
+   - Project dropdown (auto-fetched from projects collection + "Office")
+   - One entry per day per user (doc id = email_date — prevents duplicates)
+   - Dashboard card showing today's status (auto-injected on dashboard page)
+   - 11 AM in-app banner + push notification if not marked
+   - Alert shown only once per day (tracked via localStorage)
+   - Monthly history view with stats (Present/Off/Holiday/Absent/Avg Time)
+   - Admin summary view: per-user stats + last location + GPS map link
+   - Admin detail view: every record with GPS coordinates
+   - CSV exports: Summary (for salary) + Detail (audit trail)
+   - Auto-cleanup: silently deletes records >60 days when admin opens page
+   - Manual cleanup button as backup
+   - Late detection: any check-in after 10:30 AM marked LATE
+
+   Firestore collection: attendance
+   Doc fields: userEmail, userName, date, time, type, gpsLat, gpsLng, gpsAddress, projectId, projectName, notes, createdAt
+
+   Firestore rules added:
+   match /attendance/{docId} { allow read, write: if isSignedIn(); }
+
+   Role access:
+   - All roles: attendance (view + mark own)
+   - admin/superadmin only: attendanceadmin (all users + export + cleanup)
+
+2. FREE TIER VERIFIED SAFE:
+   - 20 users × 1 entry/day = 20 writes/day (0.1% of 20K free)
+   - ~200 reads/day total (0.4% of 50K free)
+   - Storage: ~480 KB for 2 months (0.05% of 1 GB free)
+   - Even 100 users = only 2% of free limits
+
+3. FIXES APPLIED:
+   - History query: removed compound where(date>=, date<=) — fetch by email then filter client-side (avoids needing Firestore composite index)
+   - Admin table: replaced "Range" column with "Last Location" showing project + GPS address
+
+GIT TAG: v10-attendance-module-live
+
+KEY LEARNINGS:
+1. Firestore compound queries with where(==) + where(>=) + where(<=) need composite index — workaround: fetch single field then filter in JS
+2. Nominatim works perfectly for reverse geocoding without API key (just respect fair use)
+3. localStorage tracks one-time-per-day alerts well (key includes date)
+4. Geolocation API requires user gesture — auto-fetch on modal open works fine
+5. Doc ID pattern (email_date) auto-prevents duplicate entries — no need for query check first
+
+NEXT SESSION TASKS PENDING:
+- Mobile push notification reliability fix
+- UI polish: WhatsApp green, Email blue, GST breakdown
+- Optional: bell notifications for new job works/payouts
+- Optional: auto-mark Sundays as Weekly Off
+- Optional: configurable late time (currently hardcoded 10:30)
+
