@@ -295,8 +295,8 @@
 
   
     /* ─── PORTAL MODAL ─── */
-    .portal-tabs { display: flex; gap: 6px; margin: 16px 0; flex-wrap: wrap; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
-    .portal-tab { padding: 8px 14px; border-radius: 10px; border: 1px solid var(--border); background: transparent; color: var(--subtext); cursor: pointer; font-size: 12px; font-weight: 500; transition: 0.2s; display: flex; align-items: center; gap: 6px; }
+    .portal-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 16px 0; border-bottom: 1px solid var(--border); padding-bottom: 12px; overflow:visible !important; }
+    .portal-tab { padding: 10px 8px; border-radius: 10px; border: 1px solid var(--border); background: transparent; color: var(--subtext); cursor: pointer; font-size: 12px; font-weight: 600; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px; text-align: center; min-height: 42px; }
     .portal-tab:hover { border-color: rgba(200,169,110,0.3); color: var(--text); }
     .portal-tab.active { background: var(--primary-glow); border-color: var(--primary); color: var(--primary); font-weight: 700; }
     .portal-section { display: none; }
@@ -387,8 +387,8 @@
     }
     .modal-footer .btn { flex: 1; justify-content: center; font-size: 13px !important; padding: 10px 12px !important; }
 
-    /* Portal tabs - scrollable horizontal strip */
-    .portal-tabs {
+    /* Portal tabs - 2-row grid on all screens */
+    .portal-tabs.OLD_SCROLL_DISABLED {
       display: flex !important;
       flex-wrap: nowrap !important;
       overflow-x: auto !important;
@@ -494,6 +494,19 @@
   /* Projects grid default */
   .projects-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
 
+
+    /* STICKY MODAL FOOTER */
+    #portalModal .modal { display: flex; flex-direction: column; max-height: 95vh; }
+    #portalModal .modal-body { flex: 1; overflow-y: auto; }
+    #portalModal .modal-footer { position: sticky; bottom: 0; background: linear-gradient(145deg, #1e2d5e, #16213e); border-top: 1px solid var(--border); padding: 14px 24px; z-index: 10; box-shadow: 0 -4px 12px rgba(0,0,0,0.3); border-radius: 0 0 20px 20px; }
+    @media (max-width: 600px) {
+      #portalModal .modal-footer { padding: 12px 16px; }
+      #portalModal .modal-footer .btn { flex: 1; justify-content: center; }
+    }
+    /* Vendor action buttons in job work cards */
+    .jw-vendor-actions { display: flex; gap: 6px; margin-top: 8px; }
+    .jw-vendor-actions a, .jw-vendor-actions button { width: 30px; height: 30px; }
+    .settled-badge { display: inline-block; padding: 3px 10px; border-radius: 10px; background: rgba(76,175,80,0.15); color: var(--success); font-size: 11px; font-weight: 700; margin-left: 8px; }
 </style>
 </head>
 <body>
@@ -706,9 +719,6 @@
         <button class="portal-tab" onclick="switchPortalTab('snags')" id="ptab-snags">
           <i class="fas fa-exclamation-triangle"></i> Snag List
         </button>
-        <button class="portal-tab" onclick="switchPortalTab('share')" id="ptab-share">
-          <i class="fas fa-share-alt"></i> Share
-        </button>
         <button class="portal-tab" onclick="switchPortalTab('payments')" id="ptab-payments">
           <i class="fas fa-rupee-sign"></i> Payments
         </button>
@@ -762,7 +772,7 @@
       </div>
 
       <!-- ─── SHARE TAB ─── -->
-      <div class="portal-section" id="psec-share">
+      <div class="portal-section" id="psec-share" style="display:none !important;">
         <div class="share-box">
           <h4>🔗 Share with Client</h4>
           <p>
@@ -2347,7 +2357,16 @@
     const proj = projects.find(p => p.id === pid);
     if (!proj) return;
     currentJobWorks = proj.jobWorks || [];
-    renderJobWorks();
+    // Cache vendor phones for call/whatsapp buttons
+    if (!window._vendorPhoneMap) {
+      db.collection('vendors').get().then(function(snap) {
+        window._vendorPhoneMap = {};
+        snap.forEach(function(d){ const v = d.data(); window._vendorPhoneMap[v.name] = v.phone || ''; });
+        renderJobWorks();
+      }).catch(function(){ renderJobWorks(); });
+    } else {
+      renderJobWorks();
+    }
   }
 
   function renderJobWorks() {
@@ -2384,21 +2403,32 @@
           '<button class="icon-btn delete" onclick="deletePayment(' + idx + ',' + pi + ')" style="width:24px;height:24px;font-size:11px;"><i class="fas fa-trash"></i></button>' +
           '</div></div>';
       }).join('');
+      const contractVal = parseFloat(jw.contractValue||0);
+      const pct = contractVal > 0 ? Math.round((paid/contractVal)*100) : 0;
+      const isSettled = bal === 0 && paid > 0;
+      const balColor = isSettled ? 'var(--success)' : (bal > 0 ? 'var(--warning)' : 'var(--danger)');
+      // Find vendor phone from vendors collection cache
+      const vendorPhone = (window._vendorPhoneMap && window._vendorPhoneMap[jw.vendorName]) || '';
+      const vendorActions = vendorPhone ? (
+        '<a class="icon-btn call" href="tel:' + vendorPhone + '" title="Call"><i class="fas fa-phone"></i></a>' +
+        '<a class="icon-btn whatsapp" href="https://wa.me/91' + vendorPhone + '" target="_blank" title="WhatsApp"><i class="fab fa-whatsapp"></i></a>'
+      ) : '';
       return '<div class="jobwork-card' + (overBudget ? ' over-budget' : '') + '">' +
         '<div class="jobwork-header"><div>' +
-        '<div class="jobwork-title">' + (jw.workType||'Job Work') + '</div>' +
+        '<div class="jobwork-title">' + (jw.workType||'Job Work') + (isSettled ? '<span class="settled-badge">SETTLED</span>' : '') + '</div>' +
         '<div class="jobwork-vendor"><i class="fas fa-store"></i> ' + (jw.vendorName||'-') + '</div>' +
-        '</div><div style="display:flex;gap:6px;">' +
-        '<button class="icon-btn" style="background:rgba(76,175,80,0.15);color:var(--success);" onclick="openAddPayment(' + idx + ')" title="Log Payout"><i class="fas fa-plus"></i></button>' +
+        '</div><div style="display:flex;gap:6px;flex-wrap:wrap;">' +
+        vendorActions +
+        (!isSettled ? '<button class="icon-btn" style="background:rgba(76,175,80,0.15);color:var(--success);" onclick="openAddPayment(' + idx + ')" title="Log Payout"><i class="fas fa-plus"></i></button>' : '') +
         (isAdmin ? '<button class="icon-btn edit" onclick="editJobWork(' + idx + ')" title="Edit"><i class="fas fa-edit"></i></button>' : '') +
         (isAdmin ? '<button class="icon-btn delete" onclick="deleteJobWork(' + idx + ')" title="Delete"><i class="fas fa-trash"></i></button>' : '') +
         '</div></div>' +
         '<div class="jobwork-amounts">' +
-        '<div class="jobwork-amount-item"><div class="jobwork-amount-label">Contract</div><div class="jobwork-amount-val" style="color:var(--primary);">₹' + parseFloat(jw.contractValue||0).toLocaleString('en-IN') + '</div></div>' +
-        '<div class="jobwork-amount-item"><div class="jobwork-amount-label">Paid</div><div class="jobwork-amount-val" style="color:var(--success);">₹' + paid.toLocaleString('en-IN') + '</div></div>' +
-        '<div class="jobwork-amount-item"><div class="jobwork-amount-label">Balance</div><div class="jobwork-amount-val" style="color:' + (overBudget ? 'var(--danger)' : 'var(--warning)') + ';">₹' + Math.abs(bal).toLocaleString('en-IN') + (overBudget ? ' ⚠️' : '') + '</div></div>' +
+        '<div class="jobwork-amount-item"><div class="jobwork-amount-label">Contract</div><div class="jobwork-amount-val" style="color:var(--primary);">₹' + contractVal.toLocaleString('en-IN') + '</div></div>' +
+        '<div class="jobwork-amount-item"><div class="jobwork-amount-label">Paid (' + pct + '%)</div><div class="jobwork-amount-val" style="color:var(--success);">₹' + paid.toLocaleString('en-IN') + '</div></div>' +
+        '<div class="jobwork-amount-item"><div class="jobwork-amount-label">Balance</div><div class="jobwork-amount-val" style="color:' + balColor + ';">₹' + Math.abs(bal).toLocaleString('en-IN') + '</div></div>' +
         '</div>' +
-        ''+
+        '<div style="margin-top:8px;height:6px;background:rgba(255,255,255,0.05);border-radius:10px;overflow:hidden;"><div style="height:100%;width:' + Math.min(pct,100) + '%;background:linear-gradient(90deg,var(--success),var(--primary));border-radius:10px;"></div></div>' +
         '</div>';
     }).join('');
   }
