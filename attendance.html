@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Attendance - TurnkeyCRM</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',system-ui,sans-serif; }
+    :root {
+      --primary:#c8a96e; --primary-dark:#a07840; --primary-glow:rgba(200,169,110,0.15);
+      --dark:#1a1a2e; --darker:#0e0e1a; --card:#16213e; --card2:#1a2550;
+      --border:rgba(255,255,255,0.06); --text:#f0f0f0; --subtext:#8888aa;
+      --success:#4caf50; --warning:#ff9800; --danger:#f44336; --info:#2196f3;
+      --radius:14px; --shadow:0 4px 24px rgba(0,0,0,0.35);
+    }
+    body { background:var(--darker); color:var(--text); min-height:100vh; }
+    .page-loader { position:fixed; inset:0; background:var(--darker); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:15px; z-index:9999; }
+    .spinner { width:42px; height:42px; border:3px solid rgba(200,169,110,0.15); border-top-color:var(--primary); border-radius:50%; animation:spin 0.8s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .page { padding:20px 24px; max-width:100%; width:100%; }
+    .top-actions { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:12px; }
+    .top-actions h2 { font-size:22px; font-weight:700; }
+
+    .today-card { background:linear-gradient(145deg,var(--card2),var(--card)); border-radius:var(--radius); padding:24px; border:1px solid var(--border); box-shadow:var(--shadow); margin-bottom:20px; }
+    .today-status { font-size:14px; color:var(--subtext); text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; }
+    .today-value { font-size:24px; font-weight:700; margin-bottom:16px; }
+    .today-value.present { color:var(--success); }
+    .today-value.off { color:var(--info); }
+    .today-value.holiday { color:var(--warning); }
+    .today-value.pending { color:var(--danger); }
+    .today-detail { font-size:13px; color:var(--subtext); margin-bottom:6px; }
+
+    .action-buttons { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:16px; }
+    .btn-mark { padding:14px; border-radius:12px; border:none; font-size:13px; font-weight:700; cursor:pointer; transition:0.2s; display:flex; flex-direction:column; align-items:center; gap:6px; }
+    .btn-present { background:linear-gradient(135deg,var(--success),#388e3c); color:white; }
+    .btn-off { background:rgba(33,150,243,0.15); color:var(--info); border:1px solid rgba(33,150,243,0.3); }
+    .btn-holiday { background:rgba(255,152,0,0.15); color:var(--warning); border:1px solid rgba(255,152,0,0.3); }
+    .btn-mark:hover:not(:disabled) { transform:translateY(-2px); filter:brightness(1.15); }
+    .btn-mark:disabled { opacity:0.5; cursor:not-allowed; }
+    .btn-mark i { font-size:20px; }
+
+    .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:14px; margin-bottom:20px; }
+    .stat-card { background:linear-gradient(145deg,var(--card2),var(--card)); border-radius:var(--radius); padding:18px; text-align:center; border:1px solid var(--border); box-shadow:var(--shadow); }
+    .stat-card h3 { font-size:28px; font-weight:700; }
+    .stat-card p { font-size:12px; color:var(--subtext); margin-top:4px; }
+    .stat-card.gold h3 { color:var(--primary); }
+    .stat-card.green h3 { color:var(--success); }
+    .stat-card.blue h3 { color:var(--info); }
+    .stat-card.orange h3 { color:var(--warning); }
+    .stat-card.red h3 { color:var(--danger); }
+
+    .month-selector { display:flex; gap:10px; margin-bottom:16px; align-items:center; flex-wrap:wrap; }
+    .month-selector select { padding:10px 14px; background:var(--card); border:1px solid var(--border); border-radius:10px; color:var(--text); font-size:13px; outline:none; cursor:pointer; }
+    .month-selector select option { background:var(--dark); }
+
+    .history-list { display:flex; flex-direction:column; gap:8px; }
+    .history-item { background:linear-gradient(145deg,var(--card2),var(--card)); border-radius:12px; padding:14px; border:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+    .history-item.present { border-left:3px solid var(--success); }
+    .history-item.weekly_off { border-left:3px solid var(--info); }
+    .history-item.holiday { border-left:3px solid var(--warning); }
+    .history-date { font-size:13px; font-weight:700; }
+    .history-type { font-size:11px; padding:3px 10px; border-radius:10px; font-weight:600; text-transform:uppercase; }
+    .type-present { background:rgba(76,175,80,0.15); color:var(--success); }
+    .type-weekly_off { background:rgba(33,150,243,0.15); color:var(--info); }
+    .type-holiday { background:rgba(255,152,0,0.15); color:var(--warning); }
+    .history-meta { font-size:12px; color:var(--subtext); flex:1; min-width:200px; }
+    .history-meta a { color:var(--primary); text-decoration:none; }
+
+    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:2000; display:none; align-items:center; justify-content:center; padding:20px; backdrop-filter:blur(4px); }
+    .modal-overlay.show { display:flex; }
+    .modal { background:linear-gradient(145deg,#1e2d5e,#16213e); border-radius:20px; width:100%; max-width:480px; max-height:90vh; overflow-y:auto; border:1px solid rgba(200,169,110,0.18); box-shadow:0 30px 80px rgba(0,0,0,0.6); }
+    .modal-header { padding:20px 24px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+    .modal-header h3 { font-size:16px; color:var(--primary); }
+    .modal-close { width:32px; height:32px; background:rgba(255,255,255,0.05); border:none; border-radius:8px; color:var(--text); cursor:pointer; }
+    .modal-body { padding:22px 24px; }
+    .modal-footer { padding:14px 24px; border-top:1px solid var(--border); display:flex; gap:10px; justify-content:flex-end; }
+    .form-group { margin-bottom:14px; }
+    .form-group label { font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--subtext); margin-bottom:8px; display:block; }
+    .form-group input, .form-group select { width:100%; padding:12px 16px; background:rgba(255,255,255,0.04); border:1.5px solid rgba(255,255,255,0.08); border-radius:12px; color:var(--text); font-size:14px; outline:none; }
+    .form-group input:focus, .form-group select:focus { border-color:var(--primary); }
+    .form-group select option { background:var(--dark); }
+    .gps-status { padding:12px; border-radius:10px; font-size:13px; margin-bottom:14px; display:flex; align-items:center; gap:10px; }
+    .gps-loading { background:rgba(33,150,243,0.1); color:var(--info); }
+    .gps-success { background:rgba(76,175,80,0.1); color:var(--success); }
+    .gps-error { background:rgba(244,67,54,0.1); color:var(--danger); }
+    .btn { padding:12px 24px; border-radius:12px; border:none; cursor:pointer; font-size:14px; font-weight:600; display:inline-flex; align-items:center; gap:8px; }
+    .btn-primary { background:linear-gradient(135deg,var(--primary),var(--primary-dark)); color:white; }
+    .btn-danger { background:rgba(244,67,54,0.1); color:var(--danger); border:1px solid rgba(244,67,54,0.25); }
+
+    .toast { position:fixed; bottom:90px; right:20px; background:var(--success); color:white; padding:12px 20px; border-radius:11px; font-size:13.5px; z-index:9999; display:none; box-shadow:0 6px 24px rgba(0,0,0,0.35); }
+
+    .empty-state { text-align:center; padding:50px 20px; color:var(--subtext); }
+    .empty-state i { font-size:50px; opacity:0.3; margin-bottom:12px; display:block; }
+
+    @media (max-width:768px) {
+      .page { padding:14px; }
+      .stats-grid { grid-template-columns:repeat(3,1fr); }
+      .action-buttons { grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page-loader" id="pageLoader"><div class="spinner"></div><p style="color:var(--subtext);font-size:13px;letter-spacing:1px">Loading attendance...</p></div>
+<div class="toast" id="toast"></div>
+
+<div class="page" id="mainPage" style="display:none">
+
+  <div class="top-actions">
+    <h2>📅 My Attendance</h2>
+  </div>
+
+  <!-- TODAY CARD -->
+  <div class="today-card">
+    <div class="today-status">Today — <span id="todayDate"></span></div>
+    <div class="today-value" id="todayValue">⏳ Loading...</div>
+    <div id="todayMeta"></div>
+    <div class="action-buttons" id="actionButtons" style="display:none">
+      <button class="btn-mark btn-present" onclick="openMarkModal('present')">
+        <i class="fas fa-check-circle"></i> Mark Present
+      </button>
+      <button class="btn-mark btn-off" onclick="markQuick('weekly_off')">
+        <i class="fas fa-coffee"></i> Weekly Off
+      </button>
+      <button class="btn-mark btn-holiday" onclick="markQuick('holiday')">
+        <i class="fas fa-umbrella-beach"></i> Holiday
+      </button>
+    </div>
+  </div>
+
+  <!-- MONTH STATS -->
+  <div class="month-selector">
+    <label style="font-size:13px;color:var(--subtext)">Month:</label>
+    <select id="monthSelect" onchange="loadHistory()"></select>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card green"><h3 id="sPresent">0</h3><p>Present</p></div>
+    <div class="stat-card blue"><h3 id="sOff">0</h3><p>Weekly Off</p></div>
+    <div class="stat-card orange"><h3 id="sHoliday">0</h3><p>Holiday</p></div>
+    <div class="stat-card red"><h3 id="sAbsent">0</h3><p>Absent</p></div>
+    <div class="stat-card gold"><h3 id="sAvgTime">-</h3><p>Avg Time</p></div>
+  </div>
+
+  <div class="history-list" id="historyList"></div>
+
+</div>
+
+<!-- MARK PRESENT MODAL -->
+<div class="modal-overlay" id="markModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3><i class="fas fa-check-circle"></i> Mark Present</h3>
+      <button class="modal-close" onclick="closeMark()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="gps-status gps-loading" id="gpsStatus">
+        <i class="fas fa-spinner fa-spin"></i> <span>Getting location...</span>
+      </div>
+      <div class="form-group">
+        <label>Project / Site *</label>
+        <select id="markProject">
+          <option value="">Loading projects...</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Notes (optional)</label>
+        <input type="text" id="markNotes" placeholder="e.g. Late due to traffic"/>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" onclick="closeMark()"><i class="fas fa-times"></i> Cancel</button>
+      <button class="btn btn-primary" onclick="submitPresent()" id="submitBtn" disabled><i class="fas fa-check"></i> Submit</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey:"AIzaSyBLQhUZA-VN4_A9FhQWmlRSQZC2D95KoE8",
+  authDomain:"turnkeycrm-ce7b8.firebaseapp.com",
+  projectId:"turnkeycrm-ce7b8",
+  storageBucket:"turnkeycrm-ce7b8.firebasestorage.app",
+  messagingSenderId:"487224108102",
+  appId:"1:487224108102:web:dbe9d4ea6abdb2db581647"
+};
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+const attRef = db.collection('attendance');
+
+let currentUser = null;
+let currentUserName = '';
+let todayDoc = null;
+let gpsData = null;
+let allProjects = [];
+let historyData = [];
+
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = type==='danger'?'var(--danger)':type==='warning'?'var(--warning)':'var(--success)';
+  t.style.display = 'block';
+  setTimeout(()=>{ t.style.display='none'; }, 3000);
+}
+
+function todayStr() { return new Date().toISOString().split('T')[0]; }
+function nowTime() { const d=new Date(); return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0'); }
+function docId(email, date) { return email.replace(/[.@]/g,'_')+'_'+date; }
+
+async function loadProjects() {
+  try {
+    const snap = await db.collection('projects').get();
+    allProjects = [{id:'office', name:'Office'}];
+    snap.forEach(d => { allProjects.push({id:d.id, name:d.data().name||'Unnamed'}); });
+  } catch(e) { console.error(e); allProjects = [{id:'office', name:'Office'}]; }
+}
+
+function fillProjectDropdown() {
+  const sel = document.getElementById('markProject');
+  sel.innerHTML = '<option value="">Select Site/Project</option>' + allProjects.map(p => '<option value="'+p.id+'">'+p.name+'</option>').join('');
+}
+
+async function loadToday() {
+  const id = docId(currentUser.email, todayStr());
+  try {
+    const doc = await attRef.doc(id).get();
+    if (doc.exists) {
+      todayDoc = doc.data();
+      renderTodayCard();
+    } else {
+      todayDoc = null;
+      renderTodayCard();
+    }
+  } catch(e) { console.error(e); }
+}
+
+function renderTodayCard() {
+  document.getElementById('todayDate').textContent = new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'short'});
+  const val = document.getElementById('todayValue');
+  const meta = document.getElementById('todayMeta');
+  const btns = document.getElementById('actionButtons');
+  if (todayDoc) {
+    btns.style.display = 'none';
+    if (todayDoc.type === 'present') {
+      val.className = 'today-value present';
+      val.innerHTML = '✅ Present at '+todayDoc.time;
+      meta.innerHTML = '<div class="today-detail">📍 '+(todayDoc.projectName||'')+'</div>'+
+        (todayDoc.gpsAddress?'<div class="today-detail">🌍 '+todayDoc.gpsAddress+'</div>':'')+
+        (todayDoc.notes?'<div class="today-detail">📝 '+todayDoc.notes+'</div>':'');
+    } else if (todayDoc.type === 'weekly_off') {
+      val.className = 'today-value off';
+      val.innerHTML = '☕ Weekly Off';
+      meta.innerHTML = '';
+    } else if (todayDoc.type === 'holiday') {
+      val.className = 'today-value holiday';
+      val.innerHTML = '🏖️ Holiday';
+      meta.innerHTML = '';
+    }
+  } else {
+    val.className = 'today-value pending';
+    val.innerHTML = '⚠️ Not Marked Yet';
+    meta.innerHTML = '<div class="today-detail">Mark your attendance for today</div>';
+    btns.style.display = 'grid';
+  }
+}
+
+function openMarkModal(type) {
+  document.getElementById('markNotes').value = '';
+  fillProjectDropdown();
+  document.getElementById('submitBtn').disabled = true;
+  document.getElementById('markModal').classList.add('show');
+  fetchGPS();
+}
+
+function closeMark() {
+  document.getElementById('markModal').classList.remove('show');
+  gpsData = null;
+}
+
+function fetchGPS() {
+  const status = document.getElementById('gpsStatus');
+  status.className = 'gps-status gps-loading';
+  status.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Getting location...</span>';
+  if (!navigator.geolocation) {
+    status.className = 'gps-status gps-error';
+    status.innerHTML = '<i class="fas fa-times-circle"></i> <span>Geolocation not supported. Cannot mark attendance.</span>';
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(async function(pos) {
+    gpsData = { lat: pos.coords.latitude, lng: pos.coords.longitude, address: '' };
+    status.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Resolving address...</span>';
+    try {
+      const resp = await fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat='+gpsData.lat+'&lon='+gpsData.lng+'&zoom=18');
+      const data = await resp.json();
+      gpsData.address = data.display_name || (gpsData.lat.toFixed(5)+', '+gpsData.lng.toFixed(5));
+    } catch(e) {
+      gpsData.address = gpsData.lat.toFixed(5)+', '+gpsData.lng.toFixed(5);
+    }
+    status.className = 'gps-status gps-success';
+    status.innerHTML = '<i class="fas fa-check-circle"></i> <span>📍 '+gpsData.address.substring(0,80)+'...</span>';
+    document.getElementById('submitBtn').disabled = false;
+  }, function(err) {
+    status.className = 'gps-status gps-error';
+    status.innerHTML = '<i class="fas fa-times-circle"></i> <span>Location permission required for attendance. Please allow and try again.</span>';
+    gpsData = null;
+  }, { enableHighAccuracy: true, timeout: 15000 });
+}
+
+async function submitPresent() {
+  if (!gpsData) { showToast('Location required', 'danger'); return; }
+  const projId = document.getElementById('markProject').value;
+  if (!projId) { showToast('Select project/site', 'danger'); return; }
+  const proj = allProjects.find(p => p.id === projId);
+  const data = {
+    userEmail: currentUser.email,
+    userName: currentUserName,
+    date: todayStr(),
+    time: nowTime(),
+    type: 'present',
+    gpsLat: gpsData.lat,
+    gpsLng: gpsData.lng,
+    gpsAddress: gpsData.address,
+    projectId: projId,
+    projectName: proj ? proj.name : '',
+    notes: document.getElementById('markNotes').value.trim(),
+    createdAt: new Date().toISOString()
+  };
+  try {
+    await attRef.doc(docId(currentUser.email, todayStr())).set(data);
+    todayDoc = data;
+    renderTodayCard();
+    closeMark();
+    loadHistory();
+    showToast('✅ Attendance marked!');
+  } catch(e) { showToast('Error: '+e.message, 'danger'); }
+}
+
+async function markQuick(type) {
+  if (!confirm('Mark today as '+(type==='weekly_off'?'Weekly Off':'Holiday')+'?')) return;
+  const data = {
+    userEmail: currentUser.email,
+    userName: currentUserName,
+    date: todayStr(),
+    time: nowTime(),
+    type: type,
+    createdAt: new Date().toISOString()
+  };
+  try {
+    await attRef.doc(docId(currentUser.email, todayStr())).set(data);
+    todayDoc = data;
+    renderTodayCard();
+    loadHistory();
+    showToast('✅ Marked!');
+  } catch(e) { showToast('Error: '+e.message, 'danger'); }
+}
+
+function fillMonthSelect() {
+  const sel = document.getElementById('monthSelect');
+  const months = [];
+  const now = new Date();
+  for (let i=0; i<3; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    const val = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    const label = d.toLocaleDateString('en-IN',{month:'long',year:'numeric'});
+    months.push('<option value="'+val+'">'+label+'</option>');
+  }
+  sel.innerHTML = months.join('');
+}
+
+async function loadHistory() {
+  const month = document.getElementById('monthSelect').value;
+  const [y,m] = month.split('-').map(Number);
+  const start = y+'-'+String(m).padStart(2,'0')+'-01';
+  const endDate = new Date(y, m, 0).getDate();
+  const end = y+'-'+String(m).padStart(2,'0')+'-'+String(endDate).padStart(2,'0');
+  try {
+    const snap = await attRef.where('userEmail','==',currentUser.email).where('date','>=',start).where('date','<=',end).get();
+    historyData = [];
+    snap.forEach(d => historyData.push(d.data()));
+    historyData.sort((a,b) => b.date.localeCompare(a.date));
+    renderHistory();
+    renderStats(y, m);
+  } catch(e) { console.error(e); }
+}
+
+function renderStats(y, m) {
+  const present = historyData.filter(h => h.type==='present').length;
+  const off = historyData.filter(h => h.type==='weekly_off').length;
+  const hol = historyData.filter(h => h.type==='holiday').length;
+  const daysInMonth = new Date(y, m, 0).getDate();
+  const today = new Date();
+  const isCurrentMonth = (today.getFullYear()===y && (today.getMonth()+1)===m);
+  const daysCounted = isCurrentMonth ? today.getDate() : daysInMonth;
+  const absent = Math.max(0, daysCounted - present - off - hol);
+  const presentTimes = historyData.filter(h => h.type==='present' && h.time);
+  let avgTime = '-';
+  if (presentTimes.length) {
+    const totalMin = presentTimes.reduce((s,h) => {
+      const [hh,mm] = h.time.split(':').map(Number);
+      return s + hh*60 + mm;
+    }, 0);
+    const avg = Math.round(totalMin / presentTimes.length);
+    avgTime = String(Math.floor(avg/60)).padStart(2,'0')+':'+String(avg%60).padStart(2,'0');
+  }
+  document.getElementById('sPresent').textContent = present;
+  document.getElementById('sOff').textContent = off;
+  document.getElementById('sHoliday').textContent = hol;
+  document.getElementById('sAbsent').textContent = absent;
+  document.getElementById('sAvgTime').textContent = avgTime;
+}
+
+function renderHistory() {
+  const c = document.getElementById('historyList');
+  if (!historyData.length) {
+    c.innerHTML = '<div class="empty-state"><i class="fas fa-calendar-times"></i><h3>No records for this month</h3></div>';
+    return;
+  }
+  c.innerHTML = historyData.map(h => {
+    const dateLabel = new Date(h.date).toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'});
+    const typeLabel = h.type==='present'?'PRESENT':h.type==='weekly_off'?'WEEKLY OFF':'HOLIDAY';
+    const gpsLink = (h.gpsLat && h.gpsLng) ? '<a href="https://maps.google.com/?q='+h.gpsLat+','+h.gpsLng+'" target="_blank">📍 View on Map</a>' : '';
+    const meta = h.type==='present' ? ('⏰ '+h.time+' • '+(h.projectName||'')+(gpsLink?' • '+gpsLink:'')) : '';
+    return '<div class="history-item '+h.type+'">'+
+      '<div><div class="history-date">'+dateLabel+'</div><div class="history-meta">'+meta+'</div></div>'+
+      '<div class="history-type type-'+h.type+'">'+typeLabel+'</div>'+
+      '</div>';
+  }).join('');
+}
+
+firebase.auth().onAuthStateChanged(async function(user) {
+  if (!user) { window.location.href='index.html'; return; }
+  currentUser = user;
+  try {
+    const userDoc = await db.collection('users').doc(user.email).get();
+    if (userDoc.exists) currentUserName = userDoc.data().name || user.email;
+    else currentUserName = user.email;
+  } catch(e) { currentUserName = user.email; }
+  await loadProjects();
+  fillMonthSelect();
+  await loadToday();
+  await loadHistory();
+  document.getElementById('pageLoader').style.display='none';
+  document.getElementById('mainPage').style.display='block';
+});
+</script>
+</body>
+</html>

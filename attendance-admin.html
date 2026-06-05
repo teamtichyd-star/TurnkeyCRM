@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Attendance Admin - TurnkeyCRM</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',system-ui,sans-serif; }
+    :root {
+      --primary:#c8a96e; --primary-dark:#a07840; --primary-glow:rgba(200,169,110,0.15);
+      --dark:#1a1a2e; --darker:#0e0e1a; --card:#16213e; --card2:#1a2550;
+      --border:rgba(255,255,255,0.06); --text:#f0f0f0; --subtext:#8888aa;
+      --success:#4caf50; --warning:#ff9800; --danger:#f44336; --info:#2196f3;
+      --radius:14px; --shadow:0 4px 24px rgba(0,0,0,0.35);
+    }
+    body { background:var(--darker); color:var(--text); min-height:100vh; }
+    .page-loader { position:fixed; inset:0; background:var(--darker); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:15px; z-index:9999; }
+    .spinner { width:42px; height:42px; border:3px solid rgba(200,169,110,0.15); border-top-color:var(--primary); border-radius:50%; animation:spin 0.8s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .access-denied { padding:60px 20px; text-align:center; color:var(--danger); }
+    .access-denied i { font-size:60px; opacity:0.4; margin-bottom:15px; display:block; }
+    .page { padding:20px 24px; }
+    .top-actions { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:12px; }
+    .top-actions h2 { font-size:22px; font-weight:700; }
+    .filter-bar { display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; align-items:center; background:var(--card); padding:14px; border-radius:12px; border:1px solid var(--border); }
+    .filter-bar select, .filter-bar input { padding:10px 14px; background:var(--card2); border:1px solid var(--border); border-radius:10px; color:var(--text); font-size:13px; outline:none; cursor:pointer; }
+    .filter-bar select option { background:var(--dark); }
+    .filter-bar label { font-size:11px; color:var(--subtext); text-transform:uppercase; letter-spacing:0.7px; margin-right:4px; }
+    .btn { padding:10px 18px; border-radius:10px; border:none; cursor:pointer; font-size:13px; font-weight:600; display:inline-flex; align-items:center; gap:8px; }
+    .btn-primary { background:linear-gradient(135deg,var(--primary),var(--primary-dark)); color:white; }
+    .btn-success { background:rgba(76,175,80,0.15); color:var(--success); border:1px solid rgba(76,175,80,0.3); }
+    .btn-danger { background:rgba(244,67,54,0.15); color:var(--danger); border:1px solid rgba(244,67,54,0.3); }
+
+    .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; margin-bottom:20px; }
+    .stat-card { background:linear-gradient(145deg,var(--card2),var(--card)); border-radius:var(--radius); padding:16px; text-align:center; border:1px solid var(--border); box-shadow:var(--shadow); }
+    .stat-card h3 { font-size:24px; font-weight:700; }
+    .stat-card p { font-size:11px; color:var(--subtext); margin-top:4px; text-transform:uppercase; letter-spacing:0.7px; }
+    .stat-card.gold h3 { color:var(--primary); }
+    .stat-card.green h3 { color:var(--success); }
+    .stat-card.blue h3 { color:var(--info); }
+    .stat-card.orange h3 { color:var(--warning); }
+    .stat-card.red h3 { color:var(--danger); }
+
+    .table-card { background:linear-gradient(145deg,var(--card2),var(--card)); border-radius:var(--radius); border:1px solid var(--border); overflow:hidden; box-shadow:var(--shadow); margin-bottom:20px; }
+    .table-wrapper { overflow-x:auto; }
+    table { width:100%; border-collapse:collapse; min-width:800px; }
+    th { padding:12px 16px; text-align:left; font-size:11px; color:var(--subtext); text-transform:uppercase; letter-spacing:0.8px; background:rgba(255,255,255,0.02); font-weight:600; border-bottom:1px solid var(--border); }
+    td { padding:12px 16px; font-size:13px; border-bottom:1px solid rgba(255,255,255,0.03); }
+    tr:hover td { background:rgba(200,169,110,0.04); }
+    .badge { padding:3px 10px; border-radius:10px; font-size:11px; font-weight:600; text-transform:uppercase; }
+    .badge.present { background:rgba(76,175,80,0.15); color:var(--success); }
+    .badge.weekly_off { background:rgba(33,150,243,0.15); color:var(--info); }
+    .badge.holiday { background:rgba(255,152,0,0.15); color:var(--warning); }
+    .badge.absent { background:rgba(244,67,54,0.15); color:var(--danger); }
+    .badge.late { background:rgba(255,152,0,0.15); color:var(--warning); margin-left:4px; }
+    .map-link { color:var(--primary); text-decoration:none; font-size:12px; }
+    .map-link:hover { text-decoration:underline; }
+    .empty-state { padding:50px 20px; text-align:center; color:var(--subtext); }
+    .toast { position:fixed; bottom:90px; right:20px; background:var(--success); color:white; padding:12px 20px; border-radius:11px; font-size:13.5px; z-index:9999; display:none; box-shadow:0 6px 24px rgba(0,0,0,0.35); }
+
+    .view-toggle { display:flex; gap:6px; background:var(--card); padding:4px; border-radius:10px; border:1px solid var(--border); }
+    .view-toggle button { padding:8px 14px; border-radius:8px; border:none; background:transparent; color:var(--subtext); font-size:12px; font-weight:600; cursor:pointer; }
+    .view-toggle button.active { background:var(--primary-glow); color:var(--primary); }
+
+    @media (max-width:768px) {
+      .page { padding:14px; }
+      .filter-bar { flex-direction:column; align-items:stretch; }
+      .filter-bar select, .filter-bar input { width:100%; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page-loader" id="pageLoader"><div class="spinner"></div><p style="color:var(--subtext);font-size:13px;letter-spacing:1px">Loading...</p></div>
+<div class="toast" id="toast"></div>
+
+<div id="deniedScreen" class="access-denied" style="display:none">
+  <i class="fas fa-lock"></i>
+  <h2>Access Denied</h2>
+  <p>Only Admin / Super Admin can view this page</p>
+</div>
+
+<div class="page" id="mainPage" style="display:none">
+
+  <div class="top-actions">
+    <h2>📊 Attendance Admin</h2>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn btn-success" onclick="exportSummaryCSV()"><i class="fas fa-file-csv"></i> Export Summary</button>
+      <button class="btn btn-success" onclick="exportDetailCSV()"><i class="fas fa-file-csv"></i> Export Detail</button>
+      <button class="btn btn-danger" onclick="cleanupOld()"><i class="fas fa-broom"></i> Cleanup (60d+)</button>
+    </div>
+  </div>
+
+  <div class="filter-bar">
+    <div><label>Month:</label><select id="monthFilter" onchange="loadData()"></select></div>
+    <div><label>User:</label><select id="userFilter" onchange="render()"><option value="">All Users</option></select></div>
+    <div><label>View:</label>
+      <div class="view-toggle">
+        <button id="vSummary" class="active" onclick="setView('summary')">Summary</button>
+        <button id="vDetail" onclick="setView('detail')">Detail</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats-grid" id="statsGrid"></div>
+
+  <div class="table-card">
+    <div class="table-wrapper" id="tableWrap"></div>
+  </div>
+
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey:"AIzaSyBLQhUZA-VN4_A9FhQWmlRSQZC2D95KoE8",
+  authDomain:"turnkeycrm-ce7b8.firebaseapp.com",
+  projectId:"turnkeycrm-ce7b8",
+  storageBucket:"turnkeycrm-ce7b8.firebasestorage.app",
+  messagingSenderId:"487224108102",
+  appId:"1:487224108102:web:dbe9d4ea6abdb2db581647"
+};
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+
+let allUsers = [];
+let allRecords = [];
+let currentView = 'summary';
+const LATE_TIME = '10:30';
+
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = type==='danger'?'var(--danger)':type==='warning'?'var(--warning)':'var(--success)';
+  t.style.display = 'block';
+  setTimeout(()=>{ t.style.display='none'; }, 3000);
+}
+
+function fillMonthSelect() {
+  const sel = document.getElementById('monthFilter');
+  const months = [];
+  const now = new Date();
+  for (let i=0; i<6; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    const val = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    const label = d.toLocaleDateString('en-IN',{month:'long',year:'numeric'});
+    months.push('<option value="'+val+'">'+label+'</option>');
+  }
+  sel.innerHTML = months.join('');
+}
+
+async function loadUsers() {
+  try {
+    const snap = await db.collection('users').get();
+    allUsers = [];
+    snap.forEach(d => { const u = d.data(); allUsers.push({ email: u.email||d.id, name: u.name||u.email, role: u.role||'' }); });
+    allUsers.sort((a,b) => a.name.localeCompare(b.name));
+    const sel = document.getElementById('userFilter');
+    sel.innerHTML = '<option value="">All Users</option>' + allUsers.map(u => '<option value="'+u.email+'">'+u.name+'</option>').join('');
+  } catch(e) { console.error(e); }
+}
+
+async function loadData() {
+  const month = document.getElementById('monthFilter').value;
+  const [y,m] = month.split('-').map(Number);
+  const start = y+'-'+String(m).padStart(2,'0')+'-01';
+  const endDate = new Date(y, m, 0).getDate();
+  const end = y+'-'+String(m).padStart(2,'0')+'-'+String(endDate).padStart(2,'0');
+  try {
+    const snap = await db.collection('attendance').where('date','>=',start).where('date','<=',end).get();
+    allRecords = [];
+    snap.forEach(d => allRecords.push(d.data()));
+    render();
+  } catch(e) { console.error(e); showToast('Load error: '+e.message,'danger'); }
+}
+
+function setView(v) {
+  currentView = v;
+  document.getElementById('vSummary').classList.toggle('active', v==='summary');
+  document.getElementById('vDetail').classList.toggle('active', v==='detail');
+  render();
+}
+
+function render() {
+  if (currentView === 'summary') renderSummary();
+  else renderDetail();
+}
+
+function buildUserSummary(userEmail, records, y, m) {
+  const userRecs = records.filter(r => r.userEmail === userEmail);
+  const present = userRecs.filter(r => r.type==='present').length;
+  const off = userRecs.filter(r => r.type==='weekly_off').length;
+  const hol = userRecs.filter(r => r.type==='holiday').length;
+  const daysInMonth = new Date(y, m, 0).getDate();
+  const today = new Date();
+  const isCurrent = (today.getFullYear()===y && (today.getMonth()+1)===m);
+  const daysCounted = isCurrent ? today.getDate() : daysInMonth;
+  const absent = Math.max(0, daysCounted - present - off - hol);
+  const presentRecs = userRecs.filter(r => r.type==='present' && r.time);
+  let avgTime = '-', lateCount = 0, firstDate = '-', lastDate = '-';
+  if (presentRecs.length) {
+    const sorted = [...presentRecs].sort((a,b) => a.date.localeCompare(b.date));
+    firstDate = sorted[0].date;
+    lastDate = sorted[sorted.length-1].date;
+    const totalMin = presentRecs.reduce((s,r) => {
+      const [hh,mm] = r.time.split(':').map(Number);
+      const min = hh*60+mm;
+      const [lh,lm] = LATE_TIME.split(':').map(Number);
+      if (min > lh*60+lm) lateCount++;
+      return s + min;
+    }, 0);
+    const avg = Math.round(totalMin / presentRecs.length);
+    avgTime = String(Math.floor(avg/60)).padStart(2,'0')+':'+String(avg%60).padStart(2,'0');
+  }
+  return { present, off, hol, absent, avgTime, lateCount, firstDate, lastDate, totalDays: daysCounted };
+}
+
+function renderSummary() {
+  const month = document.getElementById('monthFilter').value;
+  const [y,m] = month.split('-').map(Number);
+  const userFilter = document.getElementById('userFilter').value;
+  const users = userFilter ? allUsers.filter(u => u.email === userFilter) : allUsers;
+
+  // Top stats
+  let totalPresent=0, totalOff=0, totalHol=0, totalAbsent=0, totalLate=0;
+  const summaries = users.map(u => {
+    const s = buildUserSummary(u.email, allRecords, y, m);
+    totalPresent += s.present;
+    totalOff += s.off;
+    totalHol += s.hol;
+    totalAbsent += s.absent;
+    totalLate += s.lateCount;
+    return { user: u, ...s };
+  });
+
+  document.getElementById('statsGrid').innerHTML =
+    '<div class="stat-card gold"><h3>'+users.length+'</h3><p>Users</p></div>'+
+    '<div class="stat-card green"><h3>'+totalPresent+'</h3><p>Present</p></div>'+
+    '<div class="stat-card blue"><h3>'+totalOff+'</h3><p>Weekly Off</p></div>'+
+    '<div class="stat-card orange"><h3>'+totalHol+'</h3><p>Holiday</p></div>'+
+    '<div class="stat-card red"><h3>'+totalAbsent+'</h3><p>Absent</p></div>'+
+    '<div class="stat-card orange"><h3>'+totalLate+'</h3><p>Late Days</p></div>';
+
+  const rows = summaries.map(s => '<tr>'+
+    '<td><strong>'+s.user.name+'</strong><br><small style="color:var(--subtext)">'+s.user.email+'</small></td>'+
+    '<td>'+s.totalDays+'</td>'+
+    '<td><span class="badge present">'+s.present+'</span></td>'+
+    '<td><span class="badge weekly_off">'+s.off+'</span></td>'+
+    '<td><span class="badge holiday">'+s.hol+'</span></td>'+
+    '<td><span class="badge absent">'+s.absent+'</span></td>'+
+    '<td>'+s.avgTime+'</td>'+
+    '<td>'+(s.lateCount>0?'<span class="badge late">'+s.lateCount+'</span>':'0')+'</td>'+
+    '<td><small style="color:var(--subtext)">'+s.firstDate+' → '+s.lastDate+'</small></td>'+
+    '</tr>').join('');
+
+  document.getElementById('tableWrap').innerHTML =
+    '<table><thead><tr>'+
+    '<th>User</th><th>Days</th><th>Present</th><th>Off</th><th>Holiday</th><th>Absent</th><th>Avg Time</th><th>Late</th><th>Range</th>'+
+    '</tr></thead><tbody>'+(rows || '<tr><td colspan="9"><div class="empty-state">No data</div></td></tr>')+'</tbody></table>';
+}
+
+function renderDetail() {
+  const userFilter = document.getElementById('userFilter').value;
+  let recs = userFilter ? allRecords.filter(r => r.userEmail === userFilter) : allRecords;
+  recs = [...recs].sort((a,b) => b.date.localeCompare(a.date) || (b.time||'').localeCompare(a.time||''));
+
+  document.getElementById('statsGrid').innerHTML = '';
+
+  const rows = recs.map(r => {
+    const [lh,lm] = LATE_TIME.split(':').map(Number);
+    let lateBadge = '';
+    if (r.type==='present' && r.time) {
+      const [hh,mm] = r.time.split(':').map(Number);
+      if (hh*60+mm > lh*60+lm) lateBadge = '<span class="badge late">LATE</span>';
+    }
+    const gps = (r.gpsLat && r.gpsLng) ? '<a class="map-link" href="https://maps.google.com/?q='+r.gpsLat+','+r.gpsLng+'" target="_blank">📍 Map</a>' : '-';
+    return '<tr>'+
+      '<td>'+r.date+'</td>'+
+      '<td><strong>'+(r.userName||r.userEmail)+'</strong></td>'+
+      '<td><span class="badge '+r.type+'">'+r.type.replace('_',' ')+'</span>'+lateBadge+'</td>'+
+      '<td>'+(r.time||'-')+'</td>'+
+      '<td>'+(r.projectName||'-')+'</td>'+
+      '<td>'+gps+'</td>'+
+      '<td><small style="color:var(--subtext)">'+(r.gpsAddress||'-').substring(0,60)+'</small></td>'+
+      '<td><small>'+(r.notes||'-')+'</small></td>'+
+      '</tr>';
+  }).join('');
+
+  document.getElementById('tableWrap').innerHTML =
+    '<table><thead><tr>'+
+    '<th>Date</th><th>User</th><th>Type</th><th>Time</th><th>Project</th><th>GPS</th><th>Address</th><th>Notes</th>'+
+    '</tr></thead><tbody>'+(rows || '<tr><td colspan="8"><div class="empty-state">No records</div></td></tr>')+'</tbody></table>';
+}
+
+function exportSummaryCSV() {
+  const month = document.getElementById('monthFilter').value;
+  const [y,m] = month.split('-').map(Number);
+  const headers = ['Name','Email','Total Days','Present','Weekly Off','Holiday','Absent','Avg Reporting Time','Late Days','First Check-in','Last Check-in'];
+  const rows = allUsers.map(u => {
+    const s = buildUserSummary(u.email, allRecords, y, m);
+    return [u.name, u.email, s.totalDays, s.present, s.off, s.hol, s.absent, s.avgTime, s.lateCount, s.firstDate, s.lastDate];
+  });
+  const csv = [headers, ...rows].map(r => r.map(c => '"'+(c||'').toString().replace(/"/g,'""')+'"').join(',')).join('\n');
+  downloadCSV(csv, 'Attendance_Summary_'+month+'.csv');
+}
+
+function exportDetailCSV() {
+  const month = document.getElementById('monthFilter').value;
+  const headers = ['Date','User','Email','Type','Time','Project','GPS Lat','GPS Lng','Address','Notes'];
+  const recs = [...allRecords].sort((a,b) => a.date.localeCompare(b.date) || (a.time||'').localeCompare(b.time||''));
+  const rows = recs.map(r => [r.date, r.userName||'', r.userEmail||'', r.type, r.time||'', r.projectName||'', r.gpsLat||'', r.gpsLng||'', r.gpsAddress||'', r.notes||'']);
+  const csv = [headers, ...rows].map(r => r.map(c => '"'+(c||'').toString().replace(/"/g,'""')+'"').join(',')).join('\n');
+  downloadCSV(csv, 'Attendance_Detail_'+month+'.csv');
+}
+
+function downloadCSV(csv, name) {
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name; a.click();
+  showToast('✅ Exported!');
+}
+
+async function cleanupOld() {
+  if (!confirm('Delete attendance records older than 60 days? This cannot be undone.')) return;
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate()-60);
+  const cutoffStr = cutoff.toISOString().split('T')[0];
+  try {
+    const snap = await db.collection('attendance').where('date','<',cutoffStr).get();
+    if (snap.empty) { showToast('No old records to delete'); return; }
+    const batch = db.batch();
+    let count = 0;
+    snap.forEach(d => { batch.delete(d.ref); count++; });
+    await batch.commit();
+    showToast('🗑️ Deleted '+count+' old records');
+    loadData();
+  } catch(e) { showToast('Error: '+e.message,'danger'); }
+}
+
+firebase.auth().onAuthStateChanged(async function(user) {
+  if (!user) { window.location.href='index.html'; return; }
+  try {
+    const userDoc = await db.collection('users').doc(user.email).get();
+    const role = userDoc.exists ? (userDoc.data().role||'') : '';
+    if (!['admin','superadmin'].includes(role)) {
+      document.getElementById('pageLoader').style.display='none';
+      document.getElementById('deniedScreen').style.display='block';
+      return;
+    }
+  } catch(e) {
+    document.getElementById('pageLoader').style.display='none';
+    document.getElementById('deniedScreen').style.display='block';
+    return;
+  }
+  fillMonthSelect();
+  await loadUsers();
+  await loadData();
+  // Auto-cleanup on admin open (silent, runs in background)
+  setTimeout(silentCleanup, 3000);
+  document.getElementById('pageLoader').style.display='none';
+  document.getElementById('mainPage').style.display='block';
+});
+
+async function silentCleanup() {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate()-60);
+  const cutoffStr = cutoff.toISOString().split('T')[0];
+  try {
+    const snap = await db.collection('attendance').where('date','<',cutoffStr).get();
+    if (snap.empty) return;
+    const batch = db.batch();
+    snap.forEach(d => batch.delete(d.ref));
+    await batch.commit();
+    console.log('Silent cleanup: removed', snap.size, 'old records');
+  } catch(e) { console.log('Silent cleanup skipped:', e.message); }
+}
+</script>
+</body>
+</html>
