@@ -994,12 +994,24 @@ if (role === "supervisor") {
     window.location.hash = "#dashboard";
   }
 }
-    // Show/Hide menu items based on role
+    // Show/Hide menu items based on role + custom permissions (STAGE 2)
     const allMenus = ['leads','tasks','projects','followups','sheets','export','vendors','attendance','attendanceadmin'];
+    const customPerms = currentUserData?.permissions || null;
+    const isAdminBypass = ['admin','superadmin'].includes(role);
+    function canReadModule(m) {
+      if (isAdminBypass) return true;
+      if (customPerms && customPerms[m]) return customPerms[m].read === true;
+      return modules.includes(m);
+    }
+    window._canReadModule = canReadModule;
     allMenus.forEach(module => {
       const menuItem = document.getElementById('menu-' + module);
       if (menuItem) {
-        menuItem.classList.toggle('hidden', !modules.includes(module));
+        menuItem.classList.toggle('hidden', !canReadModule(module));
+      }
+      const bnav = document.getElementById('bnav-' + module);
+      if (bnav) {
+        bnav.classList.toggle('hidden', !canReadModule(module));
       }
     });
 
@@ -1347,9 +1359,15 @@ if (role === "supervisor") {
     const modules = roleModules[role] || roleModules['manager'];
 
     // Check access
-    if (page !== 'dashboard' && page !== 'users' && !modules.includes(page)) {
-      showAccessDenied(page);
-      return;
+    // STAGE 2: permission guard
+    if (page !== 'dashboard') {
+      const _cp = currentUserData?.permissions || null;
+      const _admin = ['admin','superadmin'].includes(currentUserData?.role || '');
+      let _ok = false;
+      if (_admin) _ok = true;
+      else if (_cp && _cp[page]) _ok = _cp[page].read === true;
+      else _ok = modules.includes(page) || page === 'users';
+      if (!_ok) { showAccessDenied(page); return; }
     }
 
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
