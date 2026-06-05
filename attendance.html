@@ -379,9 +379,12 @@ async function loadHistory() {
   const endDate = new Date(y, m, 0).getDate();
   const end = y+'-'+String(m).padStart(2,'0')+'-'+String(endDate).padStart(2,'0');
   try {
-    const snap = await attRef.where('userEmail','==',currentUser.email).where('date','>=',start).where('date','<=',end).get();
+    const snap = await attRef.where('userEmail','==',currentUser.email).get();
     historyData = [];
-    snap.forEach(d => historyData.push(d.data()));
+    snap.forEach(d => {
+      const r = d.data();
+      if (r.date >= start && r.date <= end) historyData.push(r);
+    });
     historyData.sort((a,b) => b.date.localeCompare(a.date));
     renderHistory();
     renderStats(y, m);

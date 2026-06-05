@@ -206,6 +206,9 @@ function buildUserSummary(userEmail, records, y, m) {
     const sorted = [...presentRecs].sort((a,b) => a.date.localeCompare(b.date));
     firstDate = sorted[0].date;
     lastDate = sorted[sorted.length-1].date;
+    var latest = sorted[sorted.length-1];
+    var lastProject = latest.projectName || '-';
+    var lastAddress = latest.gpsAddress || '';
     const totalMin = presentRecs.reduce((s,r) => {
       const [hh,mm] = r.time.split(':').map(Number);
       const min = hh*60+mm;
@@ -216,7 +219,7 @@ function buildUserSummary(userEmail, records, y, m) {
     const avg = Math.round(totalMin / presentRecs.length);
     avgTime = String(Math.floor(avg/60)).padStart(2,'0')+':'+String(avg%60).padStart(2,'0');
   }
-  return { present, off, hol, absent, avgTime, lateCount, firstDate, lastDate, totalDays: daysCounted };
+  return { present, off, hol, absent, avgTime, lateCount, firstDate, lastDate, totalDays: daysCounted, lastProject: (typeof lastProject !== 'undefined' ? lastProject : '-'), lastAddress: (typeof lastAddress !== 'undefined' ? lastAddress : '') };
 }
 
 function renderSummary() {
@@ -254,12 +257,12 @@ function renderSummary() {
     '<td><span class="badge absent">'+s.absent+'</span></td>'+
     '<td>'+s.avgTime+'</td>'+
     '<td>'+(s.lateCount>0?'<span class="badge late">'+s.lateCount+'</span>':'0')+'</td>'+
-    '<td><small style="color:var(--subtext)">'+s.firstDate+' → '+s.lastDate+'</small></td>'+
+    '<td><div style="font-size:12px"><div>📍 '+s.lastProject+'</div>'+(s.lastAddress?'<div style="color:var(--subtext);font-size:11px;margin-top:3px">🌍 '+s.lastAddress.substring(0,60)+(s.lastAddress.length>60?'...':'')+'</div>':'')+'</div></td>'+
     '</tr>').join('');
 
   document.getElementById('tableWrap').innerHTML =
     '<table><thead><tr>'+
-    '<th>User</th><th>Days</th><th>Present</th><th>Off</th><th>Holiday</th><th>Absent</th><th>Avg Time</th><th>Late</th><th>Range</th>'+
+    '<th>User</th><th>Days</th><th>Present</th><th>Off</th><th>Holiday</th><th>Absent</th><th>Avg Time</th><th>Late</th><th>Last Location</th>'+
     '</tr></thead><tbody>'+(rows || '<tr><td colspan="9"><div class="empty-state">No data</div></td></tr>')+'</tbody></table>';
 }
 
