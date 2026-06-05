@@ -635,3 +635,27 @@ NEXT SESSION TASKS PENDING:
 - Optional: auto-mark Sundays as Weekly Off
 - Optional: configurable late time (currently hardcoded 10:30)
 
+
+=======================================================
+SESSION LOG — 06 June 2026 (Part 3: Permissions Stage 2)
+=======================================================
+
+✅ COMPLETED:
+- Stage 2: Sidebar + bottom nav + showPage() now respect custom user permissions
+- Admin/superadmin bypass — always see everything
+- Falls back to role defaults if no custom permissions saved
+- canReadModule(m) exposed globally as window._canReadModule for future use
+- First Stage 2 attempt broke CRM (white screen) — reverted, then surgical patch applied
+
+⚠️ NOT YET TESTED:
+- Need to test with non-admin user (Anusha) — pending next session
+- Verify custom permission saved in admin panel actually hides menu
+
+GIT TAG: v12-permissions-stage2
+
+NEXT SESSION:
+- Test Stage 2 with Anusha/manager account
+- Stage 3: wire edit/delete permissions inside each module (leads.html, projects.html, tasks.html, vendors.html, attendance.html, followups.html)
+- Mobile push notification reliability
+- UI polish: WhatsApp green, Email blue, GST breakdown
+
