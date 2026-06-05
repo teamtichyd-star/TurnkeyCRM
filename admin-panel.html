@@ -290,6 +290,22 @@
     @media (max-width: 600px) {
       .user-table th, .user-table td { padding: 10px 6px; font-size: 12px; }
     }
+
+    .users-grid-v2 { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+    .user-card-v2 { background: linear-gradient(145deg, #1a2550, #16213e); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; padding: 16px; transition: 0.2s; }
+    .user-card-v2:hover { border-color: rgba(200,169,110,0.3); transform: translateY(-2px); }
+    .user-card-v2-top { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .user-avatar { width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, #c8a96e, #a07840); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 18px; color: white; flex-shrink: 0; }
+    .user-card-v2-info { flex: 1; min-width: 0; }
+    .user-card-v2-name { font-size: 14px; font-weight: 600; color: #f0f0f0; }
+    .user-card-v2-email { font-size: 12px; color: #93c5fd; word-break: break-all; margin-top: 2px; }
+    .user-card-v2-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+    .user-card-v2-actions { display: flex; gap: 8px; }
+    .user-action-btn { flex: 1; padding: 9px 12px; border-radius: 8px; border: none; cursor: pointer; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px; transition: 0.2s; }
+    .user-action-btn.perm { background: rgba(200,169,110,0.15); color: #c8a96e; border: 1px solid rgba(200,169,110,0.3); }
+    .user-action-btn.perm:hover { background: rgba(200,169,110,0.25); }
+    .user-action-btn.delete { background: rgba(244,67,54,0.12); color: #f44336; border: 1px solid rgba(244,67,54,0.25); }
+    .user-action-btn.delete:hover { background: rgba(244,67,54,0.22); }
 </style>
 </head>
 <body>
@@ -530,27 +546,39 @@
       if (allUsersData.length === 0) {
         container.innerHTML = `<div class="empty-state">No users found.</div>`;
       } else {
-        let rows = "";
+        let cards = "";
         allUsersData.forEach(u => {
           const created = u.createdAt?.toDate
             ? u.createdAt.toDate().toLocaleDateString("en-GB") : "N/A";
           const role      = u.role || "staff";
           const roleClass = "role-" + role.toLowerCase();
-          rows += `
-            <tr>
-              <td>${u.name || "—"}</td>
-              <td style="color:#93c5fd;">${u.email || u.id}</td>
-              <td><span class="role-badge ${roleClass}">${role}</span> <button onclick="openPermModal('${u.email}')" style="margin-left:6px;padding:4px 10px;border-radius:6px;background:rgba(200,169,110,0.15);color:#c8a96e;border:1px solid rgba(200,169,110,0.3);cursor:pointer;font-size:11px;font-weight:600;">Permissions</button></td>
-              <td style="color:#6b7280;">${created}</td>
-              <td>
-                <button class="btn-remove"
-                  onclick="triggerDelete('${u.email || u.id}')">
-                  <i class="fa-solid fa-trash"></i>
+          const initial = (u.name || u.email || "U").charAt(0).toUpperCase();
+          cards += `
+            <div class="user-card-v2">
+              <div class="user-card-v2-top">
+                <div class="user-avatar">${initial}</div>
+                <div class="user-card-v2-info">
+                  <div class="user-card-v2-name">${u.name || "—"}</div>
+                  <div class="user-card-v2-email">${u.email || u.id}</div>
+                </div>
+              </div>
+              <div class="user-card-v2-meta">
+                <span class="role-badge ${roleClass}">${role}</span>
+                <span style="font-size:11px;color:#6b7280;">Created: ${created}</span>
+              </div>
+              <div class="user-card-v2-actions">
+                <button onclick="openPermModal('${u.email}')" class="user-action-btn perm">
+                  <i class="fa-solid fa-key"></i> Permissions
                 </button>
-              </td>
-            </tr>`;
+                <button class="user-action-btn delete" onclick="triggerDelete('${u.email || u.id}')">
+                  <i class="fa-solid fa-trash"></i> Delete
+                </button>
+              </div>
+            </div>`;
         });
-        container.innerHTML = `
+        container.innerHTML = `<div class="users-grid-v2">${cards}</div>`;
+        return;
+        var SKIP_OLD_TABLE = `
           <table class="user-table">
             <thead>
               <tr>
