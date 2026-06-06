@@ -507,6 +507,86 @@
     .jw-vendor-actions { display: flex; gap: 6px; margin-top: 8px; }
     .jw-vendor-actions a, .jw-vendor-actions button { width: 30px; height: 30px; }
     .settled-badge { display: inline-block; padding: 3px 10px; border-radius: 10px; background: rgba(76,175,80,0.15); color: var(--success); font-size: 11px; font-weight: 700; margin-left: 8px; }
+
+    /* PAYMENT TAB MOBILE RESPONSIVE FIX */
+    @media (max-width: 768px) {
+      #psec-payments > div[style*="grid-template-columns:1fr 1fr 1fr"],
+      #psec-payments > div[style*="grid-template-columns: 1fr 1fr 1fr"] {
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+      }
+
+      #psec-payments div[style*="grid-template-columns:1fr 1fr 1fr"],
+      #psec-payments div[style*="grid-template-columns: 1fr 1fr 1fr"] {
+        grid-template-columns: 1fr !important;
+      }
+
+      #psec-payments div[style*="grid-template-columns:1fr 1fr"],
+      #psec-payments div[style*="grid-template-columns: 1fr 1fr"] {
+        grid-template-columns: 1fr !important;
+      }
+
+      #psec-payments input,
+      #psec-payments select,
+      #psec-payments button {
+        max-width: 100% !important;
+      }
+
+      #psec-payments table {
+        min-width: 0 !important;
+        width: 100% !important;
+        border-collapse: separate !important;
+        border-spacing: 0 10px !important;
+      }
+
+      #psec-payments table thead {
+        display: none !important;
+      }
+
+      #psec-payments table,
+      #psec-payments tbody,
+      #psec-payments tr,
+      #psec-payments td {
+        display: block !important;
+        width: 100% !important;
+      }
+
+      #psec-payments tr {
+        background: rgba(255,255,255,0.03) !important;
+        border: 1px solid var(--border) !important;
+        border-radius: 12px !important;
+        padding: 10px !important;
+        margin-bottom: 10px !important;
+      }
+
+      #psec-payments td {
+        border: none !important;
+        padding: 7px 4px !important;
+        font-size: 13px !important;
+        display: flex !important;
+        justify-content: space-between !important;
+        gap: 12px !important;
+        align-items: center !important;
+      }
+
+      #psec-payments td:nth-child(1)::before { content: 'Date'; color: var(--subtext); font-size: 11px; text-transform: uppercase; }
+      #psec-payments td:nth-child(2)::before { content: 'Amount'; color: var(--subtext); font-size: 11px; text-transform: uppercase; }
+      #psec-payments td:nth-child(3)::before { content: 'Mode'; color: var(--subtext); font-size: 11px; text-transform: uppercase; }
+      #psec-payments td:nth-child(4)::before { content: 'Notes'; color: var(--subtext); font-size: 11px; text-transform: uppercase; }
+      #psec-payments td:nth-child(5)::before { content: 'Action'; color: var(--subtext); font-size: 11px; text-transform: uppercase; }
+
+      #psec-payments > div {
+        max-width: 100% !important;
+        overflow-x: hidden !important;
+      }
+
+      #psec-payments .btn,
+      #psec-payments button {
+        justify-content: center !important;
+      }
+    }
+
 </style>
 </head>
 <body>
@@ -1877,8 +1957,47 @@
 
   // ─── QUICK SHARE ───
   function quickShare(id) {
-    openPortal(id);
-    setTimeout(() => switchPortalTab('share'), 300);
+    const p = projects.find(pr => pr.id === id);
+    if (!p) {
+      showToast('Project not found', 'danger');
+      return;
+    }
+
+    const baseUrl = window.location.origin + window.location.pathname.replace('projects.html','');
+    const link = baseUrl + 'client-view.html?id=' + p.id;
+
+    const text =
+      'Hi ' + (p.client || 'Client') + ',\n\n' +
+      'Your project *' + (p.name || 'Project') + '* portal is ready!\n\n' +
+      '🔗 Link: ' + link + '\n' +
+      '🔑 Password: ' + (p.password || '-') + '\n\n' +
+      'You can track progress, documents, updates and payments here.\n\n' +
+      '- Turnkey Interior Contractors';
+
+    // Mobile native share first
+    if (navigator.share) {
+      navigator.share({
+        title: 'Project Portal - ' + (p.name || ''),
+        text: text,
+        url: link
+      }).catch(() => {});
+      return;
+    }
+
+    // Desktop fallback: WhatsApp if phone exists
+    const phone = (p.phone || '').replace(/[^0-9]/g, '');
+    if (phone) {
+      window.open('https://wa.me/91' + phone + '?text=' + encodeURIComponent(text), '_blank');
+      return;
+    }
+
+    // Final fallback: copy link + show password
+    navigator.clipboard.writeText(text).then(() => {
+      showToast('✅ Share message copied!', 'success');
+      alert('Client Portal Details copied:\n\n' + text);
+    }).catch(() => {
+      alert(text);
+    });
   }
 
   // ─── ADD DOCUMENT ───
