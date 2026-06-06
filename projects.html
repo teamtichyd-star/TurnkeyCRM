@@ -587,6 +587,43 @@
       }
     }
 
+
+    /* PAYMENT TAB v2 — tighter mobile */
+    @media (max-width: 768px) {
+      #psec-payments {
+        padding: 0 !important;
+      }
+      #psec-payments > div {
+        padding: 12px !important;
+      }
+      #psec-payments div[style*="font-size:22px"] {
+        font-size: 17px !important;
+      }
+      #psec-payments div[style*="font-size:13px"] {
+        font-size: 12px !important;
+      }
+      #psec-payments label,
+      #psec-payments div[style*="font-size:11px"] {
+        font-size: 10px !important;
+      }
+      #psec-payments input {
+        padding: 9px 11px !important;
+        font-size: 13px !important;
+      }
+      #psec-payments button {
+        font-size: 12px !important;
+        padding: 9px 14px !important;
+      }
+      #psec-payments h4, #psec-payments h3 {
+        font-size: 13px !important;
+      }
+    }
+    @media (max-width: 480px) {
+      #psec-payments div[style*="font-size:22px"] {
+        font-size: 15px !important;
+      }
+    }
+
 </style>
 </head>
 <body>
@@ -1958,47 +1995,59 @@
   // ─── QUICK SHARE ───
   function quickShare(id) {
     const p = projects.find(pr => pr.id === id);
-    if (!p) {
-      showToast('Project not found', 'danger');
-      return;
-    }
+    if (!p) { showToast('Project not found', 'danger'); return; }
 
     const baseUrl = window.location.origin + window.location.pathname.replace('projects.html','');
     const link = baseUrl + 'client-view.html?id=' + p.id;
-
-    const text =
-      'Hi ' + (p.client || 'Client') + ',\n\n' +
-      'Your project *' + (p.name || 'Project') + '* portal is ready!\n\n' +
-      '🔗 Link: ' + link + '\n' +
-      '🔑 Password: ' + (p.password || '-') + '\n\n' +
-      'You can track progress, documents, updates and payments here.\n\n' +
-      '- Turnkey Interior Contractors';
-
-    // Mobile native share first
-    if (navigator.share) {
-      navigator.share({
-        title: 'Project Portal - ' + (p.name || ''),
-        text: text,
-        url: link
-      }).catch(() => {});
-      return;
-    }
-
-    // Desktop fallback: WhatsApp if phone exists
     const phone = (p.phone || '').replace(/[^0-9]/g, '');
-    if (phone) {
-      window.open('https://wa.me/91' + phone + '?text=' + encodeURIComponent(text), '_blank');
-      return;
-    }
 
-    // Final fallback: copy link + show password
-    navigator.clipboard.writeText(text).then(() => {
-      showToast('✅ Share message copied!', 'success');
-      alert('Client Portal Details copied:\n\n' + text);
-    }).catch(() => {
+    const msg = 'Hi ' + (p.client || '') + ',\n\nYour project portal is ready.\n\nLink: ' + link + '\nPassword: ' + (p.password || '-') + '\n\n- Turnkey Interior Contractors';
+
+    // Remove existing popup
+    const existing = document.getElementById('shareQuickPopup');
+    if (existing) existing.remove();
+
+    // Build clean popup
+    const popup = document.createElement('div');
+    popup.id = 'shareQuickPopup';
+    popup.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:5000;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px);';
+    popup.innerHTML = '<div style="background:linear-gradient(145deg,#1e2d5e,#16213e);border-radius:18px;width:100%;max-width:380px;padding:22px;border:1px solid rgba(200,169,110,0.18);box-shadow:0 30px 80px rgba(0,0,0,0.6);">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">' +
+        '<h3 style="color:var(--primary);font-size:15px;">Share Project</h3>' +
+        '<button onclick="document.getElementById(\'shareQuickPopup\').remove()" style="background:rgba(255,255,255,0.05);border:none;color:#f0f0f0;width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:14px">&times;</button>' +
+      '</div>' +
+      '<div style="background:rgba(200,169,110,0.08);border:1px solid rgba(200,169,110,0.2);border-radius:10px;padding:12px;margin-bottom:14px;font-size:12px">' +
+        '<div style="color:var(--subtext);font-size:10px;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:5px">Client</div>' +
+        '<div style="color:var(--text);font-weight:600">' + (p.client || '-') + '</div>' +
+        '<div style="color:var(--subtext);font-size:10px;text-transform:uppercase;letter-spacing:0.6px;margin-top:8px;margin-bottom:5px">Password</div>' +
+        '<div style="color:var(--primary);font-weight:700;letter-spacing:1px">' + (p.password || '-') + '</div>' +
+      '</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' +
+        (phone ?
+          '<a href="https://wa.me/91' + phone + '?text=' + encodeURIComponent(msg) + '" target="_blank" onclick="document.getElementById(\'shareQuickPopup\').remove()" style="background:rgba(37,211,102,0.15);color:#25d366;border:1px solid rgba(37,211,102,0.3);padding:11px;border-radius:10px;text-align:center;text-decoration:none;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px"><i class="fab fa-whatsapp"></i> WhatsApp</a>'
+          :
+          '<button disabled style="background:rgba(255,255,255,0.03);color:var(--subtext);border:1px solid var(--border);padding:11px;border-radius:10px;font-size:13px;cursor:not-allowed">No phone</button>'
+        ) +
+        '<button onclick="window.copyShareMsg(\'' + encodeURIComponent(msg) + '\')" style="background:rgba(200,169,110,0.15);color:var(--primary);border:1px solid rgba(200,169,110,0.3);padding:11px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px"><i class="fas fa-copy"></i> Copy</button>' +
+      '</div>' +
+    '</div>';
+
+    popup.addEventListener('click', function(e) {
+      if (e.target === popup) popup.remove();
+    });
+    document.body.appendChild(popup);
+  }
+
+  window.copyShareMsg = function(encoded) {
+    const text = decodeURIComponent(encoded);
+    navigator.clipboard.writeText(text).then(function() {
+      showToast('Copied to clipboard', 'success');
+      const popup = document.getElementById('shareQuickPopup');
+      if (popup) popup.remove();
+    }).catch(function() {
       alert(text);
     });
-  }
+  };
 
   // ─── ADD DOCUMENT ───
   function openAddDocModal() {
