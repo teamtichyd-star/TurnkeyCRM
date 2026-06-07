@@ -1111,7 +1111,7 @@
 
     </div>
     <div class="modal-footer">
-      ${canEdit ? `<button class="btn btn-info" onclick="editCurrentProject()"><i class="fas fa-edit"></i> Edit Project</button>` : ''}
+      <button class="btn btn-info" id="portalEditBtn" onclick="editCurrentProject()"><i class="fas fa-edit"></i> Edit Project</button>
       <button class="btn btn-primary" onclick="closePortalModal()">
         <i class="fas fa-check"></i> Close
       </button>
@@ -1298,7 +1298,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-info" onclick="closeDeleteModal()">Cancel</button>
-      ${canDelete ? `<button class="btn btn-danger" onclick="confirmDelete()"><i class="fas fa-trash"></i> Delete</button>` : ''}
+      <button class="btn btn-danger" id="portalDeleteBtn" onclick="confirmDelete()"><i class="fas fa-trash"></i> Delete</button>
     </div>
   </div>
 </div>
@@ -1322,6 +1322,18 @@
   const currentUserRole = urlParams.get('role') || 'admin';
   const canEdit   = urlParams.get('canedit')   !== '0';
   const canDelete = urlParams.get('candelete') !== '0';
+
+  // Hide static buttons based on perms
+  document.addEventListener('DOMContentLoaded', () => {
+    if (!canEdit) {
+      const eb = document.getElementById('portalEditBtn');
+      if (eb) eb.style.display = 'none';
+    }
+    if (!canDelete) {
+      const db2 = document.getElementById('portalDeleteBtn');
+      if (db2) db2.style.display = 'none';
+    }
+  });
 
   const currentUserName = decodeURIComponent(urlParams.get('user') || '');
 
