@@ -946,8 +946,33 @@
               createdAt:    new Date().toISOString(),
               updatedAt:    new Date().toISOString()
             };
-            await db.collection('projects').add(projectData);
-            showToast('🎉 Lead converted to Project!', 'success');
+            const newProjRef = await db.collection('projects').add(projectData);
+
+            // Create Drive folder via Apps Script
+            try {
+              const usersSnap = await db.collection('users').get();
+              const staffEmails = [];
+              usersSnap.forEach(u => {
+                const d = u.data();
+                if (d.email && ['admin','superadmin','manager','supervisor','projectmanager'].includes(d.role)) {
+                  staffEmails.push(d.email);
+                }
+              });
+              const driveRes = await fetch('https://script.google.com/macros/s/AKfycbxdTuXOpGVg5XWFW64A1DR8OFGI7vcy-Q1XLLdx5Qjk2tT9ly91aph4zLLCgHp-0AiX1g/exec', {
+                method: 'POST',
+                body: JSON.stringify({ projectName: projectData.name, staffEmails: staffEmails })
+              });
+              const dj = await driveRes.json();
+              if (dj.success) {
+                await db.collection('projects').doc(newProjRef.id).update({
+                  driveFolderId:  dj.folderId,
+                  driveFolderUrl: dj.folderUrl,
+                  clientDriveUrl: dj.folderUrl
+                });
+              }
+            } catch(e) { console.error('Drive folder error:', e); }
+
+            showToast('🎉 Lead converted to Project + Drive folder created!', 'success');
           }
         }
       } else {
