@@ -624,6 +624,48 @@
       }
     }
 
+
+    /* RECEIPTS TABLE - MOBILE FIX */
+    @media (max-width: 768px) {
+      #receipts-tbody,
+      #receipts-tbody tr,
+      #receipts-tbody td {
+        display: revert !important;
+        width: revert !important;
+      }
+      #receipts-tbody tr {
+        border-top: 1px solid rgba(255,255,255,0.06) !important;
+        background: none !important;
+        border-radius: 0 !important;
+        padding: 0 !important;
+        margin-bottom: 0 !important;
+      }
+      #receipts-tbody td {
+        padding: 8px 6px !important;
+        font-size: 12px !important;
+        border: none !important;
+        justify-content: flex-start !important;
+        flex-direction: column !important;
+        gap: 4px !important;
+      }
+      #receipts-tbody td::before {
+        display: none !important;
+        content: none !important;
+      }
+      #receipts-tbody td input {
+        width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+        font-size: 12px !important;
+        padding: 7px 8px !important;
+      }
+      #receipts-tbody td:nth-child(1) { width: 28px !important; }
+      #receipts-tbody td:nth-child(2) { width: 34% !important; }
+      #receipts-tbody td:nth-child(3) { width: 22% !important; }
+      #receipts-tbody td:nth-child(4) { width: auto !important; }
+      #receipts-tbody td:nth-child(5) { width: 36px !important; text-align: center !important; }
+      #receipts-thead { display: table-row !important; }
+    }
 </style>
 </head>
 <body>
