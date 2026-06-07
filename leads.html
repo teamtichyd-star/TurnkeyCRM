@@ -922,6 +922,34 @@
         await leadsRef.doc(editingId).update(leadData);
         if (leadData.assignedTo) await TIC_NOTIF.send(db, leadData.assignedTo, '👤 Lead updated: ' + (leadData.name || 'Lead'), 'lead', 'leads.html');
         showToast('✅ Lead updated!', 'success');
+
+        // Auto-convert Won lead to Project
+        if (leadData.status === 'Won') {
+          const existing = await db.collection('projects').where('leadId', '==', editingId).limit(1).get();
+          if (existing.empty) {
+            const projectData = {
+              leadId:       editingId,
+              name:         leadData.name + ' - ' + (leadData.location || 'Project'),
+              client:       leadData.name,
+              phone:        leadData.phone,
+              email:        leadData.email || '',
+              location:     leadData.location || '',
+              type:         leadData.projectType || 'Residential',
+              area:         leadData.area || '',
+              budget:       leadData.budget || '',
+              notes:        leadData.notes || '',
+              status:       'Planning',
+              progress:     0,
+              manager:      'admin',
+              startDate:    new Date().toISOString().split('T')[0],
+              deadline:     '',
+              createdAt:    new Date().toISOString(),
+              updatedAt:    new Date().toISOString()
+            };
+            await db.collection('projects').add(projectData);
+            showToast('🎉 Lead converted to Project!', 'success');
+          }
+        }
       } else {
         leadData.date      = new Date().toISOString().split('T')[0];
         leadData.createdAt = new Date().toISOString();
