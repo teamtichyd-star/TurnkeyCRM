@@ -797,12 +797,8 @@
               ${fu.done ? 'Reopen' : 'Mark as Done'}
             </button>
             <div class="followup-card-actions">
-              <button class="icon-btn edit" onclick="editFollowup('${fu.id}')" title="Edit">
-                <i class="fas fa-edit"></i>
-              </button>
-              <button class="icon-btn delete" onclick="deleteFollowup('${fu.id}')" title="Delete">
-                <i class="fas fa-trash"></i>
-              </button>
+              ${canEdit ? `<button class="icon-btn edit" onclick="editFollowup('${fu.id}')" title="Edit"><i class="fas fa-edit"></i></button>` : ''}
+              ${canDelete ? `<button class="icon-btn delete" onclick="deleteFollowup('${fu.id}')" title="Delete"><i class="fas fa-trash"></i></button>` : ''}
             </div>
           </div>
         </div>

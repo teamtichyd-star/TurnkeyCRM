@@ -506,9 +506,7 @@
       <div class="view-detail" id="viewDetails"></div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-info" id="viewEditBtn">
-        <i class="fas fa-edit"></i> Edit
-      </button>
+      ${canEdit ? `<button class="btn btn-info" id="viewEditBtn"><i class="fas fa-edit"></i> Edit</button>` : ''}
       <button class="btn btn-primary" onclick="closeViewModal()">
         <i class="fas fa-check"></i> Close
       </button>
@@ -726,16 +724,8 @@
                     title="View">
               <i class="fas fa-eye"></i>
             </button>
-            <button class="icon-btn edit"
-                    onclick="editLead('${lead.id}')"
-                    title="Edit">
-              <i class="fas fa-edit"></i>
-            </button>
-            <button class="icon-btn delete"
-                    onclick="deleteLead('${lead.id}')"
-                    title="Delete">
-              <i class="fas fa-trash"></i>
-            </button>
+            ${canEdit ? `<button class="icon-btn edit" onclick="editLead('${lead.id}')" title="Edit"><i class="fas fa-edit"></i></button>` : ''}
+            ${canDelete ? `<button class="icon-btn delete" onclick="deleteLead('${lead.id}')" title="Delete"><i class="fas fa-trash"></i></button>` : ''}
           </div>
         </td>
       </tr>
@@ -807,14 +797,8 @@
                   class="btn-icon view" onclick="viewLead('${lead.id}')">
             <i class="fas fa-eye"></i>
           </button>
-          <button class="icon-btn edit"
-                  onclick="editLead('${lead.id}')">
-            <i class="fas fa-edit"></i>
-          </button>
-          <button class="icon-btn delete"
-                  onclick="deleteLead('${lead.id}')">
-            <i class="fas fa-trash"></i>
-          </button>
+          ${canEdit ? `<button class="icon-btn edit" onclick="editLead('${lead.id}')"><i class="fas fa-edit"></i></button>` : ''}
+          ${canDelete ? `<button class="icon-btn delete" onclick="deleteLead('${lead.id}')"><i class="fas fa-trash"></i></button>` : ''}
         </div>
       </div>
     `).join('');

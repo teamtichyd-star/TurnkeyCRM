@@ -1111,9 +1111,7 @@
 
     </div>
     <div class="modal-footer">
-      <button class="btn btn-info" onclick="editCurrentProject()">
-        <i class="fas fa-edit"></i> Edit Project
-      </button>
+      ${canEdit ? `<button class="btn btn-info" onclick="editCurrentProject()"><i class="fas fa-edit"></i> Edit Project</button>` : ''}
       <button class="btn btn-primary" onclick="closePortalModal()">
         <i class="fas fa-check"></i> Close
       </button>
@@ -1300,9 +1298,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-info" onclick="closeDeleteModal()">Cancel</button>
-      <button class="btn btn-danger" onclick="confirmDelete()">
-        <i class="fas fa-trash"></i> Delete
-      </button>
+      ${canDelete ? `<button class="btn btn-danger" onclick="confirmDelete()"><i class="fas fa-trash"></i> Delete</button>` : ''}
     </div>
   </div>
 </div>
@@ -1324,6 +1320,9 @@
   // Global user role vars
   const urlParams = new URLSearchParams(window.location.search);
   const currentUserRole = urlParams.get('role') || 'admin';
+  const canEdit   = urlParams.get('canedit')   !== '0';
+  const canDelete = urlParams.get('candelete') !== '0';
+
   const currentUserName = decodeURIComponent(urlParams.get('user') || '');
 
   async function loadUsersDropdown() {
@@ -1578,16 +1577,8 @@
                       title="Share with Client">
                 <i class="fas fa-share-alt"></i>
               </button>
-              <button class="icon-btn edit"
-                      onclick="editProject('${p.id}')"
-                      title="Edit">
-                <i class="fas fa-edit"></i>
-              </button>
-              <button class="icon-btn delete"
-                      onclick="deleteProject('${p.id}')"
-                      title="Delete">
-                <i class="fas fa-trash"></i>
-              </button>
+              ${canEdit ? `<button class="icon-btn edit" onclick="editProject('${p.id}')" title="Edit"><i class="fas fa-edit"></i></button>` : ''}
+              ${canDelete ? `<button class="icon-btn delete" onclick="deleteProject('${p.id}')" title="Delete"><i class="fas fa-trash"></i></button>` : ''}
             </div>
           </div>
         </div>

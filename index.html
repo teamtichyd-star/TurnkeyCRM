@@ -1384,7 +1384,11 @@ if (role === "supervisor") {
       const user2 = encodeURIComponent(currentUserData?.name || '');
       const dataSrc = iframe.getAttribute('data-src') || iframe.src.split('?')[0];
       if (dataSrc && dataSrc !== 'about:blank') {
-        iframe.src = dataSrc + '?role=' + role2 + '&user=' + user2;
+        const _cp2 = currentUserData?.permissions || null;
+        const _isAdm2 = ['admin','superadmin'].includes(role2);
+        const _canEdit2   = _isAdm2 ? '1' : (_cp2 && _cp2[page] ? (_cp2[page].edit   ? '1' : '0') : '1');
+        const _canDelete2 = _isAdm2 ? '1' : (_cp2 && _cp2[page] ? (_cp2[page].delete ? '1' : '0') : '0');
+        iframe.src = dataSrc + '?role=' + role2 + '&user=' + user2 + '&canedit=' + _canEdit2 + '&candelete=' + _canDelete2;
         iframe.removeAttribute('data-src');
       }
     }
