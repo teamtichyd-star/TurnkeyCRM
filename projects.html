@@ -1320,8 +1320,8 @@
   // Global user role vars
   const urlParams = new URLSearchParams(window.location.search);
   const currentUserRole = urlParams.get('role') || 'admin';
-  const canEdit   = urlParams.get('canedit')   !== '0';
-  const canDelete = urlParams.get('candelete') !== '0';
+  window.canEdit   = urlParams.get('canedit')   !== '0'; const canEdit   = window.canEdit;
+  window.canDelete = urlParams.get('candelete') !== '0'; const canDelete = window.canDelete;
 
   // Hide static buttons based on perms
   document.addEventListener('DOMContentLoaded', () => {

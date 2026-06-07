@@ -265,8 +265,8 @@
   let deletingId = null;
   let currentUserRole = '';
   const urlParams2  = new URLSearchParams(window.location.search);
-  const canEdit     = urlParams2.get('canedit')   !== '0';
-  const canDelete   = urlParams2.get('candelete') !== '0';
+  window.canEdit = urlParams2.get('canedit') !== '0'; const canEdit = window.canEdit;
+  window.canDelete = urlParams2.get('candelete') !== '0'; const canDelete = window.canDelete;
 
 
   function showToast(msg, type='success') {
