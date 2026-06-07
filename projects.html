@@ -1841,13 +1841,18 @@
         </div>
       </div>
 
-      ${p.driveLink ? `
-      <div style="margin-top:12px">
-        <a href="${p.driveLink}" target="_blank"
-           class="btn btn-info" style="width:100%; justify-content:center">
+      ${(p.driveLink || p.driveFolderUrl) ? `
+      <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap">
+        <a href="${p.driveLink || p.driveFolderUrl}" target="_blank"
+           class="btn btn-info" style="flex:1; justify-content:center; min-width:180px">
           <i class="fab fa-google-drive"></i>
           Open Site Photos Folder
         </a>
+        <button onclick="shareClientDriveLink('${p.clientDriveUrl || p.driveFolderUrl || p.driveLink}', '${(p.client||'').replace(/'/g,'')}', '${(p.phone||'')}')"
+           class="btn btn-primary" style="flex:1; justify-content:center; min-width:180px">
+          <i class="fab fa-whatsapp"></i>
+          Share Folder with Client
+        </button>
       </div>` : ''}
 
       ${p.notes ? `
