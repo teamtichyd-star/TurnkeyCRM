@@ -480,9 +480,10 @@
       p.area ? p.area + ' sq ft' : '-';
 
     // Drive link
-    if (p.driveLink) {
+    const clientDriveLink = p.clientDriveUrl || p.driveFolderUrl || p.driveLink || '';
+    if (clientDriveLink) {
       document.getElementById('driveLinkSection').style.display = 'block';
-      document.getElementById('driveLinkBtn').href = p.driveLink;
+      document.getElementById('driveLinkBtn').href = clientDriveLink;
     }
 
     // Latest update
