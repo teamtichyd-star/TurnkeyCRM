@@ -108,7 +108,25 @@
       .info-grid { grid-template-columns: 1fr; }
       .portal-content { padding: 15px; }
     }
-  </style>
+  
+    .client-pay-stats { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:12px; margin-bottom:20px; }
+    .client-pay-stat-card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.025));
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 16px;
+      border-radius: 14px;
+      min-width: 0;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.14);
+    }
+    .client-pay-stat-label { font-size:12px; color:var(--subtext); margin-bottom:6px; }
+    .client-pay-stat-value { font-size:20px; font-weight:700; line-height:1.2; word-break:break-word; }
+    @media (max-width: 768px) {
+      .client-pay-stats { grid-template-columns:1fr; gap:10px; }
+      .client-pay-stat-card { padding:14px; border-radius:12px; }
+      .client-pay-stat-value { font-size:18px; }
+    }
+
+</style>
 </head>
 <body>
 
@@ -674,18 +692,18 @@
     const due = total - received;
 
     container.innerHTML = `
-      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:20px">
-        <div class="stat-card" style="background:rgba(255,255,255,0.03); padding:15px; border-radius:12px">
-           <div style="font-size:12px; color:var(--subtext)">Total Project</div>
-           <div style="font-size:18px; font-weight:700">₹${total.toLocaleString('en-IN')}</div>
+      <div class="client-pay-stats">
+        <div class="client-pay-stat-card">
+           <div class="client-pay-stat-label">Total Project</div>
+           <div class="client-pay-stat-value">₹${total.toLocaleString('en-IN')}</div>
         </div>
-        <div class="stat-card" style="background:rgba(255,255,255,0.03); padding:15px; border-radius:12px">
-           <div style="font-size:12px; color:var(--subtext)">Amount Received</div>
-           <div style="font-size:18px; font-weight:700; color:var(--success)">₹${received.toLocaleString('en-IN')}</div>
+        <div class="client-pay-stat-card">
+           <div class="client-pay-stat-label">Amount Received</div>
+           <div class="client-pay-stat-value" style="color:var(--success)">₹${received.toLocaleString('en-IN')}</div>
         </div>
-        <div class="stat-card" style="background:rgba(255,255,255,0.03); padding:15px; border-radius:12px">
-           <div style="font-size:12px; color:var(--subtext)">Balance Due</div>
-           <div style="font-size:18px; font-weight:700; color:var(--danger)">₹${due.toLocaleString('en-IN')}</div>
+        <div class="client-pay-stat-card">
+           <div class="client-pay-stat-label">Balance Due</div>
+           <div class="client-pay-stat-value" style="color:var(--danger)">₹${due.toLocaleString('en-IN')}</div>
         </div>
       </div>
       <h4 style="margin-bottom:10px">Receipts</h4>
