@@ -560,6 +560,20 @@
   const db = firebase.firestore();
   const leadsRef = db.collection('leads');
 
+  // Permissions from URL
+  const urlParams = new URLSearchParams(window.location.search);
+  window.canEdit   = urlParams.get('canedit')   !== '0';
+  window.canDelete = urlParams.get('candelete') !== '0';
+  const canEdit   = window.canEdit;
+  const canDelete = window.canDelete;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    if (!window.canEdit) {
+      const eb = document.getElementById('viewEditBtn');
+      if (eb) eb.style.display = 'none';
+    }
+  });
+
   // ─── STATE ───
   let leads = [];
   let filteredLeads = [];
