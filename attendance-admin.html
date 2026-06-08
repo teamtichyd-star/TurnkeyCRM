@@ -202,7 +202,9 @@ function render() {
 }
 
 function buildUserSummary(userEmail, records, y, m) {
-  const userRecs = records.filter(r => r.userEmail === userEmail);
+  const _df = (document.getElementById('dateFilter') || {}).value || '';
+  let userRecs = records.filter(r => r.userEmail === userEmail);
+  if (_df) userRecs = userRecs.filter(r => r.date === _df);
   const present = userRecs.filter(r => r.type==='present').length;
   const off = userRecs.filter(r => r.type==='weekly_off').length;
   const hol = userRecs.filter(r => r.type==='holiday').length;
