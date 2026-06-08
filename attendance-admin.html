@@ -96,7 +96,8 @@
   </div>
 
   <div class="filter-bar">
-    <div><label>Month:</label><select id="monthFilter" onchange="loadData()"></select></div>
+    <div><label>Month:</label><select id="monthFilter" onchange="onMonthChange()"></select></div>
+    <div><label>Date:</label><input type="date" id="dateFilter" onchange="render()"/><button onclick="clearDateFilter()" style="padding:8px 12px;background:rgba(244,67,54,0.12);border:1px solid rgba(244,67,54,0.2);border-radius:8px;color:var(--danger);cursor:pointer;font-size:11px;margin-left:4px">Clear</button></div>
     <div><label>User:</label><select id="userFilter" onchange="render()"><option value="">All Users</option></select></div>
     <div><label>View:</label>
       <div class="view-toggle">
@@ -130,6 +131,16 @@ const auth = firebase.auth();
 let allUsers = [];
 let allRecords = [];
 let currentView = 'summary';
+
+function onMonthChange() {
+  document.getElementById('dateFilter').value = '';
+  loadData();
+}
+function clearDateFilter() {
+  document.getElementById('dateFilter').value = '';
+  render();
+}
+
 const LATE_TIME = '10:30';
 
 function showToast(msg, type='success') {
@@ -226,6 +237,7 @@ function renderSummary() {
   const month = document.getElementById('monthFilter').value;
   const [y,m] = month.split('-').map(Number);
   const userFilter = document.getElementById('userFilter').value;
+  const dateFilter = document.getElementById('dateFilter').value;
   const users = userFilter ? allUsers.filter(u => u.email === userFilter) : allUsers;
 
   // Top stats
@@ -269,6 +281,8 @@ function renderSummary() {
 function renderDetail() {
   const userFilter = document.getElementById('userFilter').value;
   let recs = userFilter ? allRecords.filter(r => r.userEmail === userFilter) : allRecords;
+  const _df = document.getElementById('dateFilter').value;
+  if (_df) recs = recs.filter(r => r.date === _df);
   recs = [...recs].sort((a,b) => b.date.localeCompare(a.date) || (b.time||'').localeCompare(a.time||''));
 
   document.getElementById('statsGrid').innerHTML = '';
