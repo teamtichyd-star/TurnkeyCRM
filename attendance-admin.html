@@ -230,7 +230,9 @@ function buildUserSummary(userEmail, records, y, m) {
     const avg = Math.round(totalMin / presentRecs.length);
     avgTime = String(Math.floor(avg/60)).padStart(2,'0')+':'+String(avg%60).padStart(2,'0');
   }
-  return { present, off, hol, absent, avgTime, lateCount, firstDate, lastDate, totalDays: daysCounted, lastProject: (typeof lastProject !== 'undefined' ? lastProject : '-'), lastAddress: (typeof lastAddress !== 'undefined' ? lastAddress : '') };
+  const finalDays = _df ? 1 : daysCounted;
+  const finalAbsent = _df ? Math.max(0, 1 - present - off - hol) : absent;
+  return { present, off, hol, absent: finalAbsent, avgTime, lateCount, firstDate, lastDate, totalDays: finalDays, lastProject: (typeof lastProject !== 'undefined' ? lastProject : '-'), lastAddress: (typeof lastAddress !== 'undefined' ? lastAddress : '') };
 }
 
 function renderSummary() {
