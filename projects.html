@@ -1700,9 +1700,38 @@
         projData.documents = [];
         projData.updates   = [];
         projData.snags     = [];
-        await projRef.add(projData);
-        // await sendNotificationToAll('🏗️ New Project Added', projData.name + ' (Client: ' + projData.client + ')');
-        showToast('✅ Project saved to Firebase!', 'success');
+        const newDocRef = await projRef.add(projData);
+
+        // Auto-create Drive folder
+        try {
+          const usersSnap = await db.collection('users').get();
+          const staffEmails = [];
+          usersSnap.forEach(u => {
+            const d = u.data();
+            const driveEmail = d.driveEmail || d.email;
+            if (driveEmail && ['admin','superadmin','manager','supervisor','projectmanager'].includes(d.role)) {
+              staffEmails.push(driveEmail);
+            }
+          });
+          const driveRes = await fetch('https://script.google.com/macros/s/AKfycbxdTuXOpGVg5XWFW64A1DR8OFGI7vcy-Q1XLLdx5Qjk2tT9ly91aph4zLLCgHp-0AiX1g/exec', {
+            method: 'POST',
+            body: JSON.stringify({ projectName: projData.name, staffEmails: staffEmails })
+          });
+          const dj = await driveRes.json();
+          if (dj.success) {
+            await projRef.doc(newDocRef.id).update({
+              driveFolderId:  dj.folderId,
+              driveFolderUrl: dj.folderUrl,
+              clientDriveUrl: dj.folderUrl
+            });
+            showToast('✅ Project saved + Drive folder created!', 'success');
+          } else {
+            showToast('⚠️ Project saved but Drive folder failed', 'danger');
+          }
+        } catch(e) {
+          console.error('Drive folder error:', e);
+          showToast('✅ Project saved (Drive folder skipped)', 'success');
+        }
         // Notify assigned manager
         if (projData.manager) {
           await TIC_NOTIF.send(db, projData.manager,
