@@ -715,6 +715,14 @@
       <iframe data-src="vendors.html" src="about:blank" style="width:100%; height:calc(100vh - 70px); border:none; display:block; background:var(--darker); margin-left:0;"></iframe>
     </div>
 
+    <div class="page iframe-page" id="page-staffprofile">
+      <iframe data-src="staff-profile.html" src="about:blank" style="width:100%; height:calc(100vh - 70px); border:none; display:block; background:var(--darker); margin-left:0;"></iframe>
+    </div>
+
+    <div class="page iframe-page" id="page-staffadmin">
+      <iframe data-src="staff-profile-admin.html" src="about:blank" style="width:100%; height:calc(100vh - 70px); border:none; display:block; background:var(--darker); margin-left:0;"></iframe>
+    </div>
+
     <!-- ═══ USER MANAGEMENT ═══ -->
     <div class="page" id="page-users">
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
@@ -726,10 +734,6 @@
         </button>
       </div>
 
-    <!-- VENDORS PAGE -->
-    <div class="page iframe-page" id="page-vendors">
-      <iframe data-src="vendors.html" src="about:blank" style="width:100%; height:calc(100vh - 70px); border:none; display:block; background:var(--darker); margin-left:0;"></iframe>
-    </div>
       <div class="users-grid" id="usersGrid">
         <div style="text-align:center; color:var(--subtext); padding:40px">
           Loading users...
@@ -870,13 +874,13 @@
 
   // ─── ROLE MODULES ───
   const roleModules = {
-    superadmin:  ['leads','tasks','projects','sheets','export','users','vendors','attendance','attendanceadmin'],
-    admin:       ['leads','tasks','projects','sheets','export','users','vendors','attendance','attendanceadmin'],
-    manager:     ['leads','tasks','projects','sheets','export','vendors','attendance'],
-    supervisor:  ['tasks','projects','vendors','attendance'],
-    purchase:    ['tasks','projects','sheets','export','vendors','attendance'],
-    designer:    ['tasks','projects','vendors','attendance'],
-    accounts:    ['leads','tasks','sheets','export','vendors','attendance'],
+    superadmin:  ['leads','tasks','projects','sheets','export','users','vendors','attendance','attendanceadmin','staffprofile','staffadmin'],
+    admin:       ['leads','tasks','projects','sheets','export','users','vendors','attendance','attendanceadmin','staffprofile','staffadmin'],
+    manager:     ['leads','tasks','projects','sheets','export','vendors','attendance','staffprofile'],
+    supervisor:  ['tasks','projects','vendors','attendance','staffprofile'],
+    purchase:    ['tasks','projects','sheets','export','vendors','attendance','staffprofile'],
+    designer:    ['tasks','projects','vendors','attendance','staffprofile'],
+    accounts:    ['leads','tasks','sheets','export','vendors','attendance','staffprofile'],
     projectmanager:['leads','tasks','projects','sheets','export','vendors','attendance']
   };
 
@@ -995,7 +999,7 @@ if (role === "supervisor") {
   }
 }
     // Show/Hide menu items based on role + custom permissions (STAGE 2)
-    const allMenus = ['leads','tasks','projects','followups','sheets','export','vendors','attendance','attendanceadmin'];
+    const allMenus = ['leads','tasks','projects','followups','sheets','export','vendors','attendance','attendanceadmin','staffprofile','staffadmin'];
     const customPerms = currentUserData?.permissions || null;
     const isAdminBypass = ['admin','superadmin'].includes(role);
     function canReadModule(m) {
@@ -1348,6 +1352,8 @@ if (role === "supervisor") {
     vendors:    '🏪 Vendors',
     attendance: '📅 My Attendance',
     attendanceadmin: '📊 Attendance Admin',
+    staffprofile: '👤 My Staff Profile',
+    staffadmin: '👥 Staff Directory',
     vendors:    '🏪 Vendors',
     attendance: '📅 My Attendance',
     attendanceadmin: '📊 Attendance Admin',

@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Staff Profile</title>
+<link rel="stylesheet" href="newstyle.css"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+<style>
+.profile-shell{max-width:780px;margin:0 auto;padding:20px 16px 100px}
+.profile-header{background:linear-gradient(135deg,var(--primary),var(--secondary));border-radius:16px;padding:24px;margin-bottom:24px;text-align:center}
+.profile-header h2{color:#fff;margin:0 0 4px;font-size:22px}
+.profile-header p{color:rgba(255,255,255,0.8);margin:0;font-size:13px}
+.emp-id-badge{display:inline-block;background:rgba(255,255,255,0.2);color:#fff;padding:6px 18px;border-radius:20px;font-size:13px;font-weight:700;margin-top:10px;letter-spacing:1px}
+.profile-section{background:var(--card-bg);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:18px}
+.profile-section h3{color:var(--primary);font-size:15px;margin:0 0 16px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);padding-bottom:10px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.form-row.single{grid-template-columns:1fr}
+.form-row.triple{grid-template-columns:1fr 1fr 1fr}
+@media(max-width:600px){.form-row,.form-row.triple{grid-template-columns:1fr}}
+.form-group{display:flex;flex-direction:column;gap:6px}
+.form-group label{font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px}
+.form-group label .req{color:var(--danger)}
+.form-group input,.form-group select,.form-group textarea{background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:14px;width:100%;box-sizing:border-box}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:var(--primary)}
+.form-group textarea{resize:vertical;min-height:80px}
+.photo-upload-box{border:2px dashed var(--border);border-radius:12px;padding:20px;text-align:center;cursor:pointer;transition:0.2s;position:relative;max-width:200px;margin:0 auto}
+.photo-upload-box:hover{border-color:var(--primary);background:rgba(99,102,241,0.05)}
+.upload-icon{font-size:32px;color:var(--text-muted);margin-bottom:8px}
+.doc-upload-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:600px){.doc-upload-row{grid-template-columns:1fr}}
+.doc-upload-box{border:1px dashed var(--border);border-radius:10px;padding:14px;text-align:center;cursor:pointer;transition:0.2s;position:relative}
+.doc-upload-box:hover{border-color:var(--primary)}
+.doc-icon{font-size:24px;color:var(--text-muted);margin-bottom:6px}
+.doc-label{font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px}
+.doc-preview{width:100%;height:80px;object-fit:cover;border-radius:6px;margin-top:6px;display:none}
+.declaration-box{background:rgba(99,102,241,0.05);border:1px solid rgba(99,102,241,0.3);border-radius:12px;padding:20px}
+.declaration-box h4{color:var(--primary);margin:0 0 14px;font-size:14px;display:flex;align-items:center;gap:8px}
+.declaration-points{list-style:none;padding:0;margin:0 0 18px}
+.declaration-points li{padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;color:var(--text);display:flex;gap:10px;line-height:1.5}
+.declaration-points li:last-child{border-bottom:none}
+.declaration-points li .num{color:var(--primary);font-weight:700;flex-shrink:0}
+.declaration-check{display:flex;align-items:flex-start;gap:12px;background:var(--card-bg);border:2px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;transition:0.2s;margin-top:14px}
+.declaration-check.checked{border-color:var(--success);background:rgba(16,185,129,0.05)}
+.declaration-check input[type=checkbox]{width:20px;height:20px;margin-top:2px;flex-shrink:0;accent-color:var(--success);cursor:pointer}
+.declaration-check label{font-size:13px;color:var(--text);cursor:pointer;line-height:1.5;margin:0}
+.status-badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase}
+.status-draft{background:rgba(245,158,11,0.15);color:var(--warning)}
+.status-submitted{background:rgba(16,185,129,0.15);color:var(--success)}
+.status-verified{background:rgba(99,102,241,0.15);color:var(--primary)}
+.submit-bar{position:fixed;bottom:0;left:0;right:0;background:var(--card-bg);border-top:1px solid var(--border);padding:14px 20px;display:flex;gap:12px;z-index:100}
+</style>
+</head>
+<body>
+<div class="profile-shell">
+<div class="profile-header">
+<h2><i class="fas fa-id-card"></i> Staff Profile</h2>
+<p>SB Interior Solutions - Employee Records</p>
+<div id="empIdBadge" class="emp-id-badge" style="display:none"></div>
+<div id="profileStatusBadge" style="margin-top:8px"></div>
+</div>
+<div id="profileAlert" style="display:none" class="alert alert-info">
+<i class="fas fa-info-circle"></i> <span id="profileAlertMsg"></span>
+</div>
+<form id="staffProfileForm" autocomplete="off">
+<!-- SECTION 1: PERSONAL -->
+<div class="profile-section">
+<h3><i class="fas fa-user"></i> Personal Information</h3>
+<div style="text-align:center;margin-bottom:18px">
+<label style="font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase;display:block;margin-bottom:8px">Profile Photo <span style="color:var(--danger)">*</span></label>
+<div class="photo-upload-box" id="photoBox" onclick="document.getElementById('photoInput').click()">
+<img id="photoPreview" src="" style="display:none;width:100px;height:100px;object-fit:cover;border-radius:50%;margin:0 auto 8px"/>
+<div id="photoIcon" class="upload-icon"><i class="fas fa-camera"></i></div>
+<p style="margin:0;font-size:12px;color:var(--text-muted)">Click to upload photo</p>
+<p style="font-size:10px;margin-top:4px;color:var(--text-muted)">JPG/PNG max 2MB</p>
+<input type="file" id="photoInput" accept="image/*" style="display:none" onchange="previewPhoto(this,'photoPreview','photoIcon')"/>
+</div>
+</div>
+<div class="form-row">
+<div class="form-group"><label>Full Name <span class="req">*</span></label><input type="text" id="fullName" placeholder="As per Aadhar card" required/></div>
+<div class="form-group"><label>Date of Birth <span class="req">*</span></label><input type="date" id="dateOfBirth" required/></div>
+</div>
+<div class="form-row">
+<div class="form-group"><label>Blood Group <span class="req">*</span></label><select id="bloodGroup" required><option value="">Select</option><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>O+</option><option>O-</option><option>AB+</option><option>AB-</option></select></div>
+<div class="form-group"><label>Gender <span class="req">*</span></label><select id="gender" required><option value="">Select</option><option>Male</option><option>Female</option><option>Other</option></select></div>
+</div>
+<div class="form-row triple">
+<div class="form-group"><label>Mobile 1 <span class="req">*</span></label><input type="tel" id="mobile1" placeholder="Primary" maxlength="10" required/></div>
+<div class="form-group"><label>Mobile 2 <span class="req">*</span></label><input type="tel" id="mobile2" placeholder="Secondary" maxlength="10" required/></div>
+<div class="form-group"><label>Mobile 3</label><input type="tel" id="mobile3" placeholder="Optional" maxlength="10"/></div>
+</div>
+</div>
+<!-- SECTION 2: ADDRESS -->
+<div class="profile-section">
+<h3><i class="fas fa-map-marker-alt"></i> Address Details</h3>
+<div class="form-row single">
+<div class="form-group"><label>Permanent Address <span class="req">*</span></label><textarea id="permanentAddress" placeholder="Door No, Street, Area, City, State, PIN" required></textarea></div>
+</div>
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;cursor:pointer">
+<input type="checkbox" id="sameAddress" style="width:16px;height:16px;cursor:pointer;accent-color:var(--primary)" onchange="toggleSameAddress()"/>
+<label for="sameAddress" style="font-size:13px;color:var(--text-muted);cursor:pointer;margin:0">Temporary address same as permanent address</label>
+</div>
+<div class="form-row single">
+<div class="form-group"><label>Temporary / Current Address</label><textarea id="temporaryAddress" placeholder="Current living address (if different)"></textarea></div>
+</div>
+</div>
+<!-- SECTION 3: EMERGENCY -->
+<div class="profile-section">
+<h3><i class="fas fa-phone-alt"></i> Emergency Contact</h3>
+<div class="form-row">
+<div class="form-group"><label>Contact Name <span class="req">*</span></label><input type="text" id="emergencyName" placeholder="Full name" required/></div>
+<div class="form-group"><label>Relation <span class="req">*</span></label><select id="emergencyRelation" required><option value="">Select</option><option>Father</option><option>Mother</option><option>Spouse</option><option>Sibling</option><option>Friend</option><option>Other</option></select></div>
+</div>
+<div class="form-row triple">
+<div class="form-group"><label>Emergency Phone 1 <span class="req">*</span></label><input type="tel" id="emergencyPhone1" placeholder="Primary" maxlength="10" required/></div>
+<div class="form-group"><label>Emergency Phone 2 <span class="req">*</span></label><input type="tel" id="emergencyPhone2" placeholder="Mandatory" maxlength="10" required/></div>
+<div class="form-group"><label>Emergency Phone 3</label><input type="tel" id="emergencyPhone3" placeholder="Optional" maxlength="10"/></div>
+</div>
+</div>
+<!-- SECTION 4: ID DOCS -->
+<div class="profile-section">
+<h3><i class="fas fa-id-card-alt"></i> Identity Documents</h3>
+<div class="form-row">
+<div class="form-group"><label>Aadhar Number <span class="req">*</span></label><input type="text" id="aadharNumber" placeholder="XXXX XXXX XXXX" maxlength="14" required/></div>
+<div class="form-group"><label>PAN Number</label><input type="text" id="panNumber" placeholder="ABCDE1234F" maxlength="10" style="text-transform:uppercase"/></div>
+</div>
+<div class="doc-upload-row">
+<div>
+<p style="font-size:12px;color:var(--text-muted);font-weight:600;margin:0 0 8px;text-transform:uppercase">Aadhar Card Photo <span style="color:var(--danger)">*</span></p>
+<div class="doc-upload-box" onclick="document.getElementById('aadharInput').click()">
+<div class="doc-icon"><i class="fas fa-id-card"></i></div>
+<div class="doc-label">Aadhar Card</div>
+<p style="margin:0;font-size:11px;color:var(--text-muted)">Click to upload</p>
+<img id="aadharPreview" class="doc-preview"/>
+<input type="file" id="aadharInput" accept="image/*" style="display:none" onchange="previewPhoto(this,'aadharPreview',null)"/>
+</div>
+</div>
+<div>
+<p style="font-size:12px;color:var(--text-muted);font-weight:600;margin:0 0 8px;text-transform:uppercase">PAN Card Photo</p>
+<div class="doc-upload-box" onclick="document.getElementById('panInput').click()">
+<div class="doc-icon"><i class="fas fa-file-alt"></i></div>
+<div class="doc-label">PAN Card</div>
+<p style="margin:0;font-size:11px;color:var(--text-muted)">Click to upload</p>
+<img id="panPreview" class="doc-preview"/>
+<input type="file" id="panInput" accept="image/*" style="display:none" onchange="previewPhoto(this,'panPreview',null)"/>
+</div>
+</div>
+</div>
+</div>
+<!-- SECTION 5: EDUCATION -->
+<div class="profile-section">
+<h3><i class="fas fa-graduation-cap"></i> Educational Qualification</h3>
+<div class="form-row">
+<div class="form-group"><label>Highest Degree <span class="req">*</span></label><select id="highestDegree" required><option value="">Select</option><option>10th (SSC)</option><option>12th (HSC)</option><option>Diploma</option><option>B.A.</option><option>B.Com</option><option>B.Sc</option><option>B.Tech / B.E.</option><option>B.Arch</option><option>BBA</option><option>MBA</option><option>M.Tech</option><option>M.Arch</option><option>Other</option></select></div>
+<div class="form-group"><label>Specialization</label><input type="text" id="specialization" placeholder="e.g. Interior Design, Civil"/></div>
+</div>
+<div class="form-row">
+<div class="form-group"><label>Institution Name <span class="req">*</span></label><input type="text" id="institutionName" placeholder="College / University name" required/></div>
+<div class="form-group"><label>Year of Passing <span class="req">*</span></label><input type="number" id="yearOfPassing" placeholder="e.g. 2020" min="1980" max="2030" required/></div>
+</div>
+<div style="margin-top:8px">
+<p style="font-size:12px;color:var(--text-muted);font-weight:600;margin:0 0 8px;text-transform:uppercase">Degree Certificate Photo <span style="color:var(--danger)">*</span></p>
+<div class="doc-upload-box" style="max-width:300px" onclick="document.getElementById('degreeInput').click()">
+<div class="doc-icon"><i class="fas fa-graduation-cap"></i></div>
+<div class="doc-label">Degree / Marksheet</div>
+<p style="margin:0;font-size:11px;color:var(--text-muted)">Click to upload</p>
+<img id="degreePreview" class="doc-preview"/>
+<input type="file" id="degreeInput" accept="image/*" style="display:none" onchange="previewPhoto(this,'degreePreview',null)"/>
+</div>
+</div>
+</div>
+<!-- SECTION 6: WORK -->
+<div class="profile-section">
+<h3><i class="fas fa-briefcase"></i> Work Experience</h3>
+<div class="form-row">
+<div class="form-group"><label>Total Experience <span class="req">*</span></label><select id="totalExperience" required><option value="">Select</option><option>Fresher (0 years)</option><option>Less than 1 year</option><option>1-2 years</option><option>2-3 years</option><option>3-5 years</option><option>5-8 years</option><option>8-10 years</option><option>10+ years</option></select></div>
+<div class="form-group"><label>Previous Employer</label><input type="text" id="previousEmployer" placeholder="Company name (if any)"/></div>
+</div>
+<div class="form-row">
+<div class="form-group"><label>Previous Role</label><input type="text" id="previousRole" placeholder="e.g. Junior Designer"/></div>
+<div class="form-group"><label>Reason for Leaving</label><input type="text" id="reasonLeaving" placeholder="Optional"/></div>
+</div>
+</div>
+<!-- SECTION 7: BANK -->
+<div class="profile-section">
+<h3><i class="fas fa-university"></i> Bank Details</h3>
+<div class="form-row">
+<div class="form-group"><label>Bank Name <span class="req">*</span></label><input type="text" id="bankName" placeholder="e.g. SBI, HDFC" required/></div>
+<div class="form-group"><label>Account Number <span class="req">*</span></label><input type="text" id="accountNumber" placeholder="Account number" required/></div>
+</div>
+<div class="form-row">
+<div class="form-group"><label>IFSC Code <span class="req">*</span></label><input type="text" id="ifscCode" placeholder="e.g. SBIN0001234" style="text-transform:uppercase" required/></div>
+<div class="form-group"><label>UPI ID</label><input type="text" id="upiId" placeholder="yourname@upi"/></div>
+</div>
+</div>
+<!-- SECTION 8: DECLARATION -->
+<div class="profile-section">
+<h3><i class="fas fa-file-signature"></i> Declaration and Confidentiality Agreement</h3>
+<div class="declaration-box">
+<h4><i class="fas fa-shield-alt"></i> EMPLOYEE DECLARATION - SB Interior Solutions</h4>
+<ul class="declaration-points">
+<li><span class="num">1.</span> All information provided in this form is true and accurate to the best of my knowledge.</li>
+<li><span class="num">2.</span> I will NOT disclose any designs, drawings, 3D renders, pricing quotations, BOQ details, vendor contacts, client information, or any confidential business information of SB Interior Solutions to any third party during or after my employment.</li>
+<li><span class="num">3.</span> All design templates, processes, vendor relationships, and pricing structures are the exclusive intellectual property of SB Interior Solutions.</li>
+<li><span class="num">4.</span> Any breach of confidentiality may result in immediate termination and/or legal action as per applicable law.</li>
+<li><span class="num">5.</span> I consent to the collection and secure storage of my personal information and documents for company records and emergency use only.</li>
+<li><span class="num">6.</span> I confirm I have read and agree to the Employee Code of Conduct of SB Interior Solutions.</li>
+<li><span class="num">7.</span> I will not solicit or contact any clients, vendors, or partners of SB Interior Solutions for personal or competing business purposes.</li>
+</ul>
+<div class="declaration-check" id="declarationCheckBox">
+<input type="checkbox" id="declarationCheck" onchange="toggleDeclaration()"/>
+<label for="declarationCheck">I have read, fully understood, and agree to all the declarations above. I understand this is a legally binding digital agreement.</label>
+</div>
+<div id="declarationInfo" style="display:none;margin-top:12px;font-size:12px;color:var(--text-muted);background:var(--input-bg);padding:10px 14px;border-radius:8px;line-height:1.8">
+<i class="fas fa-check-circle" style="color:var(--success)"></i>
+ Agreed by: <strong id="declaredByName"></strong>
+ &nbsp;|&nbsp; Employee ID: <strong id="declaredEmpId"></strong>
+ &nbsp;|&nbsp; Date and Time: <strong id="declaredTime"></strong>
+</div>
+</div>
+</div>
+</form>
+<div id="uploadProgress" style="display:none;background:var(--card-bg);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:80px">
+<p style="margin:0 0 8px;font-size:13px;font-weight:600"><i class="fas fa-cloud-upload-alt"></i> Uploading to Google Drive...</p>
+<div style="background:var(--border);border-radius:4px;height:6px">
+<div id="uploadBar" style="background:var(--primary);height:6px;border-radius:4px;width:0%;transition:width 0.3s"></div>
+</div>
+<p id="uploadMsg" style="margin:8px 0 0;font-size:12px;color:var(--text-muted)">Preparing...</p>
+</div>
+</div>
+<div class="submit-bar" id="submitBar">
+<button type="button" class="btn btn-secondary" style="flex:1" onclick="saveDraft()"><i class="fas fa-save"></i> Save Draft</button>
+<button type="button" class="btn btn-primary" style="flex:2" onclick="submitProfile()"><i class="fas fa-paper-plane"></i> Submit Profile</button>
+</div>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+<script>
+var APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxdTuXOpGVg5XWFW64A1DR8OFGI7vcy-Q1XLLdx5Qjk2tT9ly91aph4zLLCgHp-0AiX1g/exec";
+var firebaseConfig = {apiKey:"AIzaSyDWxbVoTBKEfVbZeJNMBsOPsY8p4jJLbPY",authDomain:"turnkeycrm-ce7b8.firebaseapp.com",projectId:"turnkeycrm-ce7b8",storageBucket:"turnkeycrm-ce7b8.appspot.com",messagingSenderId:"178714734274",appId:"1:178714734274:web:9bc49e74801f4ffbab7eea"};
+if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+var db = firebase.firestore();
+var auth = firebase.auth();
+var currentUser = null;
+var currentProfile = null;
+var currentEmpId = null;
+var staffFolderId = null;
+var isSubmitted = false;
+auth.onAuthStateChanged(function(user){
+  if(!user){ window.location.href="index.html"; return; }
+  currentUser = user;
+  loadProfile();
+});
+async function loadProfile(){
+  try{
+    var snap = await db.collection("staffProfiles").doc(currentUser.uid).get();
+    if(snap.exists){
+      currentProfile = snap.data();
+      currentEmpId = currentProfile.employeeId;
+      staffFolderId = currentProfile.driveFolderId || null;
+      isSubmitted = currentProfile.profileStatus === "submitted" || currentProfile.profileStatus === "verified";
+      populateForm(currentProfile);
+      updateHeader(currentProfile);
+      if(isSubmitted) lockForm();
+    } else {
+      generateEmployeeId().then(function(id){
+        currentEmpId = id;
+        document.getElementById("empIdBadge").textContent = id;
+        document.getElementById("empIdBadge").style.display = "inline-block";
+        document.getElementById("declaredEmpId").textContent = id;
+      });
+    }
+  } catch(e){ console.error("Load error:",e); showAlert("Error loading profile. Please refresh.","danger"); }
+}
+async function generateEmployeeId(){
+  var year = new Date().getFullYear();
+  var snap = await db.collection("staffProfiles").get();
+  var count = snap.size + 1;
+  return "EMP-" + year + "-" + String(count).padStart(3,"0");
+}
+function populateForm(p){
+  var fields = ["fullName","dateOfBirth","bloodGroup","gender","mobile1","mobile2","mobile3",
+    "permanentAddress","temporaryAddress","emergencyName","emergencyRelation",
+    "emergencyPhone1","emergencyPhone2","emergencyPhone3",
+    "aadharNumber","panNumber","highestDegree","specialization",
+    "institutionName","yearOfPassing","totalExperience",
+    "previousEmployer","previousRole","reasonLeaving",
+    "bankName","accountNumber","ifscCode","upiId"];
+  fields.forEach(function(f){
+    var el = document.getElementById(f);
+    if(el && p[f]) el.value = p[f];
+  });
+  if(p.photoURL){ document.getElementById("photoPreview").src=p.photoURL; document.getElementById("photoPreview").style.display="block"; document.getElementById("photoIcon").style.display="none"; }
+  if(p.aadharPhotoURL){ var a=document.getElementById("aadharPreview"); a.src=p.aadharPhotoURL; a.style.display="block"; }
+  if(p.panPhotoURL){ var pn=document.getElementById("panPreview"); pn.src=p.panPhotoURL; pn.style.display="block"; }
+  if(p.degreePhotoURL){ var d=document.getElementById("degreePreview"); d.src=p.degreePhotoURL; d.style.display="block"; }
+  if(p.declarationAccepted){
+    document.getElementById("declarationCheck").checked=true;
+    document.getElementById("declarationCheckBox").classList.add("checked");
+    document.getElementById("declarationInfo").style.display="block";
+    document.getElementById("declaredByName").textContent=p.fullName||"";
+    document.getElementById("declaredEmpId").textContent=p.employeeId||"";
+    var ts = p.declarationTimestamp ? new Date(p.declarationTimestamp.toDate()).toLocaleString() : "";
+    document.getElementById("declaredTime").textContent=ts;
+  }
+}
+function updateHeader(p){
+  document.getElementById("empIdBadge").textContent = p.employeeId||"";
+  document.getElementById("empIdBadge").style.display = "inline-block";
+  document.getElementById("declaredEmpId").textContent = p.employeeId||"";
+  var statusMap = {draft:"status-draft",submitted:"status-submitted",verified:"status-verified"};
+  var labelMap = {draft:"Draft",submitted:"Submitted",verified:"Verified"};
+  var st = p.profileStatus||"draft";
+  document.getElementById("profileStatusBadge").innerHTML = "<span class=\"status-badge " + (statusMap[st]||"status-draft") + "\">" + (labelMap[st]||st) + "</span>";
+}
+function lockForm(){
+  var inputs = document.querySelectorAll("#staffProfileForm input, #staffProfileForm select, #staffProfileForm textarea");
+  inputs.forEach(function(el){ el.disabled=true; el.style.opacity="0.6"; });
+  document.getElementById("submitBar").innerHTML = "<div style=\"text-align:center;color:var(--success);font-size:13px;width:100%\"><i class=\"fas fa-check-circle\"></i> Profile submitted. Contact admin for any changes.</div>";
+  showAlert("Your profile has been submitted. Only admin can make changes now.","success");
+}
+function previewPhoto(input,previewId,iconId){
+  var file = input.files[0];
+  if(!file) return;
+  if(file.size > 2*1024*1024){ showAlert("File too large! Max 2MB allowed.","danger"); input.value=""; return; }
+  var reader = new FileReader();
+  reader.onload = function(e){
+    var preview = document.getElementById(previewId);
+    if(preview){ preview.src=e.target.result; preview.style.display="block"; }
+    if(iconId){ var icon=document.getElementById(iconId); if(icon) icon.style.display="none"; }
+  };
+  reader.readAsDataURL(file);
+}
+function toggleSameAddress(){
+  var cb = document.getElementById("sameAddress");
+  var temp = document.getElementById("temporaryAddress");
+  var perm = document.getElementById("permanentAddress");
+  if(cb.checked){ temp.value=perm.value; temp.readOnly=true; temp.style.opacity="0.6"; }
+  else { temp.readOnly=false; temp.style.opacity="1"; }
+}
+function toggleDeclaration(){
+  var cb = document.getElementById("declarationCheck");
+  var box = document.getElementById("declarationCheckBox");
+  var info = document.getElementById("declarationInfo");
+  if(cb.checked){
+    box.classList.add("checked");
+    info.style.display="block";
+    document.getElementById("declaredByName").textContent = document.getElementById("fullName").value||"(not entered)";
+    document.getElementById("declaredEmpId").textContent = currentEmpId||"";
+    document.getElementById("declaredTime").textContent = new Date().toLocaleString();
+  } else {
+    box.classList.remove("checked");
+    info.style.display="none";
+  }
+}
+function collectFormData(){
+  return {
+    employeeId: currentEmpId,
+    fullName: document.getElementById("fullName").value.trim(),
+    dateOfBirth: document.getElementById("dateOfBirth").value,
+    bloodGroup: document.getElementById("bloodGroup").value,
+    gender: document.getElementById("gender").value,
+    mobile1: document.getElementById("mobile1").value.trim(),
+    mobile2: document.getElementById("mobile2").value.trim(),
+    mobile3: document.getElementById("mobile3").value.trim(),
+    permanentAddress: document.getElementById("permanentAddress").value.trim(),
+    temporaryAddress: document.getElementById("temporaryAddress").value.trim(),
+    emergencyName: document.getElementById("emergencyName").value.trim(),
+    emergencyRelation: document.getElementById("emergencyRelation").value,
+    emergencyPhone1: document.getElementById("emergencyPhone1").value.trim(),
+    emergencyPhone2: document.getElementById("emergencyPhone2").value.trim(),
+    emergencyPhone3: document.getElementById("emergencyPhone3").value.trim(),
+    aadharNumber: document.getElementById("aadharNumber").value.trim(),
+    panNumber: document.getElementById("panNumber").value.trim().toUpperCase(),
+    highestDegree: document.getElementById("highestDegree").value,
+    specialization: document.getElementById("specialization").value.trim(),
+    institutionName: document.getElementById("institutionName").value.trim(),
+    yearOfPassing: document.getElementById("yearOfPassing").value,
+    totalExperience: document.getElementById("totalExperience").value,
+    previousEmployer: document.getElementById("previousEmployer").value.trim(),
+    previousRole: document.getElementById("previousRole").value.trim(),
+    reasonLeaving: document.getElementById("reasonLeaving").value.trim(),
+    bankName: document.getElementById("bankName").value.trim(),
+    accountNumber: document.getElementById("accountNumber").value.trim(),
+    ifscCode: document.getElementById("ifscCode").value.trim().toUpperCase(),
+    upiId: document.getElementById("upiId").value.trim(),
+    declarationAccepted: document.getElementById("declarationCheck").checked,
+    userEmail: currentUser.email,
+    userId: currentUser.uid,
+    lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+  };
+}
+function validateForm(data, forSubmit){
+  var required = [
+    ["fullName","Full Name"],["dateOfBirth","Date of Birth"],["bloodGroup","Blood Group"],
+    ["gender","Gender"],["mobile1","Mobile Number 1"],["mobile2","Mobile Number 2"],
+    ["permanentAddress","Permanent Address"],["emergencyName","Emergency Contact Name"],
+    ["emergencyRelation","Emergency Relation"],["emergencyPhone1","Emergency Phone 1"],
+    ["emergencyPhone2","Emergency Phone 2"],["highestDegree","Highest Degree"],
+    ["institutionName","Institution Name"],["yearOfPassing","Year of Passing"],
+    ["totalExperience","Total Experience"],["bankName","Bank Name"],
+    ["accountNumber","Account Number"],["ifscCode","IFSC Code"]
+  ];
+  for(var i=0;i<required.length;i++){
+    if(!data[required[i][0]]) return required[i][1] + " is required.";
+  }
+  if(forSubmit){
+    var photoFile = document.getElementById("photoInput").files[0];
+    if(!photoFile && !(currentProfile && currentProfile.photoURL)) return "Profile photo is required.";
+    var aadharFile = document.getElementById("aadharInput").files[0];
+    if(!aadharFile && !(currentProfile && currentProfile.aadharPhotoURL)) return "Aadhar card photo is required.";
+    var degreeFile = document.getElementById("degreeInput").files[0];
+    if(!degreeFile && !(currentProfile && currentProfile.degreePhotoURL)) return "Degree certificate photo is required.";
+    if(!data.aadharNumber) return "Aadhar number is required.";
+    if(!data.declarationAccepted) return "You must accept the declaration to submit.";
+  }
+  return null;
+}
+function fileToBase64(file){
+  return new Promise(function(resolve,reject){
+    var reader = new FileReader();
+    reader.onload = function(e){ resolve(e.target.result.split(",")[1]); };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+async function uploadFileToDrive(folderId, fileName, file, msg){
+  document.getElementById("uploadMsg").textContent = msg;
+  var base64 = await fileToBase64(file);
+  var res = await fetch(APPS_SCRIPT_URL, {
+    method: "POST",
+    body: JSON.stringify({action:"uploadStaffFile",folderId:folderId,fileName:fileName,base64:base64,mimeType:file.type})
+  });
+  return await res.json();
+}
+async function saveDraft(){
+  var data = collectFormData();
+  if(!data.fullName){ showAlert("Please enter at least your full name to save draft.","warning"); return; }
+  data.profileStatus = "draft";
+  try{
+    await db.collection("staffProfiles").doc(currentUser.uid).set(data,{merge:true});
+    showAlert("Draft saved successfully!","success");
+    currentProfile = data;
+  } catch(e){ showAlert("Error saving draft: "+e.message,"danger"); }
+}
+async function submitProfile(){
+  var data = collectFormData();
+  var err = validateForm(data, true);
+  if(err){ showAlert(err,"danger"); return; }
+  document.getElementById("uploadProgress").style.display="block";
+  document.getElementById("uploadBar").style.width="5%";
+  try{
+    if(!staffFolderId){
+      document.getElementById("uploadMsg").textContent="Creating your secure folder in Google Drive...";
+      document.getElementById("uploadBar").style.width="10%";
+      var folderRes = await fetch(APPS_SCRIPT_URL,{method:"POST",body:JSON.stringify({action:"createStaffFolder",employeeId:currentEmpId,staffName:data.fullName})});
+      var folderData = await folderRes.json();
+      if(!folderData.success) throw new Error("Could not create Drive folder: "+folderData.error);
+      staffFolderId = folderData.folderId;
+      data.driveFolderId = folderData.folderId;
+      data.driveFolderUrl = folderData.folderUrl;
+    }
+    document.getElementById("uploadBar").style.width="20%";
+    var photoFile = document.getElementById("photoInput").files[0];
+    if(photoFile){
+      var photoRes = await uploadFileToDrive(staffFolderId,"profile_photo.jpg",photoFile,"Uploading profile photo...");
+      if(photoRes.success) data.photoURL = photoRes.fileUrl;
+      document.getElementById("uploadBar").style.width="40%";
+    }
+    var aadharFile = document.getElementById("aadharInput").files[0];
+    if(aadharFile){
+      var aadharRes = await uploadFileToDrive(staffFolderId,"aadhar_card.jpg",aadharFile,"Uploading Aadhar card...");
+      if(aadharRes.success) data.aadharPhotoURL = aadharRes.fileUrl;
+      document.getElementById("uploadBar").style.width="60%";
+    }
+    var panFile = document.getElementById("panInput").files[0];
+    if(panFile){
+      var panRes = await uploadFileToDrive(staffFolderId,"pan_card.jpg",panFile,"Uploading PAN card...");
+      if(panRes.success) data.panPhotoURL = panRes.fileUrl;
+      document.getElementById("uploadBar").style.width="75%";
+    }
+    var degreeFile = document.getElementById("degreeInput").files[0];
+    if(degreeFile){
+      var degreeRes = await uploadFileToDrive(staffFolderId,"degree_certificate.jpg",degreeFile,"Uploading degree certificate...");
+      if(degreeRes.success) data.degreePhotoURL = degreeRes.fileUrl;
+      document.getElementById("uploadBar").style.width="90%";
+    }
+    document.getElementById("uploadMsg").textContent="Saving your profile...";
+    data.profileStatus = "submitted";
+    data.declarationTimestamp = firebase.firestore.FieldValue.serverTimestamp();
+    data.submittedAt = firebase.firestore.FieldValue.serverTimestamp();
+    await db.collection("staffProfiles").doc(currentUser.uid).set(data,{merge:true});
+    document.getElementById("uploadBar").style.width="100%";
+    try{
+      var adminsSnap = await db.collection("users").where("role","in",["admin","superadmin"]).get();
+      adminsSnap.forEach(function(d){
+        db.collection("notifications").add({
+          to:d.data().email, toName:d.data().name||"Admin",
+          title:"New Staff Profile Submitted",
+          body:data.fullName+" ("+currentEmpId+") has submitted their staff profile.",
+          type:"staff", link:"staff-profile-admin.html",
+          read:false, createdAt:firebase.firestore.FieldValue.serverTimestamp()
+        });
+      });
+    } catch(ne){ console.warn("Notification error:",ne); }
+    document.getElementById("uploadProgress").style.display="none";
+    isSubmitted = true;
+    currentProfile = data;
+    updateHeader(data);
+    lockForm();
+    showAlert("Profile submitted successfully! Admin will review and verify.","success");
+  } catch(e){
+    document.getElementById("uploadProgress").style.display="none";
+    console.error("Submit error:",e);
+    showAlert("Submission failed: "+e.message,"danger");
+  }
+}
+function showAlert(msg,type){
+  var el=document.getElementById("profileAlert");
+  var msgEl=document.getElementById("profileAlertMsg");
+  el.className="alert alert-"+type;
+  msgEl.textContent=msg;
+  el.style.display="block";
+  el.scrollIntoView({behavior:"smooth",block:"nearest"});
+  if(type==="success") setTimeout(function(){ el.style.display="none"; },5000);
+}
+</script>
+</body>
+</html>
