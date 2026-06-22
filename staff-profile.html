@@ -291,13 +291,20 @@ async function loadProfile(){
       populateForm(currentProfile);
       updateHeader(currentProfile);
       if(isSubmitted) lockForm();
-    } else {
-      generateEmployeeId().then(function(id){
-        currentEmpId = id;
-        document.getElementById("empIdBadge").textContent = id;
+      // Fix: if existing profile has empty empId, generate one
+      if(!currentEmpId || currentEmpId === ""){
+        currentEmpId = await generateEmployeeId();
+        document.getElementById("empIdBadge").textContent = currentEmpId;
         document.getElementById("empIdBadge").style.display = "inline-block";
-        document.getElementById("declaredEmpId").textContent = id;
-      });
+        document.getElementById("declaredEmpId").textContent = currentEmpId;
+        console.log("Generated new EmpID for existing draft:", currentEmpId);
+      }
+    } else {
+      currentEmpId = await generateEmployeeId();
+      document.getElementById("empIdBadge").textContent = currentEmpId;
+      document.getElementById("empIdBadge").style.display = "inline-block";
+      document.getElementById("declaredEmpId").textContent = currentEmpId;
+      console.log("Generated EmpID:", currentEmpId);
     }
   } catch(e){ console.error("Load error:",e); showAlert("Error loading profile. Please refresh.","danger"); }
 }
@@ -476,6 +483,13 @@ async function submitProfile(){
   var data = collectFormData();
   var err = validateForm(data, true);
   if(err){ showAlert(err,"danger"); return; }
+  // Safety: ensure empId exists
+  if(!currentEmpId || currentEmpId === ""){
+    currentEmpId = await generateEmployeeId();
+    data.employeeId = currentEmpId;
+    console.log("Last-minute EmpID generated:", currentEmpId);
+  }
+  data.employeeId = currentEmpId;
   document.getElementById("uploadProgress").style.display="block";
   document.getElementById("uploadBar").style.width="5%";
   try{
