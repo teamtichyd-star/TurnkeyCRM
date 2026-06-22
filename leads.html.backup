@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Leads - Turnkey CRM</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+    :root {
+      --primary: #c8a96e; --primary-dark: #a07840;
+      --primary-glow: rgba(200,169,110,0.15);
+      --dark: #1a1a2e; --darker: #0e0e1a;
+      --card: #16213e; --card2: #1a2550;
+      --border: rgba(255,255,255,0.06);
+      --text: #f0f0f0; --subtext: #8888aa;
+      --success: #4caf50; --warning: #ff9800; --danger: #f44336; --info: #2196f3;
+      --radius: 14px; --shadow: 0 4px 24px rgba(0,0,0,0.35);
+    }
+    body { background: var(--darker); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+    .loading-overlay { position: fixed; inset: 0; background: var(--darker); display: flex; align-items: center; justify-content: center; z-index: 9999; flex-direction: column; gap: 15px; }
+    .loading-overlay.hide { display: none; }
+    .spinner { width: 42px; height: 42px; border: 3px solid rgba(200,169,110,0.15); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { font-size: 13px; color: var(--subtext); letter-spacing: 1px; }
+    .login-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: radial-gradient(ellipse at 20% 50%, #1a2550 0%, #0e0e1a 60%); padding: 20px; }
+    .login-box { background: linear-gradient(145deg, #1a2550, #16213e); border-radius: 24px; padding: 44px 38px; width: 100%; max-width: 420px; box-shadow: 0 30px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.07); border: 1px solid rgba(200,169,110,0.15); }
+    .login-logo { text-align: center; margin-bottom: 32px; }
+    .login-logo img { filter: drop-shadow(0 4px 12px rgba(200,169,110,0.3)); }
+    .login-logo h1 { font-size: 19px; color: var(--primary); font-weight: 700; margin-top: 8px; }
+    .login-logo p { font-size: 12px; color: var(--subtext); margin-top: 5px; letter-spacing: 0.5px; }
+    .form-group { margin-bottom: 18px; }
+    .form-group label { display: block; font-size: 12px; color: var(--subtext); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.7px; }
+    .input-wrap { position: relative; }
+    .input-wrap input { width: 100%; padding: 13px 45px 13px 16px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 11px; color: var(--text); font-size: 15px; outline: none; transition: 0.3s; }
+    .input-wrap input:focus { border-color: var(--primary); background: rgba(200,169,110,0.05); box-shadow: 0 0 0 3px rgba(200,169,110,0.1); }
+    .show-pass { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--subtext); font-size: 15px; background: none; border: none; }
+    .show-pass:hover { color: var(--primary); }
+    .login-btn { width: 100%; padding: 14px; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); border: none; border-radius: 11px; color: white; font-size: 15px; font-weight: 600; cursor: pointer; transition: 0.3s; margin-top: 6px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 20px rgba(200,169,110,0.25); }
+    .login-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(200,169,110,0.4); }
+    .login-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .login-error { background: rgba(244,67,54,0.08); border: 1px solid rgba(244,67,54,0.25); color: #f44336; padding: 10px 15px; border-radius: 9px; font-size: 13px; margin-bottom: 15px; display: none; }
+    .forgot-pass { text-align: right; margin-top: 8px; }
+    .forgot-pass a { font-size: 12px; color: var(--primary); text-decoration: none; cursor: pointer; opacity: 0.8; }
+    .forgot-pass a:hover { opacity: 1; text-decoration: underline; }
+    .login-footer { text-align: center; margin-top: 28px; font-size: 11px; color: var(--subtext); opacity: 0.6; }
+    .reset-box { display: none; }
+    .back-link { font-size: 13px; color: var(--primary); cursor: pointer; margin-bottom: 20px; display: inline-flex; align-items: center; gap: 6px; }
+    .back-link:hover { text-decoration: underline; }
+    .app { display: none; min-height: 100vh; }
+    .sidebar { position: fixed; left: 0; top: 0; height: 100vh; width: 255px; background: linear-gradient(180deg, #1a2550 0%, #16213e 100%); border-right: 1px solid var(--border); z-index: 1000; transition: 0.3s; overflow-y: auto; display: flex; flex-direction: column; }
+    .sidebar::-webkit-scrollbar { width: 4px; }
+    .sidebar::-webkit-scrollbar-thumb { background: rgba(200,169,110,0.2); border-radius: 4px; }
+    .sidebar-header { padding: 22px 18px; border-bottom: 1px solid var(--border); }
+    .brand { display: flex; align-items: center; gap: 11px; }
+    .brand img { border-radius: 10px; background: #fff; padding: 3px; box-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+    .brand-name { font-size: 13px; font-weight: 700; color: var(--primary); }
+    .brand-sub { font-size: 10px; color: var(--subtext); margin-top: 2px; }
+    .sidebar-menu { padding: 12px 0; flex: 1; }
+    .menu-label { font-size: 10px; color: var(--subtext); text-transform: uppercase; letter-spacing: 1.2px; padding: 14px 20px 6px; opacity: 0.6; }
+    .menu-item { display: flex; align-items: center; gap: 11px; padding: 11px 18px; cursor: pointer; transition: 0.2s; font-size: 13.5px; color: var(--subtext); margin: 2px 8px; border-radius: 10px; border-left: 3px solid transparent; }
+    .menu-item:hover { background: rgba(200,169,110,0.07); color: var(--text); border-left-color: rgba(200,169,110,0.3); }
+    .menu-item.active { background: linear-gradient(90deg, rgba(200,169,110,0.15), rgba(200,169,110,0.05)); color: var(--primary); border-left-color: var(--primary); font-weight: 600; }
+    .menu-item i { width: 18px; text-align: center; font-size: 14px; }
+    .menu-item.hidden { display: none; }
+    .sidebar-footer { padding: 16px; border-top: 1px solid var(--border); }
+    .user-info { background: rgba(255,255,255,0.03); border-radius: 11px; padding: 12px 14px; margin-bottom: 10px; border: 1px solid var(--border); }
+    .user-info-name { font-size: 13px; font-weight: 600; color: var(--text); }
+    .user-info-role { font-size: 11px; color: var(--primary); margin-top: 3px; font-weight: 500; }
+    .user-info-email { font-size: 11px; color: var(--subtext); margin-top: 2px; }
+    .logout-btn { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: rgba(244,67,54,0.08); border: 1px solid rgba(244,67,54,0.18); border-radius: 10px; color: #f44336; cursor: pointer; font-size: 13px; width: 100%; transition: 0.2s; }
+    .logout-btn:hover { background: rgba(244,67,54,0.18); }
+    .main-content { margin-left: 255px; min-height: 100vh; transition: 0.3s; background: var(--darker); }
+    .topbar { background: linear-gradient(90deg, #1a2550, #16213e); padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 20px rgba(0,0,0,0.3); }
+    .topbar-left { display: flex; align-items: center; gap: 14px; }
+    .menu-toggle { display: none; background: none; border: none; color: var(--text); font-size: 20px; cursor: pointer; }
+    .page-title { font-size: 17px; font-weight: 700; color: var(--text); }
+    .topbar-right { display: flex; align-items: center; gap: 12px; }
+    .topbar-date { font-size: 12px; color: var(--subtext); background: rgba(255,255,255,0.03); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border); }
+    .user-badge { display: flex; align-items: center; gap: 8px; background: var(--primary-glow); padding: 7px 14px; border-radius: 20px; font-size: 13px; color: var(--primary); border: 1px solid rgba(200,169,110,0.2); font-weight: 500; }
+    .page { display: none; padding: 24px; animation: fadeIn 0.25s ease; }
+    .page.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .stats-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: linear-gradient(145deg, var(--card2), var(--card)); border-radius: var(--radius); padding: 20px; display: flex; align-items: center; gap: 16px; border: 1px solid var(--border); transition: 0.3s; cursor: pointer; box-shadow: var(--shadow); }
+    .stat-card:hover { transform: translateY(-3px); border-color: rgba(200,169,110,0.25); box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+    .stat-icon { width: 52px; height: 52px; border-radius: 13px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+    .stat-icon.gold { background: rgba(200,169,110,0.12); color: var(--primary); }
+    .stat-icon.green { background: rgba(76,175,80,0.12); color: var(--success); }
+    .stat-icon.orange { background: rgba(255,152,0,0.12); color: var(--warning); }
+    .stat-icon.blue { background: rgba(33,150,243,0.12); color: var(--info); }
+    .stat-icon.red { background: rgba(244,67,54,0.12); color: var(--danger); }
+    .stat-info h3 { font-size: 26px; font-weight: 700; line-height: 1; }
+    .stat-info p { font-size: 12px; color: var(--subtext); margin-top: 5px; }
+    .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 22px; }
+    .quick-actions { background: linear-gradient(145deg, var(--card2), var(--card)); border-radius: var(--radius); padding: 20px; border: 1px solid var(--border); box-shadow: var(--shadow); }
+    .quick-actions h3 { font-size: 14px; font-weight: 700; margin-bottom: 16px; color: var(--subtext); text-transform: uppercase; letter-spacing: 0.8px; }
+    .action-buttons { display: flex; flex-direction: column; gap: 9px; }
+    .action-btn { display: flex; align-items: center; gap: 12px; padding: 12px 15px; border-radius: 10px; cursor: pointer; font-size: 13.5px; border: none; width: 100%; text-align: left; transition: 0.2s; font-weight: 500; }
+    .action-btn.gold { background: rgba(200,169,110,0.08); color: var(--primary); border: 1px solid rgba(200,169,110,0.18); }
+    .action-btn.green { background: rgba(76,175,80,0.08); color: var(--success); border: 1px solid rgba(76,175,80,0.18); }
+    .action-btn.blue { background: rgba(33,150,243,0.08); color: var(--info); border: 1px solid rgba(33,150,243,0.18); }
+    .action-btn.orange { background: rgba(255,152,0,0.08); color: var(--warning); border: 1px solid rgba(255,152,0,0.18); }
+    .action-btn:hover { transform: translateX(5px); filter: brightness(1.2); }
+    .action-btn.hidden { display: none; }
+    .pipeline-card { background: linear-gradient(145deg, var(--card2), var(--card)); border-radius: var(--radius); padding: 20px; border: 1px solid var(--border); box-shadow: var(--shadow); }
+    .pipeline-card h3 { font-size: 14px; font-weight: 700; margin-bottom: 18px; color: var(--subtext); text-transform: uppercase; letter-spacing: 0.8px; }
+    .pipeline-item { margin-bottom: 16px; }
+    .pipeline-label { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 7px; }
+    .pipeline-label span:first-child { color: var(--text); }
+    .pipeline-bar { height: 7px; background: rgba(255,255,255,0.05); border-radius: 10px; overflow: hidden; }
+    .pipeline-fill { height: 100%; border-radius: 10px; transition: width 1s ease; }
+    .table-card { background: linear-gradient(145deg, var(--card2), var(--card)); border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; margin-bottom: 22px; box-shadow: var(--shadow); }
+    .table-card-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .table-card-header h3 { font-size: 14px; font-weight: 700; color: var(--subtext); text-transform: uppercase; letter-spacing: 0.8px; }
+    .badge { padding: 4px 11px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .badge-gold { background: rgba(200,169,110,0.12); color: var(--primary); }
+    .badge-green { background: rgba(76,175,80,0.12); color: var(--success); }
+    .badge-orange { background: rgba(255,152,0,0.12); color: var(--warning); }
+    .badge-blue { background: rgba(33,150,243,0.12); color: var(--info); }
+    .badge-red { background: rgba(244,67,54,0.12); color: var(--danger); }
+    .table-wrapper { overflow-x: auto; } table { min-width: 900px; }
+    table { width: 100%; border-collapse: collapse; }
+    table th { padding: 11px 20px; text-align: left; font-size: 11px; color: var(--subtext); text-transform: uppercase; letter-spacing: 0.8px; background: rgba(255,255,255,0.02); font-weight: 600; }
+    table td { padding: 13px 20px; font-size: 13.5px; border-top: 1px solid rgba(255,255,255,0.03); }
+    .col-budget, .col-assigned { display: none; }
+    th:nth-child(6), td:nth-child(6) { display: none; }
+    th:nth-child(8), td:nth-child(8) { display: none; }
+    .btn-icon { width:30px; height:30px; border-radius:8px; border:none; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:14px; transition:0.2s; }
+    .btn-icon.view { background:rgba(33,150,243,0.15); color:#2196f3; }
+    .btn-icon.edit { background:rgba(200,169,110,0.15); color:#c8a96e; }
+    .btn-icon.delete { background:rgba(244,67,54,0.15); color:#f44336; }
+    .btn-icon.whatsapp { background:rgba(37,211,102,0.15); color:#25d366; }
+    .btn-icon:hover { transform:scale(1.1); filter:brightness(1.3); }
+    .icon-btn { width:30px; height:30px; border-radius:8px; border:none; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:13px; transition:0.2s; text-decoration:none; }
+    .icon-btn.view { background:rgba(33,150,243,0.15); color:#2196f3; }
+    .icon-btn.edit { background:rgba(200,169,110,0.15); color:#c8a96e; }
+    .icon-btn.delete { background:rgba(244,67,54,0.15); color:#f44336; }
+    .icon-btn.whatsapp { background:rgba(37,211,102,0.15); color:#25d366; }
+    .icon-btn:hover { transform:scale(1.15); filter:brightness(1.3); }
+    table tr:hover td { background: rgba(200,169,110,0.04); }
+    .coming-soon, .access-denied { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; text-align: center; }
+    .coming-soon i { font-size: 56px; color: var(--primary); margin-bottom: 18px; opacity: 0.4; }
+    .coming-soon h2 { font-size: 20px; margin-bottom: 8px; }
+    .coming-soon p { color: var(--subtext); font-size: 14px; }
+    .access-denied i { font-size: 56px; color: var(--danger); margin-bottom: 18px; opacity: 0.4; }
+    .access-denied h2 { font-size: 20px; margin-bottom: 8px; color: var(--danger); }
+    .access-denied p { color: var(--subtext); font-size: 14px; }
+    .users-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(275px, 1fr)); gap: 14px; margin-bottom: 18px; }
+    .user-card { background: linear-gradient(145deg, var(--card2), var(--card)); border-radius: var(--radius); padding: 18px; border: 1px solid var(--border); transition: 0.3s; box-shadow: var(--shadow); }
+    .user-card:hover { border-color: rgba(200,169,110,0.2); transform: translateY(-2px); }
+    .user-card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .user-avatar { width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; box-shadow: 0 3px 10px rgba(200,169,110,0.3); }
+    .user-card-name { font-size: 14px; font-weight: 600; }
+    .user-card-email { font-size: 11px; color: var(--subtext); }
+    .user-card-role { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; margin-top: 4px; }
+    .role-superadmin { background: rgba(200,169,110,0.12); color: var(--primary); }
+    .role-admin { background: rgba(33,150,243,0.12); color: var(--info); }
+    .role-manager { background: rgba(76,175,80,0.12); color: var(--success); }
+    .role-projectmanager { background: rgba(255,152,0,0.12); color: var(--warning); }
+    .role-accounts { background: rgba(156,39,176,0.12); color: #ce93d8; }
+    .role-designer { background: rgba(244,67,54,0.12); color: var(--danger); }
+    .user-modules { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+    .module-tag { padding: 2px 8px; border-radius: 6px; font-size: 11px; background: rgba(255,255,255,0.04); color: var(--subtext); border: 1px solid var(--border); }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 2000; display: none; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(4px); }
+    .modal-overlay.show { display: flex; }
+    .modal { background: linear-gradient(145deg, #1e2d5e, #16213e); border-radius: 20px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; border: 1px solid rgba(200,169,110,0.18); animation: slideUp 0.25s ease; box-shadow: 0 30px 80px rgba(0,0,0,0.6); }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(25px); } to { opacity: 1; transform: translateY(0); } }
+    .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: #1e2d5e; z-index: 1; border-radius: 20px 20px 0 0; }
+    .modal-header h3 { font-size: 16px; font-weight: 700; color: var(--primary); }
+    .modal-close { width: 32px; height: 32px; background: rgba(255,255,255,0.05); border: none; border-radius: 8px; color: var(--text); cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+    .modal-close:hover { background: rgba(244,67,54,0.2); color: var(--danger); }
+    .modal-body { padding: 22px 24px; }
+    .modal-footer { padding: 14px 24px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; }
+    .mform-group { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
+    .mform-group label { font-size: 11px; color: var(--subtext); text-transform: uppercase; letter-spacing: 0.7px; font-weight: 600; }
+    .mform-group input, .mform-group select { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 11px 14px; color: var(--text); font-size: 14px; outline: none; transition: 0.3s; width: 100%; }
+    .mform-group input:focus, .mform-group select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(200,169,110,0.1); }
+    .mform-group select option { background: var(--dark); }
+    .btn { padding: 10px 18px; border-radius: 10px; border: none; cursor: pointer; font-size: 13.5px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; }
+    .btn-primary { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; box-shadow: 0 3px 12px rgba(200,169,110,0.25); }
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-danger { background: rgba(244,67,54,0.1); color: var(--danger); border: 1px solid rgba(244,67,54,0.25); }
+    .btn-success { background: rgba(76,175,80,0.1); color: var(--success); border: 1px solid rgba(76,175,80,0.25); }
+    .btn-info { background: rgba(33,150,243,0.1); color: var(--info); border: 1px solid rgba(33,150,243,0.25); }
+    .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 999; backdrop-filter: blur(2px); }
+    .bottom-nav { display: none; position: fixed; bottom: 0; left: 0; right: 0; background: linear-gradient(180deg, #1a2550, #16213e); border-top: 1px solid var(--border); padding: 6px 0 8px; z-index: 1000; box-shadow: 0 -4px 20px rgba(0,0,0,0.4); }
+    .bottom-nav-items { display: flex; justify-content: space-around; }
+    .bottom-nav-item { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 5px 12px; cursor: pointer; color: var(--subtext); font-size: 10px; transition: 0.2s; border-radius: 10px; }
+    .bottom-nav-item i { font-size: 19px; }
+    .bottom-nav-item.active { color: var(--primary); }
+    .bottom-nav-item.hidden { display: none; }
+    .toast { position: fixed; bottom: 90px; right: 20px; background: var(--success); color: white; padding: 12px 20px; border-radius: 11px; font-size: 13.5px; z-index: 9999; display: none; animation: slideIn 0.3s ease; box-shadow: 0 6px 24px rgba(0,0,0,0.35); font-weight: 500; }
+    @keyframes slideIn { from { transform: translateX(100px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    @media (max-width: 768px) {
+      .sidebar { left: -255px; }
+      .sidebar.open { left: 0; }
+      .sidebar-overlay.show { display: block; }
+      .main-content { margin-left: 0; padding-bottom: 72px; }
+      .menu-toggle { display: block; }
+      .bottom-nav { display: block; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 11px; }
+      .dashboard-grid { grid-template-columns: 1fr; }
+      .stat-card { padding: 14px; gap: 12px; }
+      .stat-icon { width: 44px; height: 44px; font-size: 17px; }
+      .stat-info h3 { font-size: 22px; }
+      .page { padding: 14px; }
+      .topbar { padding: 12px 16px; }
+      .topbar-date { display: none; }
+      .users-grid { grid-template-columns: 1fr; }
+      .modal { border-radius: 16px; }
+    }
+  
+    /* ─── LEADS PAGE SPECIFIC ─── */
+    .saving-indicator { display: none !important; }
+    .page-loader { position: fixed; inset: 0; background: var(--darker); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px; z-index: 9999; }
+    .page { padding: 20px 24px 20px 24px; max-width: 100%; margin: 0; width: 100%; }
+    .top-actions { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+    .top-actions h2 { font-size: 22px; font-weight: 700; color: var(--text); }
+    .top-actions h2 span { font-size: 14px; color: var(--subtext); font-weight: 400; margin-left: 8px; }
+    .lead-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 14px; margin-bottom: 24px; }
+    .lead-stat { background: linear-gradient(145deg, var(--card2), var(--card)); border-radius: var(--radius); padding: 18px; text-align: center; border: 1px solid var(--border); box-shadow: var(--shadow); transition: 0.3s; }
+    .lead-stat:hover { transform: translateY(-2px); border-color: rgba(200,169,110,0.2); }
+    .lead-stat h3 { font-size: 28px; font-weight: 700; }
+    .lead-stat p { font-size: 12px; color: var(--subtext); margin-top: 4px; }
+    .lead-stat.gold h3 { color: var(--primary); }
+    .lead-stat.blue h3 { color: var(--info); }
+    .lead-stat.green h3 { color: var(--success); }
+    .lead-stat.orange h3 { color: var(--warning); }
+    .lead-stat.red h3 { color: var(--danger); }
+    .filter-bar { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+    .filter-bar input { flex: 1; min-width: 200px; padding: 10px 16px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 14px; outline: none; transition: 0.3s; }
+    .filter-bar input:focus { border-color: var(--primary); }
+    .filter-bar select { padding: 10px 14px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 13px; outline: none; cursor: pointer; }
+    .filter-bar select option { background: var(--dark); }
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--subtext); font-size: 15px; }
+    .mobile-cards { display: none; }
+    .lead-card { background: linear-gradient(145deg, var(--card2), var(--card)); border-radius: var(--radius); padding: 18px; border: 1px solid var(--border); margin-bottom: 12px; box-shadow: var(--shadow); transition: 0.3s; }
+    .lead-card:hover { border-color: rgba(200,169,110,0.2); }
+    .lead-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .lead-card-name { font-size: 15px; font-weight: 600; }
+    .lead-card-body { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+    .lead-card-info { font-size: 12px; color: var(--subtext); }
+    .lead-card-info span { display: block; color: var(--text); font-size: 13px; margin-top: 2px; }
+    .lead-card-footer { display: flex; gap: 8px; flex-wrap: wrap; }
+    .view-detail { padding: 20px 0; }
+    .detail-item { margin-bottom: 14px; font-size: 14px; }
+    .detail-item label { font-size: 11px; color: var(--subtext); text-transform: uppercase; letter-spacing: 0.7px; display: block; margin-bottom: 4px; }
+    @media (max-width: 768px) {
+      .page { padding: 14px; }
+      .lead-stats { grid-template-columns: repeat(3, 1fr); }
+      .mobile-cards { display: block; }
+      table { display: none; }
+      .top-actions { flex-direction: column; align-items: flex-start; }
+    }
+
+  
+    /* ─── ENHANCED MODAL FORM ─── */
+    .modal-overlay { backdrop-filter: blur(6px); }
+    .modal { border-radius: 20px; }
+    .modal-header { background: linear-gradient(135deg, var(--card2), var(--card)); border-radius: 20px 20px 0 0; padding: 20px 24px; }
+    .modal-header h3 { font-size: 17px; color: var(--primary); display: flex; align-items: center; gap: 8px; }
+    .mform-group label, .form-group label { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--subtext); margin-bottom: 8px; display: block; }
+    .mform-group input, .mform-group select, .mform-group textarea,
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%; padding: 12px 16px;
+      background: rgba(255,255,255,0.04);
+      border: 1.5px solid rgba(255,255,255,0.08);
+      border-radius: 12px; color: var(--text);
+      font-size: 14px; outline: none; transition: all 0.25s;
+    }
+    .mform-group input:focus, .mform-group select:focus, .mform-group textarea:focus,
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      border-color: var(--primary);
+      background: rgba(200,169,110,0.06);
+      box-shadow: 0 0 0 3px rgba(200,169,110,0.12);
+    }
+    .mform-group select option, .form-group select option { background: var(--dark); }
+    .mform-group textarea, .form-group textarea { resize: vertical; min-height: 80px; }
+    .form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .modal-footer { padding: 16px 24px; gap: 10px; }
+    .btn-primary { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; padding: 12px 24px; border-radius: 12px; font-size: 14px; font-weight: 600; box-shadow: 0 4px 15px rgba(200,169,110,0.3); }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(200,169,110,0.4); }
+    .btn-danger { padding: 12px 24px; border-radius: 12px; font-size: 14px; }
+
+  </style>
+</head>
+<body>
+
+<div class="saving-indicator" id="savingIndicator">⏳ Saving to Firebase...</div>
+<div class="toast" id="toast"></div>
+
+<div class="page-loader" id="pageLoader">
+  <div class="spinner"></div>
+  <p>Loading leads from Firebase...</p>
+</div>
+
+<div class="page" id="mainPage" style="display:none">
+
+  <div class="top-actions">
+    <h2>👥 Leads Management <span id="leadsCount">0 leads</span></h2>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="btn btn-success" onclick="exportLeads()">
+        <i class="fas fa-file-csv"></i> Export CSV
+      </button>
+      <button class="btn btn-primary" onclick="openAddModal()">
+        <i class="fas fa-plus"></i> Add Lead
+      </button>
+    </div>
+  </div>
+
+  <div class="lead-stats">
+    <div class="lead-stat gold"><h3 id="ls-total">0</h3><p>Total Leads</p></div>
+    <div class="lead-stat blue"><h3 id="ls-new">0</h3><p>New</p></div>
+    <div class="lead-stat blue"><h3 id="ls-visit">0</h3><p>Site Visit</p></div>
+    <div class="lead-stat orange"><h3 id="ls-proposal">0</h3><p>Proposal</p></div>
+    <div class="lead-stat green"><h3 id="ls-won">0</h3><p>Won</p></div>
+    <div class="lead-stat red"><h3 id="ls-lost">0</h3><p>Lost</p></div>
+  </div>
+
+  <div class="filter-bar">
+    <input type="text" id="searchInput"
+           placeholder="🔍 Search by name, phone, location..."
+           oninput="filterLeads()"/>
+    <select id="statusFilter" onchange="filterLeads()">
+      <option value="">All Statuses</option>
+      <option value="New">New</option>
+      <option value="Site Visit">Site Visit</option>
+      <option value="Proposal Sent">Proposal Sent</option>
+      <option value="Follow-up">Follow-up</option>
+      <option value="Won">Won</option>
+      <option value="Lost">Lost</option>
+    </select>
+    <select id="typeFilter" onchange="filterLeads()">
+      <option value="">All Project Types</option>
+      <option value="Commercial">Commercial</option>
+      <option value="Residential">Residential</option>
+    </select>
+    <select id="sortFilter" onchange="filterLeads()">
+      <option value="newest">Newest First</option>
+      <option value="oldest">Oldest First</option>
+      <option value="name">Name A-Z</option>
+    </select>
+  </div>
+
+  <!-- DESKTOP TABLE -->
+  <div class="table-card">
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th>Name</th><th>Phone</th>
+            <th>Project Type</th><th>Location</th>
+            <th>Budget</th><th>Status</th>
+            <th>Assigned To</th><th>Date</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="leadsTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- MOBILE CARDS -->
+  <div class="mobile-cards" id="mobileCards"></div>
+
+</div>
+
+<!-- ADD/EDIT MODAL -->
+<div class="modal-overlay" id="leadModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">➕ Add New Lead</h3>
+      <button class="modal-close" onclick="closeModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+
+        <div class="form-group">
+          <label>Full Name <span>*</span></label>
+          <input type="text" id="leadName" placeholder="e.g. Rajesh Kumar"/>
+        </div>
+
+        <div class="form-group">
+          <label>Phone Number <span>*</span></label>
+          <input type="tel" id="leadPhone"
+                 placeholder="e.g. 9876543210"
+                 maxlength="10"
+                 oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)"/>
+        </div>
+
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" id="leadEmail"
+                 placeholder="e.g. rajesh@company.com"/>
+        </div>
+
+        <div class="form-group">
+          <label>Company Name</label>
+          <input type="text" id="leadCompany"
+                 placeholder="e.g. ABC Pvt Ltd"/>
+        </div>
+
+        <div class="form-group">
+          <label>Project Type</label>
+          <select id="leadType">
+            <option value="">Select Type</option>
+            <option value="Commercial">Commercial</option>
+            <option value="Residential">Residential</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Location</label>
+          <input type="text" id="leadLocation"
+                 placeholder="e.g. Gachibowli, Hyderabad"/>
+        </div>
+
+        <div class="form-group">
+          <label>Budget (₹)</label>
+          <input type="number" id="leadBudget"
+                 placeholder="e.g. 500000"/>
+        </div>
+
+        <div class="form-group">
+          <label>Lead Source</label>
+          <select id="leadSource">
+            <option value="">Select Source</option>
+            <option value="Website">Website</option>
+            <option value="Referral">Referral</option>
+            <option value="Social Media">Social Media</option>
+            <option value="Cold Call">Cold Call</option>
+            <option value="Google Ads">Google Ads</option>
+            <option value="Walk-in">Walk-in</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Status</label>
+          <select id="leadStatus">
+            <option value="New">New</option>
+            <option value="Site Visit">Site Visit</option>
+            <option value="Proposal Sent">Proposal Sent</option>
+            <option value="Follow-up">Follow-up</option>
+            <option value="Won">Won</option>
+            <option value="Lost">Lost</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Follow-up Date</label>
+          <input type="date" id="leadFollowup"/>
+        </div>
+        <div class="mform-group">
+          <label>Follow-up Notes</label>
+          <input type="text" id="leadFollowupNote" placeholder="e.g. Call about proposal..."/>
+        </div>
+
+        <div class="form-group">
+          <label>Assigned To</label>
+          <select id="leadAssigned">
+            <option value="">Select User</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Area (sq ft)</label>
+          <input type="number" id="leadArea"
+                 placeholder="e.g. 2000"/>
+        </div>
+
+        <div class="form-group full">
+          <label>Notes / Requirements</label>
+          <textarea id="leadNotes"
+            placeholder="Enter lead requirements..."></textarea>
+        </div>
+
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" onclick="closeModal()">
+        <i class="fas fa-times"></i> Cancel
+      </button>
+      <button class="btn btn-primary" onclick="saveLead()">
+        <i class="fas fa-save"></i> Save Lead
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- VIEW MODAL -->
+<div class="modal-overlay" id="viewModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>👤 Lead Details</h3>
+      <button class="modal-close" onclick="closeViewModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="view-detail" id="viewDetails"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-info" id="viewEditBtn">
+        <i class="fas fa-edit"></i> Edit
+      </button>
+      <button class="btn btn-primary" onclick="closeViewModal()">
+        <i class="fas fa-check"></i> Close
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE MODAL -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header">
+      <h3 style="color:var(--danger)">🗑️ Delete Lead</h3>
+      <button class="modal-close" onclick="closeDeleteModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body" style="text-align:center; padding:30px 25px">
+      <i class="fas fa-exclamation-triangle"
+         style="font-size:50px; color:var(--danger);
+                margin-bottom:15px; display:block"></i>
+      <h3 style="margin-bottom:10px">Are you sure?</h3>
+      <p style="color:var(--subtext); font-size:14px">
+        Permanently delete this lead from Firebase!
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-info" onclick="closeDeleteModal()">
+        <i class="fas fa-times"></i> Cancel
+      </button>
+      <button class="btn btn-danger" onclick="confirmDelete()">
+        <i class="fas fa-trash"></i> Delete
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ─── FIREBASE ───
+  const firebaseConfig = {
+    apiKey: "AIzaSyBLQhUZA-VN4_A9FhQWmlRSQZC2D95KoE8",
+    authDomain: "turnkeycrm-ce7b8.firebaseapp.com",
+    projectId: "turnkeycrm-ce7b8",
+    storageBucket: "turnkeycrm-ce7b8.firebasestorage.app",
+    messagingSenderId: "487224108102",
+    appId: "1:487224108102:web:dbe9d4ea6abdb2db581647"
+  };
+
+  if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
+  const db = firebase.firestore();
+  const leadsRef = db.collection('leads');
+
+  // ─── STATE ───
+  let leads = [];
+  let filteredLeads = [];
+  let editingId = null;
+  let deletingId = null;
+
+  // ─── HELPERS ───
+  function getBadgeClass(status) {
+    const map = {
+      'New':'badge-new','Site Visit':'badge-visit',
+      'Proposal Sent':'badge-proposal','Won':'badge-won',
+      'Lost':'badge-lost','Follow-up':'badge-followup'
+    };
+    return map[status] || 'badge-new';
+  }
+
+  function formatDate(d) {
+    if (!d) return '-';
+    return new Date(d).toLocaleDateString('en-IN', {
+      day:'2-digit', month:'short', year:'numeric'
+    });
+  }
+
+  function formatBudget(b) {
+    if (!b) return '-';
+    return '₹' + parseInt(b).toLocaleString('en-IN');
+  }
+
+  // ─── LOAD USERS FOR ASSIGNED TO ───
+  async function loadUsersForAssign(selectedValue = '') {
+    try {
+      const snapshot = await db.collection('users').get();
+      const select = document.getElementById('leadAssigned');
+      select.innerHTML = '<option value="">Select User</option>';
+      snapshot.forEach(doc => {
+        const user = doc.data();
+        const option = document.createElement('option');
+        option.value = user.name || user.email;
+        option.textContent = (user.name || user.email);
+        if (option.value === selectedValue) option.selected = true;
+        select.appendChild(option);
+      });
+    } catch (error) {
+      console.error('Error loading users:', error);
+    }
+  }
+
+  // ─── LOAD LEADS ───
+  async function loadLeads() {
+    try {
+      const snapshot = await leadsRef.get();;
+      leads = [];
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        if (data.phone && data.phone.startsWith('+91')) {
+          data.phone = data.phone.replace('+91', '').trim();
+        }
+        const nowISO = new Date().toISOString();
+        const todayDate = nowISO.split('T')[0];
+        if (!data.createdAt) data.createdAt = nowISO;
+        if (!data.updatedAt) data.updatedAt = nowISO;
+        if (!data.date) data.date = todayDate;
+        if (!data.status || !data.status.trim()) data.status = 'New';
+        if (!data.assignedTo || !data.assignedTo.trim()) data.assignedTo = '';
+        if (!data.name) data.name = '(Unnamed Lead)';
+        if (!data.phone) data.phone = '';
+        if (!data.email) data.email = '';
+        if (!data.company) data.company = '';
+        if (!data.projectType) data.projectType = '';
+        if (!data.location) data.location = '';
+        if (!data.budget) data.budget = '';
+        if (!data.source) data.source = '';
+        if (!data.followupDate) data.followupDate = '';
+        if (!data.followupNote) data.followupNote = '';
+        if (!data.area) data.area = '';
+        if (!data.notes) data.notes = '';
+        leads.push({ id: doc.id, ...data });
+      });
+      filteredLeads = [...leads];
+      filterLeads();
+      document.getElementById('pageLoader').style.display = 'none';
+      document.getElementById('mainPage').style.display = 'block';
+    } catch (error) {
+      console.error('Error:', error);
+      document.getElementById('pageLoader').innerHTML = `
+        <div style="text-align:center; color:var(--danger)">
+          <i class="fas fa-exclamation-triangle"
+             style="font-size:40px; margin-bottom:15px; display:block"></i>
+          <h3>Error Loading Data</h3>
+          <p style="color:var(--subtext); margin-top:8px">
+            Check internet & refresh
+          </p>
+          <button onclick="loadLeads()"
+            style="margin-top:15px; padding:10px 20px;
+            background:var(--primary); border:none;
+            border-radius:8px; color:white; cursor:pointer">
+            Retry
+          </button>
+        </div>`;
+    }
+  }
+
+  // ─── RENDER ───
+  function renderLeads() {
+    updateStats();
+    renderTable();
+    renderMobileCards();
+    document.getElementById('leadsCount').textContent =
+      filteredLeads.length + ' lead' +
+      (filteredLeads.length !== 1 ? 's' : '');
+  }
+
+  function renderTable() {
+    const tbody = document.getElementById('leadsTableBody');
+    if (filteredLeads.length === 0) {
+      tbody.innerHTML = `
+        <tr><td colspan="10">
+          <div class="empty-state">
+            <i class="fas fa-user-plus"></i>
+            <h3>No Leads Found</h3>
+            <p>Add your first lead!</p>
+          </div>
+        </td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = filteredLeads.map((lead, index) => `
+      <tr>
+        <td style="color:var(--subtext)">${index + 1}</td>
+        <td>
+          <strong>${lead.name}</strong>
+          ${lead.company ?
+            `<br><small style="color:var(--subtext)">${lead.company}</small>`
+            : ''}
+        </td>
+        <td>
+          <a href="tel:${lead.phone}"
+             style="color:var(--primary); text-decoration:none">
+            ${lead.phone}
+          </a>
+        </td>
+        <td>${lead.projectType || '-'}</td>
+        <td style="color:var(--subtext)">${lead.location || '-'}</td>
+        <td style="color:var(--success)">${formatBudget(lead.budget)}</td>
+        <td>
+          <span class="badge ${getBadgeClass(lead.status)}">
+            ${lead.status}
+          </span>
+        </td>
+        <td style="color:var(--subtext)">${lead.assignedTo || '-'}</td>
+        <td style="color:var(--subtext)">${formatDate(lead.date)}</td>
+        <td>
+          <div class="action-btns">
+            ${lead.phone ? `
+            <a href="https://wa.me/91${lead.phone}"
+               target="_blank"
+               class="icon-btn whatsapp"
+               title="WhatsApp">
+              <i class="fab fa-whatsapp"></i>
+            </a>` : ''}
+            <button class="icon-btn view" onclick="viewLead('${lead.id}')"
+                    title="View">
+              <i class="fas fa-eye"></i>
+            </button>
+            <button class="icon-btn edit"
+                    onclick="editLead('${lead.id}')"
+                    title="Edit">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button class="icon-btn delete"
+                    onclick="deleteLead('${lead.id}')"
+                    title="Delete">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function renderMobileCards() {
+    const container = document.getElementById('mobileCards');
+    if (filteredLeads.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <i class="fas fa-user-plus"></i>
+          <h3>No Leads Found</h3>
+          <p>Add your first lead!</p>
+        </div>`;
+      return;
+    }
+
+    container.innerHTML = filteredLeads.map(lead => `
+      <div class="lead-card">
+        <div class="lead-card-header">
+          <div>
+            <div class="lead-card-name">${lead.name}</div>
+            ${lead.company ?
+              `<div style="font-size:12px; color:var(--subtext)">
+                ${lead.company}
+              </div>` : ''}
+          </div>
+          <span class="badge ${getBadgeClass(lead.status)}">
+            ${lead.status}
+          </span>
+        </div>
+        <div class="lead-card-body">
+          <div class="lead-card-info">Phone
+            <span>
+              <a href="tel:${lead.phone}"
+                 style="color:var(--primary); text-decoration:none">
+                ${lead.phone}
+              </a>
+            </span>
+          </div>
+          <div class="lead-card-info">Type
+            <span>${lead.projectType || '-'}</span>
+          </div>
+          <div class="lead-card-info">Location
+            <span>${lead.location || '-'}</span>
+          </div>
+          <div class="lead-card-info">Budget
+            <span style="color:var(--success)">
+              ${formatBudget(lead.budget)}
+            </span>
+          </div>
+          <div class="lead-card-info">Assigned To
+            <span>${lead.assignedTo || '-'}</span>
+          </div>
+          <div class="lead-card-info">Date
+            <span>${formatDate(lead.date)}</span>
+          </div>
+        </div>
+        <div class="lead-card-footer">
+          ${lead.phone ? `
+          <a href="https://wa.me/91${lead.phone}"
+             target="_blank"
+             class="icon-btn whatsapp"
+             title="WhatsApp">
+            <i class="fab fa-whatsapp"></i>
+          </a>` : ''}
+          <button class="icon-btn view"
+                  class="btn-icon view" onclick="viewLead('${lead.id}')">
+            <i class="fas fa-eye"></i>
+          </button>
+          <button class="icon-btn edit"
+                  onclick="editLead('${lead.id}')">
+            <i class="fas fa-edit"></i>
+          </button>
+          <button class="icon-btn delete"
+                  onclick="deleteLead('${lead.id}')">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function updateStats() {
+    document.getElementById('ls-total').textContent = leads.length;
+    document.getElementById('ls-new').textContent =
+      leads.filter(l => l.status === 'New').length;
+    document.getElementById('ls-visit').textContent =
+      leads.filter(l => l.status === 'Site Visit').length;
+    document.getElementById('ls-proposal').textContent =
+      leads.filter(l => l.status === 'Proposal Sent').length;
+    document.getElementById('ls-won').textContent =
+      leads.filter(l => l.status === 'Won').length;
+    document.getElementById('ls-lost').textContent =
+      leads.filter(l => l.status === 'Lost').length;
+  }
+
+  function filterLeads() {
+    const search = document.getElementById('searchInput').value.toLowerCase();
+    const status = document.getElementById('statusFilter').value;
+    const type   = document.getElementById('typeFilter').value;
+    const sort   = document.getElementById('sortFilter').value;
+
+    filteredLeads = leads.filter(lead => {
+      const matchSearch =
+        lead.name.toLowerCase().includes(search) ||
+        (lead.phone && lead.phone.includes(search)) ||
+        (lead.location && lead.location.toLowerCase().includes(search)) ||
+        (lead.company && lead.company.toLowerCase().includes(search));
+      const matchStatus = !status || lead.status === status;
+      const matchType   = !type   || lead.projectType === type;
+      return matchSearch && matchStatus && matchType;
+    });
+
+    if (sort === 'newest') {
+      filteredLeads.sort((a,b) =>
+        new Date(b.createdAt||0) - new Date(a.createdAt||0));
+    } else if (sort === 'oldest') {
+      filteredLeads.sort((a,b) =>
+        new Date(a.createdAt||0) - new Date(b.createdAt||0));
+    } else if (sort === 'name') {
+      filteredLeads.sort((a,b) => a.name.localeCompare(b.name));
+    }
+
+    renderLeads();
+  }
+
+  // ─── MODAL ───
+  function openAddModal() {
+    editingId = null;
+    document.getElementById('modalTitle').textContent = '➕ Add New Lead';
+    clearForm();
+    loadUsersForAssign();
+    document.getElementById('leadModal').classList.add('show');
+  }
+
+  function clearForm() {
+    ['leadName','leadPhone','leadEmail','leadCompany',
+     'leadLocation','leadBudget','leadArea','leadNotes']
+    .forEach(id => document.getElementById(id).value = '');
+    document.getElementById('leadType').value     = '';
+    document.getElementById('leadSource').value   = '';
+    document.getElementById('leadStatus').value   = 'New';
+    document.getElementById('leadFollowup').value = '';
+    document.getElementById('leadFollowupNote').value = '';
+  }
+
+  function closeModal() {
+    document.getElementById('leadModal').classList.remove('show');
+    editingId = null;
+  }
+
+  // ─── SAVE LEAD ───
+  async function saveLead() {
+    const name  = document.getElementById('leadName').value.trim();
+    const phone = document.getElementById('leadPhone').value.trim();
+
+    if (!name)  { showToast('❌ Enter name!', 'danger'); return; }
+    if (!phone) { showToast('❌ Enter phone!', 'danger'); return; }
+    if (phone.length !== 10 || !/^[0-9]{10}$/.test(phone)) {
+      showToast('❌ Phone must be 10 digits!', 'danger');
+      return;
+    }
+
+    const leadData = {
+      name, phone,
+      email:       document.getElementById('leadEmail').value.trim(),
+      company:     document.getElementById('leadCompany').value.trim(),
+      projectType: document.getElementById('leadType').value,
+      location:    document.getElementById('leadLocation').value.trim(),
+      budget:      document.getElementById('leadBudget').value,
+      source:      document.getElementById('leadSource').value,
+      status:      document.getElementById('leadStatus').value,
+      followupDate:document.getElementById('leadFollowup').value,
+      followupNote:document.getElementById('leadFollowupNote').value,
+      assignedTo:  document.getElementById('leadAssigned').value,
+      area:        document.getElementById('leadArea').value,
+      notes:       document.getElementById('leadNotes').value.trim(),
+      updatedAt:   new Date().toISOString()
+    };
+
+    showSaving(true);
+    try {
+      if (editingId) {
+        await leadsRef.doc(editingId).update(leadData);
+        if (leadData.assignedTo) await TIC_NOTIF.send(db, leadData.assignedTo, '👤 Lead updated: ' + (leadData.name || 'Lead'), 'lead', 'leads.html');
+        showToast('✅ Lead updated!', 'success');
+      } else {
+        leadData.date      = new Date().toISOString().split('T')[0];
+        leadData.createdAt = new Date().toISOString();
+        await leadsRef.add(leadData);
+        if (leadData.assignedTo) await TIC_NOTIF.send(db, leadData.assignedTo, '👤 New lead assigned: ' + (leadData.name || 'Lead'), 'lead', 'leads.html');
+        showToast('✅ Lead saved to Firebase!', 'success');
+      }
+      closeModal();
+      await loadLeads();
+    } catch (error) {
+      console.error(error);
+      showToast('❌ Error! Check connection.', 'danger');
+    }
+    showSaving(false);
+  }
+
+  // ─── EDIT LEAD ───
+  function editLead(id) {
+    const lead = leads.find(l => l.id === id);
+    if (!lead) return;
+    editingId = id;
+    document.getElementById('modalTitle').textContent = '✏️ Edit Lead';
+    document.getElementById('leadName').value        = lead.name || '';
+    document.getElementById('leadPhone').value       = lead.phone || '';
+    document.getElementById('leadEmail').value       = lead.email || '';
+    document.getElementById('leadCompany').value     = lead.company || '';
+    document.getElementById('leadType').value        = lead.projectType || '';
+    document.getElementById('leadLocation').value    = lead.location || '';
+    document.getElementById('leadBudget').value      = lead.budget || '';
+    document.getElementById('leadSource').value      = lead.source || '';
+    document.getElementById('leadStatus').value      = lead.status || 'New';
+    document.getElementById('leadFollowup').value    = lead.followupDate || '';
+    document.getElementById('leadFollowupNote').value = lead.followupNote || '';
+    document.getElementById('leadArea').value        = lead.area || '';
+    document.getElementById('leadNotes').value       = lead.notes || '';
+    loadUsersForAssign(lead.assignedTo || '');
+    closeViewModal();
+    document.getElementById('leadModal').classList.add('show');
+  }
+
+  // ─── VIEW LEAD ───
+  function viewLead(id) {
+    const lead = leads.find(l => l.id === id);
+    if (!lead) return;
+
+    document.getElementById('viewDetails').innerHTML = `
+      <div class="detail-item">
+        <div class="detail-label">Name</div>
+        <div class="detail-value">${lead.name}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">Phone & WhatsApp</div>
+        <div class="detail-value"
+             style="display:flex; gap:10px; align-items:center; flex-wrap:wrap">
+          <a href="tel:${lead.phone}"
+             style="color:var(--primary); text-decoration:none">
+            📞 ${lead.phone}
+          </a>
+          ${lead.phone ? `
+          <a href="https://wa.me/91${lead.phone}"
+             target="_blank"
+             style="background:rgba(37,211,102,0.15);
+                    color:#25d366; text-decoration:none;
+                    padding:5px 12px; border-radius:8px;
+                    font-size:13px; display:flex;
+                    align-items:center; gap:5px">
+            <i class="fab fa-whatsapp"></i> WhatsApp
+          </a>` : ''}
+        </div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">Email</div>
+        <div class="detail-value">
+          ${lead.email ?
+            `<a href="mailto:${lead.email}"
+               style="color:var(--primary); text-decoration:none">
+               ${lead.email}
+             </a>` : '-'}
+        </div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">Company</div>
+        <div class="detail-value">${lead.company || '-'}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">Project Type</div>
+        <div class="detail-value">${lead.projectType || '-'}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">Location</div>
+        <div class="detail-value">${lead.location || '-'}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">Budget</div>
+        <div class="detail-value" style="color:var(--success)">
+          ${formatBudget(lead.budget)}
+        </div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">Area</div>
+        <div class="detail-value">
+          ${lead.area ? lead.area + ' sq ft' : '-'}
+        </div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">Status</div>
+        <div class="detail-value">
+          <span class="badge ${getBadgeClass(lead.status)}">
+            ${lead.status}
+          </span>
+        </div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">Source</div>
+        <div class="detail-value">${lead.source || '-'}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">Assigned To</div>
+        <div class="detail-value">${lead.assignedTo || '-'}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">Follow-up Date</div>
+        <div class="detail-value">${formatDate(lead.followupDate)}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">Date Added</div>
+        <div class="detail-value">${formatDate(lead.date)}</div>
+      </div>
+      ${lead.notes ? `
+      <div class="detail-item full">
+        <div class="detail-label">Notes</div>
+        <div class="detail-value" style="font-size:14px; line-height:1.6">
+          ${lead.notes}
+        </div>
+      </div>` : ''}
+    `;
+
+    document.getElementById('viewEditBtn').onclick = () => editLead(id);
+    document.getElementById('viewModal').classList.add('show');
+  }
+
+  function closeViewModal() {
+    document.getElementById('viewModal').classList.remove('show');
+  }
+
+  // ─── DELETE ───
+  function deleteLead(id) {
+    deletingId = id;
+    document.getElementById('deleteModal').classList.add('show');
+  }
+
+  function closeDeleteModal() {
+    document.getElementById('deleteModal').classList.remove('show');
+    deletingId = null;
+  }
+
+  async function confirmDelete() {
+    if (!deletingId) return;
+    showSaving(true);
+    try {
+      await leadsRef.doc(deletingId).delete();
+      closeDeleteModal();
+      await loadLeads();
+      showToast('🗑️ Lead deleted!', 'danger');
+    } catch (error) {
+      showToast('❌ Error deleting!', 'danger');
+    }
+    showSaving(false);
+  }
+
+  // ─── EXPORT ───
+  function exportLeads() {
+    if (leads.length === 0) {
+      showToast('❌ No leads!', 'danger');
+      return;
+    }
+    const headers = [
+      'Name','Phone','Email','Company',
+      'Project Type','Location','Budget',
+      'Status','Source','Assigned To','Date'
+    ];
+    const rows = leads.map(l => [
+      l.name, l.phone, l.email, l.company,
+      l.projectType, l.location, l.budget,
+      l.status, l.source, l.assignedTo, l.date
+    ]);
+    const csv = [headers,...rows]
+      .map(r => r.map(c =>
+        '"'+(c||'').toString().replace(/"/g,'""')+'"'
+      ).join(','))
+      .join('\n');
+    const blob = new Blob([csv], {type:'text/csv'});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = 'Leads_'+new Date().toISOString().split('T')[0]+'.csv';
+    a.click();
+    showToast('✅ Exported!', 'success');
+  }
+
+  // ─── HELPERS ───
+  function showSaving(show) {
+    document.getElementById('savingIndicator').style.display =
+      show ? 'block' : 'none';
+  }
+
+  function showToast(message, type = 'success') {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.style.display = 'block';
+    toast.style.background =
+      type === 'danger'  ? 'var(--danger)'  :
+      type === 'warning' ? 'var(--warning)' :
+      'var(--success)';
+    setTimeout(() => { toast.style.display = 'none'; }, 3000);
+  }
+
+  document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', function(e) {
+      if (e.target === this) {
+        this.classList.remove('show');
+        editingId = null;
+        deletingId = null;
+      }
+    });
+  });
+
+  // ─── INIT ───
+  loadLeads();
+  loadUsersForAssign();
+</script>
+<script src="js/notifications.js"></script>
+
+
+<script>
+// ─── ZAPIER LEAD NOTIFICATION LISTENER ───
+// Listens for new Google Ads leads and notifies Mustaq & Admin
+let zapierListenerReady = false;
+setTimeout(() => { zapierListenerReady = true; console.log('🔔 Zapier listener now armed'); }, 3000);
+
+db.collection('leads').onSnapshot(snapshot => {
+    console.log('📡 Firestore snapshot received, changes:', snapshot.docChanges().length);
+    snapshot.docChanges().forEach(change => {
+        if (change.type === "added") {
+            const lead = change.doc.data();
+            console.log('➕ Added lead:', lead.name, '| source:', lead.source, '| armed:', zapierListenerReady);
+            
+            // Only fire for new leads after listener arms (skip initial load)
+            if (!zapierListenerReady) return;
+            
+            if (lead.source === 'Google Ads') {
+                console.log('✅ New Google Ads lead detected! Sending notifications...');
+                TIC_NOTIF.send(db, 'Mustaq', '👤 New Google Ads Lead: ' + (lead.name || 'Unknown'), 'lead', 'leads.html');
+                TIC_NOTIF.send(db, 'admin@sbinteriorsolutions.net', '👤 New Google Ads Lead: ' + (lead.name || 'Unknown'), 'lead', 'leads.html');
+            }
+        }
+    });
+});
+</script>
+
+</body>
+</html>
