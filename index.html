@@ -58,6 +58,11 @@
       --radius: 14px; --shadow: 0 4px 24px rgba(0,0,0,0.35);
     }
     body { background: var(--darker); color: var(--text); min-height: 100vh; }
+    @keyframes bellPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.2); } }
+    .bell-pulse { animation: bellPulse 1s ease-in-out infinite; }
+    @keyframes toastProgress { from { width: 100%; } to { width: 0%; } }
+    .notif-toast:hover { transform: translateY(-3px) !important; box-shadow: 0 15px 50px rgba(0,0,0,0.7), 0 0 30px rgba(200,169,110,0.3) !important; }
+    #muteNotifBtn:hover { background: rgba(255,255,255,0.1) !important; color: var(--primary) !important; }
     .loading-overlay { position: fixed; inset: 0; background: var(--darker); display: flex; align-items: center; justify-content: center; z-index: 9999; flex-direction: column; gap: 15px; }
     .loading-overlay.hide { display: none; }
     .spinner { width: 42px; height: 42px; border: 3px solid rgba(200,169,110,0.15); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
@@ -524,6 +529,9 @@
         <i class="fas fa-bell" style="font-size:17px; color:var(--subtext)" id="bellIcon"></i>
         <span id="notifCount" style="display:none; position:absolute; top:-4px; right:-4px; background:var(--danger); color:white; border-radius:50%; min-width:18px; height:18px; font-size:11px; align-items:center; justify-content:center; font-weight:700; padding:0 4px"></span>
       </div>
+      <button id="muteNotifBtn" onclick="toggleNotifMute()" title="Mute notifications" style="background:rgba(255,255,255,0.05); border:1px solid var(--border); color:var(--subtext); padding:6px 10px; border-radius:8px; cursor:pointer; font-size:13px">
+        <i class="fas fa-volume-up"></i>
+      </button>
       <button id="enableNotifBtn" onclick="enablePushNotifications()" 
         style="display:none; background:rgba(200,169,110,0.15); border:1px solid rgba(200,169,110,0.3); color:var(--primary); padding:6px 12px; border-radius:8px; cursor:pointer; font-size:12px; gap:5px; align-items:center">
         <i class="fas fa-bell"></i> Enable Alerts
@@ -1117,54 +1125,183 @@ if (role === "supervisor") {
   }
 
   // ─── NOTIFICATIONS LISTENER ───
-  async function listenNotifications(userEmail) {
+  // ═══ NOTIFICATION HELPERS ═══════════════════════════════════════════
+// WhatsApp-like beep sound using Web Audio API (no external CDN)
+function createNotificationSound() {
+  let audioCtx = null;
+  return function playBeep() {
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+
+      // Two-tone WhatsApp-like beep
+      const playTone = (freq, startTime, duration) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0, audioCtx.currentTime + startTime);
+        gain.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + startTime + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + startTime + duration);
+        osc.start(audioCtx.currentTime + startTime);
+        osc.stop(audioCtx.currentTime + startTime + duration);
+      };
+
+      playTone(800, 0, 0.15);
+      playTone(1000, 0.18, 0.15);
+
+      // Vibrate on mobile
+      if ('vibrate' in navigator) navigator.vibrate([200, 100, 200]);
+    } catch(e) { console.warn('Sound playback error:', e); }
+  };
+}
+
+// In-page Toast Banner (bottom of screen, mobile-friendly)
+function showNotifToast(title, body, link) {
+  let container = document.getElementById('notifToastContainer');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'notifToastContainer';
+    container.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:99999;max-width:90vw;width:380px;display:flex;flex-direction:column;gap:10px;pointer-events:none';
+    document.body.appendChild(container);
+  }
+
+  const toast = document.createElement('div');
+  toast.className = 'notif-toast';
+  toast.style.cssText = 'background:linear-gradient(135deg,#1a2550,#16213e);border:1px solid rgba(200,169,110,0.4);border-left:4px solid var(--primary);border-radius:12px;padding:14px 16px;box-shadow:0 10px 40px rgba(0,0,0,0.5),0 0 20px rgba(200,169,110,0.2);color:var(--text);cursor:pointer;pointer-events:auto;transform:translateY(120%);opacity:0;transition:all 0.4s cubic-bezier(0.34,1.56,0.64,1);position:relative;overflow:hidden';
+
+  toast.innerHTML = '<div style="display:flex;align-items:flex-start;gap:12px"><div style="flex-shrink:0;width:36px;height:36px;border-radius:50%;background:var(--primary-glow);display:flex;align-items:center;justify-content:center;color:var(--primary)"><i class="fas fa-bell" style="font-size:14px"></i></div><div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13px;color:var(--primary);margin-bottom:3px">'+ (title||'TurnkeyCRM') +'</div><div style="font-size:12px;color:var(--text);line-height:1.4;word-wrap:break-word">'+ (body||'') +'</div></div><button onclick="event.stopPropagation();this.parentElement.parentElement.remove()" style="background:none;border:none;color:var(--subtext);cursor:pointer;font-size:18px;padding:0;line-height:1;flex-shrink:0">×</button></div><div style="position:absolute;bottom:0;left:0;right:0;height:3px;background:var(--primary);animation:toastProgress 8s linear forwards"></div>';
+
+  toast.onclick = function() {
+    if (link) {
+      try {
+        if (link.includes('.html')) {
+          const pageName = link.replace('.html','').replace('-admin','admin');
+          if (typeof showPage === 'function') showPage(pageName);
+          else window.location.href = link;
+        } else {
+          window.location.href = link;
+        }
+      } catch(e) { window.location.href = link; }
+    }
+    toast.remove();
+  };
+
+  container.appendChild(toast);
+
+  // Animate in
+  setTimeout(() => {
+    toast.style.transform = 'translateY(0)';
+    toast.style.opacity = '1';
+  }, 10);
+
+  // Auto-dismiss after 8 seconds
+  setTimeout(() => {
+    toast.style.transform = 'translateY(120%)';
+    toast.style.opacity = '0';
+    setTimeout(() => toast.remove(), 400);
+  }, 8000);
+}
+
+// Toggle mute (saved in localStorage)
+function toggleNotifMute() {
+  window._notifMuted = !window._notifMuted;
+  localStorage.setItem('notifMuted', window._notifMuted ? '1' : '0');
+  const muteBtn = document.getElementById('muteNotifBtn');
+  if (muteBtn) {
+    muteBtn.innerHTML = window._notifMuted
+      ? '<i class="fas fa-volume-mute"></i>'
+      : '<i class="fas fa-volume-up"></i>';
+    muteBtn.title = window._notifMuted ? 'Unmute notifications' : 'Mute notifications';
+  }
+}
+
+// Restore mute state from localStorage
+window._notifMuted = localStorage.getItem('notifMuted') === '1';
+
+// Update mute button icon on page load
+window.addEventListener('DOMContentLoaded', function() {
+  setTimeout(function() {
+    var btn = document.getElementById('muteNotifBtn');
+    if (btn && window._notifMuted) {
+      btn.innerHTML = '<i class="fas fa-volume-mute"></i>';
+      btn.title = 'Unmute notifications';
+    }
+  }, 500);
+});
+
+async function listenNotifications(userEmail) {
     if (window._notifUnsub) window._notifUnsub();
     let isFirstLoad = true;
     let lastIds = new Set();
+
+    // Initialize Web Audio API for reliable sound (no external CDN)
+    window._notifSound = window._notifSound || createNotificationSound();
+
     window._notifUnsub = db.collection('notifications').where('to','==',userEmail).where('read','==',false).onSnapshot(snap => {
       const count = snap.size;
       const badge = document.getElementById('notifCount');
       const bell = document.getElementById('bellIcon');
       if (badge) {
-        if (count > 0) { badge.textContent = count; badge.style.display = 'flex'; if (bell) bell.style.color = 'var(--primary)'; }
-        else { badge.style.display = 'none'; if (bell) bell.style.color = 'var(--subtext)'; }
+        if (count > 0) {
+          badge.textContent = count;
+          badge.style.display = 'flex';
+          if (bell) {
+            bell.style.color = 'var(--primary)';
+            bell.classList.add('bell-pulse');
+          }
+        } else {
+          badge.style.display = 'none';
+          if (bell) {
+            bell.style.color = 'var(--subtext)';
+            bell.classList.remove('bell-pulse');
+          }
+        }
       }
-      // Show OS notification for NEW items only (skip first load)
-      if (!isFirstLoad && Notification.permission === 'granted') {
+
+      // Show notification for NEW items only (skip first load)
+      if (!isFirstLoad) {
         snap.docChanges().forEach(change => {
           if (change.type === 'added') {
             const n = change.doc.data();
             if (!lastIds.has(change.doc.id)) {
-              try {
-                if ('serviceWorker' in navigator && navigator.serviceWorker.ready) {
-                  navigator.serviceWorker.ready.then(reg => {
-                    reg.showNotification(n.title || 'TurnkeyCRM', {
+              // LAYER 1: In-page toast banner (ALWAYS works)
+              showNotifToast(n.title || 'TurnkeyCRM', n.body || '', n.link || '');
+
+              // LAYER 2: Play sound (ALWAYS works if user enabled)
+              if (!window._notifMuted) {
+                try { window._notifSound(); } catch(e) { console.warn('Sound error:', e); }
+              }
+
+              // LAYER 3: OS push notification (best-effort)
+              if (Notification.permission === 'granted') {
+                try {
+                  if ('serviceWorker' in navigator && navigator.serviceWorker.ready) {
+                    navigator.serviceWorker.ready.then(reg => {
+                      reg.showNotification(n.title || 'TurnkeyCRM', {
+                        body: n.body || '',
+                        icon: 'https://teamtichyd-star.github.io/TurnkeyCRM/icon-192.png',
+                        badge: 'https://teamtichyd-star.github.io/TurnkeyCRM/icon-192.png',
+                        tag: change.doc.id,
+                        requireInteraction: true,
+                        vibrate: [300, 100, 300, 100, 300],
+                        silent: false,
+                        renotify: true,
+                        data: { link: n.link || '/', url: window.location.origin + '/' + (n.link || '') }
+                      });
+                    });
+                  } else {
+                    const notif = new Notification(n.title || 'TurnkeyCRM', {
                       body: n.body || '',
                       icon: 'https://teamtichyd-star.github.io/TurnkeyCRM/icon-192.png',
-                      badge: 'https://teamtichyd-star.github.io/TurnkeyCRM/icon-192.png',
-                      tag: change.doc.id,
-                      requireInteraction: true,
-                      vibrate: [300, 100, 300, 100, 300],
-                      silent: false,
-                      renotify: true,
-                      data: { link: n.link || '/', url: window.location.origin + '/' + (n.link || '') }
+                      tag: change.doc.id
                     });
-                  });
-                } else {
-                  const notif = new Notification(n.title || 'TurnkeyCRM', {
-                    body: n.body || '',
-                    icon: 'https://teamtichyd-star.github.io/TurnkeyCRM/icon-192.png',
-                    tag: change.doc.id
-                  });
-                  notif.onclick = () => { window.focus(); if (n.link) window.location.href = n.link; notif.close(); };
-                }
-                // Play sound (works on desktop, mobile uses OS sound)
-                try {
-                  const audio = new Audio('https://cdn.jsdelivr.net/gh/elinaldoamaral/sound-effects@main/notification.mp3');
-                  audio.volume = 0.5;
-                  audio.play().catch(()=>{});
-                } catch(e) {}
-              } catch(e) { console.warn('Notification error:', e); }
+                    notif.onclick = () => { window.focus(); if (n.link) window.location.href = n.link; notif.close(); };
+                  }
+                } catch(e) { console.warn('OS Notification error:', e); }
+              }
             }
           }
         });
