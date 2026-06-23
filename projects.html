@@ -442,8 +442,17 @@
     .form-grid { gap: 10px !important; }
 
     /* Project cards full width */
-    .projects-grid { grid-template-columns: 1fr !important; }
+    .projects-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
+    .project-card { padding: 14px !important; }
+    .project-card-header { flex-direction: column !important; gap: 10px !important; align-items: flex-start !important; }
+    .project-card-title { font-size: 14px !important; line-height: 1.4 !important; }
+    .project-card-client { font-size: 11px !important; }
     .project-info-grid { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
+    .project-info-item { font-size: 10px !important; }
+    .project-info-item span { font-size: 12px !important; }
+    .project-card-footer { flex-direction: column !important; gap: 10px !important; align-items: stretch !important; }
+    .project-card-actions { width: 100% !important; flex-wrap: wrap !important; gap: 6px !important; }
+    .project-card-actions .icon-btn { flex: 1 1 calc(25% - 6px) !important; min-width: 0 !important; padding: 8px !important; }
 
     /* Stats */
     .proj-stats { grid-template-columns: repeat(3, 1fr) !important; gap: 8px !important; }
