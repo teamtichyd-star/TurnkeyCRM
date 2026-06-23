@@ -1509,7 +1509,25 @@
   }
 
   // ─── RENDER PROJECTS ───
-  function renderProjects() {
+  function getRunningDaysBadge(startDate) {
+  if(!startDate) return '';
+  try {
+    var start = new Date(startDate);
+    var today = new Date();
+    var diffMs = today - start;
+    var days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    if(days < 0) return '';
+    var color = '#4caf50';
+    var bg = 'rgba(76,175,80,0.1)';
+    var border = 'rgba(76,175,80,0.3)';
+    if(days > 90) { color='#f44336'; bg='rgba(244,67,54,0.1)'; border='rgba(244,67,54,0.3)'; }
+    else if(days > 60) { color='#ff9800'; bg='rgba(255,152,0,0.1)'; border='rgba(255,152,0,0.3)'; }
+    else if(days > 30) { color='#ffc107'; bg='rgba(255,193,7,0.1)'; border='rgba(255,193,7,0.3)'; }
+    return '<div style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;background:'+bg+';border:1px solid '+border+';border-radius:20px;font-size:11px;color:'+color+';font-weight:600;margin-bottom:10px"><i class="fas fa-clock"></i> Running: '+days+' day'+(days===1?'':'s')+'</div>';
+  } catch(e) { return ''; }
+}
+
+function renderProjects() {
     updateStats();
     updateTabCounts();
 
@@ -1570,6 +1588,7 @@
                 </span>
               </div>
             </div>
+            ${getRunningDaysBadge(p.startDate)}
             <div style="margin-bottom:8px">
               <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:6px">
                 <span style="color:var(--subtext)">Progress</span>
@@ -1849,6 +1868,7 @@
         <div style="background:rgba(255,255,255,0.03); border-radius:10px; padding:14px; border:1px solid rgba(255,255,255,0.05)">
           <div style="font-size:11px; color:var(--subtext); text-transform:uppercase; margin-bottom:5px">Start Date</div>
           <div style="font-size:15px; font-weight:500">${formatDate(p.startDate)}</div>
+          ${getRunningDaysBadge(p.startDate)}
         </div>
         <div style="background:rgba(255,255,255,0.03); border-radius:10px; padding:14px; border:1px solid rgba(255,255,255,0.05)">
           <div style="font-size:11px; color:var(--subtext); text-transform:uppercase; margin-bottom:5px">Deadline</div>

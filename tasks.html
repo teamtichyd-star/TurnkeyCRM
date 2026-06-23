@@ -228,6 +228,16 @@
     .icon-btn.edit { background:rgba(200,169,110,0.15); color:#c8a96e; }
     .icon-btn.delete { background:rgba(244,67,54,0.15); color:#f44336; }
     .icon-btn.whatsapp { background:rgba(37,211,102,0.15); color:#25d366; }
+    .icon-btn.comment { background:rgba(99,102,241,0.15); color:#a5b4fc; position: relative; }
+    .comment-count { position: absolute; top: -4px; right: -4px; background: var(--primary); color: #fff; font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 8px; min-width: 14px; text-align: center; }
+    .show-completed-toggle { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 8px; color: var(--subtext); font-size: 12px; cursor: pointer; margin-left: 10px; }
+    .show-completed-toggle.active { background: rgba(76,175,80,0.15); border-color: rgba(76,175,80,0.3); color: var(--success); }
+    .comments-modal { max-width: 500px; }
+    .comment-timeline { max-height: 300px; overflow-y: auto; margin-bottom: 14px; }
+    .comment-item { background: rgba(255,255,255,0.03); border-left: 3px solid var(--primary); padding: 10px 14px; border-radius: 8px; margin-bottom: 8px; }
+    .comment-meta { display: flex; justify-content: space-between; font-size: 11px; color: var(--subtext); margin-bottom: 6px; }
+    .comment-text { font-size: 13px; color: var(--text); line-height: 1.5; }
+    .comment-empty { text-align: center; padding: 30px; color: var(--subtext); font-size: 13px; }
     .icon-btn:hover { transform:scale(1.15); filter:brightness(1.3); }
     .task-card, .project-card, .followup-card { background: linear-gradient(145deg, var(--card2), var(--card)); border-radius: var(--radius); padding: 18px; border: 1px solid var(--border); margin-bottom: 12px; box-shadow: var(--shadow); transition: 0.3s; }
     .task-card:hover, .project-card:hover, .followup-card:hover { border-color: rgba(200,169,110,0.2); transform: translateY(-2px); }
@@ -394,6 +404,9 @@
       <i class="fas fa-exclamation-circle"></i> Overdue
       <span class="count" id="tab-count-overdue">0</span>
     </div>
+    <button class="show-completed-toggle" id="showCompletedBtn" onclick="toggleShowCompleted()">
+      <i class="fas fa-eye"></i> Show Completed
+    </button>
   </div>
 
   <!-- FILTER BAR -->
@@ -682,6 +695,8 @@
       if (currentTab === 'pending' && task.status !== 'Pending') return false;
       if (currentTab === 'inprogress' && task.status !== 'In Progress') return false;
       if (currentTab === 'done' && task.status !== 'Done') return false;
+      // NEW: Hide completed in "all" tab unless user toggles "show completed"
+      if (currentTab === 'all' && task.status === 'Done' && !window._showCompleted) return false;
       if (currentTab === 'overdue' && !isOverdue(task)) return false;
 
       const matchSearch =
@@ -795,8 +810,15 @@
             <div class="task-notes">📝 ${task.notes}</div>` : ''}
           </div>
           <div class="task-actions">
-            ${canEdit ? `<button class="icon-btn edit" onclick="editTask('${task.id}')" title="Edit"><i class="fas fa-edit"></i></button>` : ''}
-            ${canDelete ? `<button class="icon-btn delete" onclick="deleteTask('${task.id}')" title="Delete"><i class="fas fa-trash"></i></button>` : ''}
+            <button class="icon-btn comment" onclick="openComments('${task.id}')" title="Comments">
+              <i class="fas fa-comment"></i>
+              ${task.comments && task.comments.length > 0 ? '<span class="comment-count">' + task.comments.length + '</span>' : ''}
+            </button>
+            <button class="icon-btn whatsapp" onclick="sendWhatsAppReminder('${task.id}')" title="WhatsApp Reminder">
+              <i class="fab fa-whatsapp"></i>
+            </button>
+            ${canEdit ? '<button class="icon-btn edit" onclick="editTask(\'' + task.id + '\')" title="Edit"><i class="fas fa-edit"></i></button>' : ''}
+            ${canDelete ? '<button class="icon-btn delete" onclick="deleteTask(\'' + task.id + '\')" title="Delete"><i class="fas fa-trash"></i></button>' : ''}
           </div>
         </div>
       `;
@@ -1043,7 +1065,141 @@
       window.location.href = "index.html";
     }
   });
+
+// ─── COMMENTS SYSTEM ───────────────────────────────────────────
+window._currentCommentTaskId = null;
+
+function openComments(taskId) {
+  var task = tasks.find(function(t){ return t.id === taskId; });
+  if(!task) return;
+  window._currentCommentTaskId = taskId;
+  document.getElementById('commentsModalTitle').textContent = 'Comments: ' + task.title;
+  renderComments(task);
+  document.getElementById('commentsModal').classList.add('active');
+}
+
+function closeCommentsModal() {
+  document.getElementById('commentsModal').classList.remove('active');
+  window._currentCommentTaskId = null;
+  document.getElementById('newCommentText').value = '';
+}
+
+function renderComments(task) {
+  var html = '';
+  var comments = task.comments || [];
+  if(comments.length === 0) {
+    html = '<div class="comment-empty"><i class="fas fa-comments" style="font-size:32px;opacity:0.3"></i><p>No comments yet. Be the first!</p></div>';
+  } else {
+    comments.slice().reverse().forEach(function(c){
+      html += '<div class="comment-item">';
+      html += '<div class="comment-meta"><strong>' + (c.by||'User') + '</strong><span>' + (c.date||'') + '</span></div>';
+      html += '<div class="comment-text">' + (c.text||'').replace(/</g,'&lt;').replace(/\n/g,'<br>') + '</div>';
+      html += '</div>';
+    });
+  }
+  document.getElementById('commentsTimeline').innerHTML = html;
+}
+
+async function addComment() {
+  var txt = document.getElementById('newCommentText').value.trim();
+  if(!txt) { alert('Please enter a comment.'); return; }
+  if(!window._currentCommentTaskId) return;
+
+  var user = firebase.auth().currentUser;
+  var userName = 'User';
+  if(user) {
+    try {
+      var udoc = await db.collection('users').doc(user.email).get();
+      if(udoc.exists) userName = udoc.data().name || user.email.split('@')[0];
+      else userName = user.email.split('@')[0];
+    } catch(e) { userName = user.email.split('@')[0]; }
+  }
+
+  var task = tasks.find(function(t){ return t.id === window._currentCommentTaskId; });
+  if(!task) return;
+  if(!task.comments) task.comments = [];
+  task.comments.push({
+    by: userName,
+    date: new Date().toLocaleString('en-IN', {dateStyle:'medium', timeStyle:'short'}),
+    text: txt
+  });
+
+  try {
+    await db.collection('tasks').doc(window._currentCommentTaskId).update({comments: task.comments});
+    document.getElementById('newCommentText').value = '';
+    renderComments(task);
+    renderTasks();
+  } catch(e) { alert('Error saving comment: ' + e.message); }
+}
+
+// ─── WHATSAPP REMINDER ───────────────────────────────────────
+function sendWhatsAppReminder(taskId) {
+  var task = tasks.find(function(t){ return t.id === taskId; });
+  if(!task) return;
+  var projectName = task.related || 'General Task';
+  var status = task.status || 'Pending';
+  var due = task.dueDate ? formatDate(task.dueDate) : 'No due date';
+  var assignedTo = task.assignedTo || 'Unassigned';
+  var priority = task.priority || 'Medium';
+
+  var statusUpdateLink = window.location.origin + window.location.pathname + '#task-' + taskId;
+
+  var msg = '*Task Reminder*\n\n';
+  msg += '*Task:* ' + task.title + '\n';
+  msg += '*Project:* ' + projectName + '\n';
+  msg += '*Due:* ' + due + '\n';
+  msg += '*Priority:* ' + priority + '\n';
+  msg += '*Assigned to:* ' + assignedTo + '\n';
+  msg += '*Status:* ' + status + '\n\n';
+  msg += 'Update status here: ' + statusUpdateLink;
+
+  var url = 'https://wa.me/?text=' + encodeURIComponent(msg);
+  window.open(url, '_blank');
+}
+
+// ─── TOGGLE SHOW COMPLETED ────────────────────────────────────
+function toggleShowCompleted() {
+  window._showCompleted = !window._showCompleted;
+  var btn = document.getElementById('showCompletedBtn');
+  if(btn) {
+    btn.classList.toggle('active', window._showCompleted);
+    btn.innerHTML = window._showCompleted
+      ? '<i class="fas fa-check-circle"></i> Hiding Completed'
+      : '<i class="fas fa-eye"></i> Show Completed';
+  }
+  renderTasks();
+}
+
 </script>
+
+<!-- COMMENTS MODAL -->
+<div class="modal-overlay" id="commentsModal" style="display:none">
+  <div class="modal comments-modal">
+    <div class="modal-header">
+      <h3 id="commentsModalTitle">Comments</h3>
+      <button class="modal-close" onclick="closeCommentsModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="comment-timeline" id="commentsTimeline"></div>
+      <div style="border-top:1px solid var(--border); padding-top:14px">
+        <label style="font-size:11px; color:var(--subtext); text-transform:uppercase; display:block; margin-bottom:6px">Add Comment</label>
+        <textarea id="newCommentText" rows="3" placeholder="Type your comment, update, or note..." style="width:100%; padding:10px; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; resize:vertical; box-sizing:border-box; font-family:inherit"></textarea>
+        <button class="btn btn-primary" style="margin-top:10px; width:100%" onclick="addComment()">
+          <i class="fas fa-paper-plane"></i> Post Comment
+        </button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeCommentsModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<style>
+.modal-overlay.active { display: flex !important; }
+.comments-modal { width: 95%; max-width: 500px; }
+</style>
+
 <script src="js/notifications.js"></script>
 </body>
 </html>
