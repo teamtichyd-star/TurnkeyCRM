@@ -659,3 +659,118 @@ NEXT SESSION:
 - Mobile push notification reliability
 - UI polish: WhatsApp green, Email blue, GST breakdown
 
+
+
+=======================================================
+SESSION LOG — 22 June 2026 (Staff Profile Module)
+=======================================================
+
+✅ COMPLETED: Full Staff Profile System with Drive Integration
+
+FILES CREATED:
+- staff-profile.html (529 lines) - Employee profile form
+- staff-profile-admin.html (369 lines) - Admin directory view
+
+FILES MODIFIED:
+- index.html - Added SPA iframe pages, sidebar menu, roleModules
+- admin-panel.html - Added Staff Directory card
+- Apps Script (Google) - Extended with staff folder + file upload
+- Firestore rules - Added staffProfiles collection
+
+FEATURES BUILT:
+
+1. STAFF PROFILE FORM (staff-profile.html):
+   - 8 sections: Personal, Address, Emergency, ID Docs, Education, Work, Bank, Declaration
+   - Auto-generated Employee ID (EMP-YYYY-XXX format)
+   - Profile photo upload (max 2MB)
+   - Aadhar card photo upload (mandatory)
+   - PAN card photo upload (optional)
+   - Degree certificate photo upload (mandatory)
+   - Mobile 1 & 2 mandatory, Mobile 3 optional
+   - Emergency Phone 1 & 2 mandatory, Phone 3 optional
+   - "Same as permanent address" checkbox
+   - Save Draft (unlimited)
+   - Submit Profile (locks form, only admin can edit after)
+   - Declaration with 7 confidentiality points
+   - Captures: who agreed, when, employee ID
+
+2. ADMIN STAFF DIRECTORY (staff-profile-admin.html):
+   - Card-based grid view of all staff
+   - Stats: Total / Draft / Submitted / Verified
+   - Search by name, ID, mobile, email
+   - Filter by status (draft/submitted/verified)
+   - View full details modal
+   - Edit any field (admin override)
+   - Verify profile (changes status to verified)
+   - Open Drive folder link
+   - View individual document links (photo/aadhar/pan/degree)
+   - Export to CSV
+   - Access: admin/superadmin only
+
+3. GOOGLE DRIVE INTEGRATION:
+   - Auto-creates "Staff Records" parent folder (one-time)
+   - Per-staff folder: "EMP-2025-001_Full_Name/"
+   - Uploads: profile_photo.jpg, aadhar_card.jpg, pan_card.jpg, degree_certificate.jpg
+   - Drive folder URL saved to Firestore
+
+4. APPS SCRIPT EXTENDED (Code.gs):
+   Actions supported:
+   - createProjectFolder (existing, unchanged)
+   - createStaffFolder (NEW)
+   - uploadStaffFile (NEW - base64 upload)
+   - doGet (NEW - for testing/health check)
+
+5. FIRESTORE STRUCTURE:
+   Collection: staffProfiles
+   Document ID: user.uid
+   Fields: employeeId, fullName, email, mobile1/2/3, 
+           permanent/temporary address, emergency contact,
+           aadhar/pan numbers + photo URLs, education details,
+           work history, bank details, declarationAccepted,
+           declarationTimestamp, profileStatus, driveFolderId/URL,
+           photo URLs, submittedAt, verifiedAt, lastUpdated
+
+6. NOTIFICATIONS:
+   - When staff submits profile -> all admins get bell notification
+   - Uses existing notifications collection
+
+PERMISSIONS:
+- All staff roles see "My Profile" in sidebar (fill own profile only)
+- admin/superadmin see "Staff Directory" in sidebar
+- Staff cannot edit after submit
+- Admin can edit anyone anytime
+- Profile locks immediately on submit (per user request)
+
+KEY GOTCHAS LEARNED:
+1. iframe pages need CSS variables defined inside (parent vars don't cascade)
+2. Apps Script deployment URL changes only on "New deployment", not "New version"
+3. "Page not found" error from curl POST = wrong URL or access setting
+4. Need doGet function to test Apps Script in browser
+5. Firestore rules MUST include each new collection explicitly
+6. generateEmployeeId() must be awaited properly (was setting empty empId)
+7. Apps Script "Who has access" must be "Anyone" (not "Anyone with Google")
+
+ENVIRONMENT VALUES:
+- Apps Script URL: https://script.google.com/macros/s/AKfycbzHx0f5fFmL4slk9QoCyXQUieK5G7kyduTNcFLfKa6WbYQfpECy7tTR1CNwASMkQUHRXw/exec
+- Parent Drive Folder ID: 1Ne30UOA-T011qCEwY46HB9PgNeQ9ATE6
+- Parent folder name: "TurnkeyCRM Drive Folders"
+- Apps Script account: hari1.sbis@gmail.com
+- Drive account: same
+
+FIRESTORE RULES (current):
+match /staffProfiles/{docId} { allow read, write: if isSignedIn(); }
+
+GIT TAGS:
+- v17-staff-profile-complete = CURRENT STABLE (Staff Profile module live)
+- v16-stable-drive-integration = previous stable
+- v15-stable-permissions-stage3-complete = before
+
+PENDING NEXT SESSION:
+1. Optional: PWA install reminder
+2. Optional: Expense tracking module
+3. Optional: Invoice generator
+4. Optional: Global search
+5. Optional: Auto-mark Sundays as Weekly Off in attendance
+6. UI polish: WhatsApp green, Email blue, GST breakdown (carryover)
+7. Mobile push reliability (carryover)
+
