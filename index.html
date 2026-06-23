@@ -231,7 +231,7 @@
     }
     /* ── MOBILE ── */
     @media (max-width: 768px) {
-      .sidebar { left: -255px; max-height: 100vh; overflow-y: auto; }
+      .sidebar { left: -255px; height: calc(100vh - 60px); padding-bottom: 0; }
       .sidebar.open { left: 0; }
       .sidebar-overlay.show { display: block; }
       .sidebar-menu { padding: 8px 0; }
