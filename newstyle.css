@@ -95,3 +95,160 @@
     background-color: #357ABD !important;
     transform: translateY(-2px);
 }
+
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* MOBILE RESPONSIVE FIXES - Applied globally to all CRM pages    */
+/* ═══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+
+  /* Generic card stacking */
+  .lead-card, .project-card, .task-card, .vendor-card,
+  .followup-card, .attendance-card, .staff-card {
+    width: 100% !important;
+    box-sizing: border-box;
+    padding: 14px !important;
+    margin-bottom: 12px !important;
+  }
+
+  /* Card header rows - stack vertically */
+  .lead-card-header, .project-card-header, .task-card-header,
+  .vendor-card-header, .followup-card-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+
+  /* Card body grids - single column */
+  .lead-card-body, .project-card-body, .task-card-body,
+  .vendor-card-body, .followup-card-body {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  /* Card action buttons - stack and full width */
+  .card-actions, .lead-actions, .project-actions,
+  .task-actions, .vendor-actions {
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+  }
+  .card-actions button, .lead-actions button, .project-actions button,
+  .task-actions button, .vendor-actions button,
+  .card-actions a, .lead-actions a, .project-actions a {
+    flex: 1 1 calc(50% - 4px);
+    min-width: 0;
+    font-size: 12px !important;
+    padding: 8px 10px !important;
+  }
+
+  /* Tables - convert to scrollable */
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  table {
+    font-size: 12px !important;
+  }
+  table th, table td {
+    padding: 8px 10px !important;
+    white-space: nowrap;
+  }
+
+  /* Modals - full screen on mobile */
+  .modal-content, .modal-box, .detail-modal {
+    width: 95% !important;
+    max-width: 95% !important;
+    max-height: 92vh !important;
+    margin: 10px auto !important;
+  }
+  .modal-body, .detail-modal-body {
+    padding: 16px !important;
+    max-height: 70vh !important;
+    overflow-y: auto;
+  }
+  .modal-header, .detail-modal-header {
+    padding: 14px 16px !important;
+  }
+  .modal-footer {
+    padding: 12px 16px !important;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* Form rows on mobile - single column */
+  .form-row, .form-row.triple, .form-row.double {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  /* Filter bars - stack on mobile */
+  .filter-bar, .search-bar, .toolbar {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+  .filter-bar input, .search-bar input,
+  .filter-bar select, .search-bar select {
+    min-width: 0 !important;
+    flex: 1 1 100% !important;
+    font-size: 14px !important;
+  }
+
+  /* Page headers - stack */
+  .page-header, .section-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+  .page-header h2 {
+    font-size: 18px !important;
+  }
+
+  /* Stats - 2 columns */
+  .stats-row, .summary-row {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+  .stat-card, .summary-card {
+    padding: 12px !important;
+  }
+
+  /* Floating Action Buttons */
+  .fab, .add-btn-floating {
+    bottom: 80px !important;
+    right: 16px !important;
+  }
+
+  /* Status badges - smaller */
+  .status-badge, .badge {
+    font-size: 10px !important;
+    padding: 3px 8px !important;
+  }
+
+  /* Long phone numbers / emails - allow wrap */
+  .phone-link, .email-link {
+    word-break: break-all;
+  }
+
+  /* Project portal tabs */
+  .portal-tabs {
+    flex-wrap: wrap !important;
+    gap: 4px !important;
+  }
+  .portal-tabs button {
+    flex: 1 1 calc(33.333% - 4px);
+    font-size: 11px !important;
+    padding: 8px 6px !important;
+  }
+}
+
+/* Extra small screens */
+@media (max-width: 380px) {
+  .stats-row, .summary-row {
+    grid-template-columns: 1fr !important;
+  }
+  .card-actions button, .lead-actions button,
+  .project-actions button, .task-actions button {
+    flex: 1 1 100% !important;
+  }
+}
