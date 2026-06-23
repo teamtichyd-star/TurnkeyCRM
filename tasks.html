@@ -1088,22 +1088,54 @@ function renderComments(task) {
   var html = '';
   var comments = task.comments || [];
   if(comments.length === 0) {
-    html = '<div class="comment-empty"><i class="fas fa-comments" style="font-size:32px;opacity:0.3"></i><p>No comments yet. Be the first!</p></div>';
+    html = '<div class="comment-empty"><i class="fas fa-comments" style="font-size:32px;opacity:0.3"></i><p>No comments yet.<br>Start the conversation!</p></div>';
   } else {
-    comments.slice().reverse().forEach(function(c){
-      html += '<div class="comment-item">';
-      html += '<div class="comment-meta"><strong>' + (c.by||'User') + '</strong><span>' + (c.date||'') + '</span></div>';
-      html += '<div class="comment-text">' + (c.text||'').replace(/</g,'&lt;').replace(/\n/g,'<br>') + '</div>';
-      html += '</div>';
+    var currentUserEmail = firebase.auth().currentUser ? firebase.auth().currentUser.email : '';
+    // Sort by timestamp ascending (oldest first, like chat)
+    var sorted = comments.slice().sort(function(a,b){ return (a.timestamp||0) - (b.timestamp||0); });
+    sorted.forEach(function(c){
+      var isMine = c.email && c.email === currentUserEmail;
+      var align = isMine ? 'flex-end' : 'flex-start';
+      var bg = isMine ? 'linear-gradient(135deg, rgba(200,169,110,0.18), rgba(200,169,110,0.08))' : 'rgba(255,255,255,0.04)';
+      var border = isMine ? '1px solid rgba(200,169,110,0.3)' : '1px solid var(--border)';
+      var initial = (c.by||'?').charAt(0).toUpperCase();
+      html += '<div style="display:flex;justify-content:'+align+';margin-bottom:10px">';
+      html += '<div style="max-width:80%;background:'+bg+';border:'+border+';border-radius:12px;padding:10px 14px">';
+      if(!isMine) {
+        html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><div style="width:22px;height:22px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">'+initial+'</div><strong style="font-size:12px;color:var(--primary)">'+(c.by||'User')+'</strong></div>';
+      }
+      html += '<div style="font-size:13px;color:var(--text);line-height:1.5;word-wrap:break-word">'+(c.text||'').replace(/</g,'&lt;').replace(/\n/g,'<br>')+'</div>';
+      html += '<div style="font-size:10px;color:var(--subtext);margin-top:4px;text-align:right">'+(c.date||'')+'</div>';
+      html += '</div></div>';
     });
   }
-  document.getElementById('commentsTimeline').innerHTML = html;
+  var timeline = document.getElementById('commentsTimeline');
+  timeline.innerHTML = html;
+  // Auto-scroll to bottom (latest message)
+  setTimeout(function(){ timeline.scrollTop = timeline.scrollHeight; }, 50);
 }
 
+window._postingComment = false;
+
 async function addComment() {
-  var txt = document.getElementById('newCommentText').value.trim();
-  if(!txt) { alert('Please enter a comment.'); return; }
+  // Prevent double-click
+  if(window._postingComment) return;
+
+  var inputEl = document.getElementById('newCommentText');
+  var btnEl = document.getElementById('postCommentBtn');
+  var txt = inputEl.value.trim();
+
+  if(!txt) {
+    inputEl.focus();
+    inputEl.style.borderColor = 'var(--danger)';
+    setTimeout(function(){ inputEl.style.borderColor = ''; }, 1500);
+    return;
+  }
   if(!window._currentCommentTaskId) return;
+
+  window._postingComment = true;
+  btnEl.disabled = true;
+  btnEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Posting...';
 
   var user = firebase.auth().currentUser;
   var userName = 'User';
@@ -1116,21 +1148,51 @@ async function addComment() {
   }
 
   var task = tasks.find(function(t){ return t.id === window._currentCommentTaskId; });
-  if(!task) return;
+  if(!task) {
+    window._postingComment = false;
+    btnEl.disabled = false;
+    btnEl.innerHTML = '<i class="fas fa-paper-plane"></i> Post Comment';
+    return;
+  }
   if(!task.comments) task.comments = [];
-  task.comments.push({
+
+  var newComment = {
     by: userName,
+    email: user ? user.email : '',
     date: new Date().toLocaleString('en-IN', {dateStyle:'medium', timeStyle:'short'}),
+    timestamp: Date.now(),
     text: txt
-  });
+  };
+
+  task.comments.push(newComment);
 
   try {
     await db.collection('tasks').doc(window._currentCommentTaskId).update({comments: task.comments});
-    document.getElementById('newCommentText').value = '';
+    inputEl.value = '';
     renderComments(task);
     renderTasks();
-  } catch(e) { alert('Error saving comment: ' + e.message); }
+    // Scroll to bottom of timeline to show latest comment
+    var timeline = document.getElementById('commentsTimeline');
+    if(timeline) timeline.scrollTop = timeline.scrollHeight;
+  } catch(e) {
+    // Rollback if save failed
+    task.comments.pop();
+    alert('Error saving comment: ' + e.message);
+  }
+
+  window._postingComment = false;
+  btnEl.disabled = false;
+  btnEl.innerHTML = '<i class="fas fa-paper-plane"></i> Post Comment';
+  inputEl.focus();
 }
+
+// Enter to send (Shift+Enter for new line)
+document.addEventListener('keydown', function(e){
+  if(e.target && e.target.id === 'newCommentText' && e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    addComment();
+  }
+});
 
 // ─── WHATSAPP REMINDER ───────────────────────────────────────
 function sendWhatsAppReminder(taskId) {
@@ -1184,9 +1246,10 @@ function toggleShowCompleted() {
       <div style="border-top:1px solid var(--border); padding-top:14px">
         <label style="font-size:11px; color:var(--subtext); text-transform:uppercase; display:block; margin-bottom:6px">Add Comment</label>
         <textarea id="newCommentText" rows="3" placeholder="Type your comment, update, or note..." style="width:100%; padding:10px; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; resize:vertical; box-sizing:border-box; font-family:inherit"></textarea>
-        <button class="btn btn-primary" style="margin-top:10px; width:100%" onclick="addComment()">
+        <button id="postCommentBtn" type="button" class="btn btn-primary" style="margin-top:10px; width:100%" onclick="addComment()">
           <i class="fas fa-paper-plane"></i> Post Comment
         </button>
+        <div style="font-size:10px;color:var(--subtext);margin-top:6px;text-align:center">Press Enter to send · Shift+Enter for new line</div>
       </div>
     </div>
     <div class="modal-footer">
