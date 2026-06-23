@@ -774,3 +774,126 @@ PENDING NEXT SESSION:
 6. UI polish: WhatsApp green, Email blue, GST breakdown (carryover)
 7. Mobile push reliability (carryover)
 
+
+
+=======================================================
+SESSION LOG — 22 June 2026 (PART 2 - Tasks + Mobile + Notifications)
+=======================================================
+
+✅ COMPLETED IN THIS SESSION:
+
+1. TASKS MODULE ENHANCEMENTS
+   - Hide completed tasks by default in "All" tab
+   - "Show Completed" toggle button beside tabs
+   - Comments system per task (ClickUp/WhatsApp chat style)
+     * My comments right-aligned (golden)
+     * Others left-aligned (gray) with avatar + name
+     * Chronological order (oldest first)
+     * Auto-scroll to latest
+     * Enter to send, Shift+Enter for new line
+     * Prevent double-clicks with loading spinner
+     * Comment count badge on icon
+   - WhatsApp Reminder button per task
+     * Pre-filled message with task details
+     * Includes project name, due date, priority
+     * Includes status update link back to CRM
+   - Comments saved in tasks/{id}.comments[] array
+     * Schema: {by, email, date, timestamp, text}
+
+2. PROJECTS - RUNNING DAYS BADGE
+   - Shows on project card (visible to all staff, NOT client)
+   - Shows in project portal Start Date card
+   - Color coded:
+     * Green: 0-30 days
+     * Yellow: 31-60 days
+     * Orange: 61-90 days
+     * Red: 90+ days
+   - Function: getRunningDaysBadge(startDate)
+
+3. MOBILE RESPONSIVENESS FIXES (Comprehensive)
+   - Sidebar height: calc(100vh - 60px) to fit above bottom nav
+   - Sidebar-menu scrolls independently
+   - Sidebar-footer sticky at bottom (logout always visible)
+   - Project cards stack header vertically on mobile
+   - Project card actions wrap 4 buttons per row
+   - Added global mobile CSS in newstyle.css covering:
+     * Lead cards, task cards, vendor cards, followup cards
+     * Modals 95% width on mobile
+     * Tables horizontal scroll
+     * Filter bars stack
+     * Page headers stack
+     * Form rows single column
+
+4. NOTIFICATION SYSTEM OVERHAUL (3-Layer Reliable System)
+   - LAYER 1: In-page toast banner (always works)
+     * Slides up from bottom (mobile-friendly)
+     * Golden gradient design
+     * Auto-dismiss after 8 seconds
+     * Click to navigate
+     * Progress bar countdown
+   - LAYER 2: Web Audio API beep (no external CDN)
+     * WhatsApp-like two-tone (800Hz + 1000Hz)
+     * Vibrate on mobile [200,100,200]
+     * Reliable across all browsers
+   - LAYER 3: OS Push notification (best-effort, existing)
+   - Mute button next to bell icon
+     * Saved in localStorage
+     * Persists across sessions
+   - Bell icon pulses when unread notifications
+   - All in index.html
+
+FILES MODIFIED IN THIS SESSION:
+- index.html: notification system, sidebar mobile, bell pulse, toast
+- tasks.html: comments modal, WhatsApp button, hide completed toggle
+- projects.html: running days badge function + display
+- newstyle.css: global mobile responsive CSS
+
+FIRESTORE COLLECTION UPDATES:
+- tasks/{id}.comments[] = Array of {by, email, date, timestamp, text}
+- staffProfiles (added earlier in PART 1)
+
+KEY GOTCHAS LEARNED:
+1. Service worker doesn't run notifications when tab closed (need paid FCM)
+2. localStorage persists mute state across reloads (good UX)
+3. Web Audio API requires user gesture on iOS (won't auto-play silently)
+4. CSS transform animations work great for toast slide-in
+5. Comment buttons need preventDefault to avoid form submit issues
+6. Chat-style UI needs sort by timestamp ASC (not reverse)
+7. Mobile sidebar height MUST account for bottom nav (60px)
+8. Projects card needs 4-button wrap layout: flex: 1 1 calc(25% - 6px)
+
+GIT TAGS:
+- v18-tasks-comments-mobile-notifications = CURRENT STABLE
+- v17-staff-profile-complete = before this session
+- v16-stable-drive-integration = previous stable
+
+PENDING NEXT SESSION (in priority order):
+
+1. 🟡 SNAG -> TASK SYNC (discussed, not built)
+   - When snag added in project, auto-create task with:
+     linkedSnagId, linkedProjectId, source: "snag"
+   - Display SNAG badge on task card
+   - Two-way status sync:
+     * Task done -> snag status updates
+     * Snag complete -> task marked done
+     * Snag deleted -> task deleted
+   - Confirmed: Medium priority, 7-day default due date
+
+2. 🟢 UI POLISH (carryover)
+   - WhatsApp button green color (#25D366)
+   - Email button blue color (#4A90E2)
+   - GST breakdown in client portal payments
+
+3. 🟢 NICE-TO-HAVE
+   - Expense Tracking module (project P&L)
+   - Invoice Generator (PDF)
+   - PWA Install Prompt banner
+   - Global Search across all collections
+   - Auto-mark Sundays as Weekly Off
+   - Excel export improvements
+
+LIMITATIONS DOCUMENTED:
+- Web push when tab closed: requires Firebase Cloud Messaging (Blaze plan)
+- iOS Safari audio: may not play unless user interacted
+- Toast + sound only work when CRM tab is open
+
