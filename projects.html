@@ -988,6 +988,9 @@
           <button class="exp-subtab" onclick="switchExpSubTab('payouts')" id="exptab-payouts" style="padding:8px 16px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--subtext);cursor:pointer;font-size:13px;font-weight:600;">
             <i class="fas fa-money-bill-wave"></i> Vendor Payouts
           </button>
+          <button class="exp-subtab" onclick="switchExpSubTab('requests')" id="exptab-requests" style="padding:8px 16px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--subtext);cursor:pointer;font-size:13px;font-weight:600;">
+            <i class="fas fa-clock"></i> Pay Requests <span id="prPendingBadge" style="display:none;background:var(--danger);color:#fff;border-radius:10px;padding:1px 6px;font-size:11px;margin-left:4px;">0</span>
+          </button>
         </div>
 
         <!-- Summary Card (shared) -->
@@ -2689,12 +2692,22 @@ function renderProjects() {
         '<a class="icon-btn call" href="tel:' + vendorPhone + '" title="Call"><i class="fas fa-phone"></i></a>' +
         '<a class="icon-btn whatsapp" href="https://wa.me/91' + vendorPhone + '" target="_blank" title="WhatsApp"><i class="fab fa-whatsapp"></i></a>'
       ) : '';
+      const jwCategory = jw.category || 'In Quote';
+      const catBadgeStyle = jwCategory === 'In Quote'
+        ? 'background:rgba(76,175,80,0.15);color:var(--success);border:1px solid rgba(76,175,80,0.3);'
+        : 'background:rgba(255,152,0,0.15);color:var(--warning);border:1px solid rgba(255,152,0,0.3);';
+      const catBadge = '<span style="' + catBadgeStyle + 'font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600;margin-left:6px;">' + jwCategory + '</span>';
+      const canRequest = ['admin','superadmin','manager','supervisor'].includes(role);
+      const requestBtn = (!isSettled && canRequest)
+        ? '<button class="icon-btn" style="background:rgba(33,150,243,0.15);color:#2196F3;" onclick="openPaymentRequest(' + idx + ')" title="Request Payment"><i class="fas fa-money-bill-wave"></i></button>'
+        : '';
       return '<div class="jobwork-card' + (overBudget ? ' over-budget' : '') + '">' +
         '<div class="jobwork-header"><div>' +
-        '<div class="jobwork-title">' + (jw.workType||'Job Work') + (isSettled ? '<span class="settled-badge">SETTLED</span>' : '') + '</div>' +
+        '<div class="jobwork-title">' + (jw.workType||'Job Work') + (isSettled ? '<span class="settled-badge">SETTLED</span>' : '') + catBadge + '</div>' +
         '<div class="jobwork-vendor"><i class="fas fa-store"></i> ' + (jw.vendorName||'-') + '</div>' +
         '</div><div style="display:flex;gap:6px;flex-wrap:wrap;">' +
         vendorActions +
+        requestBtn +
         (!isSettled ? '<button class="icon-btn" style="background:rgba(76,175,80,0.15);color:var(--success);" onclick="openAddPayment(' + idx + ')" title="Log Payout"><i class="fas fa-plus"></i></button>' : '') +
         (isAdmin ? '<button class="icon-btn edit" onclick="editJobWork(' + idx + ')" title="Edit"><i class="fas fa-edit"></i></button>' : '') +
         (isAdmin ? '<button class="icon-btn delete" onclick="deleteJobWork(' + idx + ')" title="Delete"><i class="fas fa-trash"></i></button>' : '') +
@@ -2707,6 +2720,15 @@ function renderProjects() {
         '<div style="margin-top:8px;height:6px;background:rgba(255,255,255,0.05);border-radius:10px;overflow:hidden;"><div style="height:100%;width:' + Math.min(pct,100) + '%;background:linear-gradient(90deg,var(--success),var(--primary));border-radius:10px;"></div></div>' +
         '</div>';
     }).join('');
+    // Update pending badge on Pay Requests tab
+    const allPending = currentJobWorks.reduce(function(count, jw) {
+      return count + (jw.paymentRequests || []).filter(function(r){ return r.status === 'pending'; }).length;
+    }, 0);
+    const badge = document.getElementById('prPendingBadge');
+    if (badge) {
+      badge.style.display = allPending > 0 ? 'inline' : 'none';
+      badge.textContent = allPending;
+    }
   }
 
   function openAddJobWork() {
@@ -2727,6 +2749,7 @@ function renderProjects() {
     document.getElementById('jwWorkType').value = jw.workType || '';
     document.getElementById('jwContractValue').value = jw.contractValue || '';
     document.getElementById('jwNotes').value = jw.notes || '';
+    document.getElementById('jwCategory').value = jw.category || 'In Quote';
     window._editingJwIdx = idx;
     loadVendorsForJW(jw.vendorName || '');
     document.getElementById('jobWorkModal').classList.add('show');
@@ -2828,7 +2851,9 @@ function renderProjects() {
     }
     document.getElementById('expsec-jobworks').style.display = (tab === 'jobworks') ? 'block' : 'none';
     document.getElementById('expsec-payouts').style.display = (tab === 'payouts') ? 'block' : 'none';
+    document.getElementById('expsec-requests').style.display = (tab === 'requests') ? 'block' : 'none';
     if (tab === 'payouts') renderPayouts();
+    if (tab === 'requests') renderPaymentRequests('all');
   }
 
   function openLogPayoutFromTab() {
@@ -2902,6 +2927,250 @@ function renderProjects() {
     await saveJobWorksToFirestore();
     renderJobWorks();
     showToast('Payment deleted', 'danger');
+  }
+
+  let _prJwIdx = null;
+
+  function openPaymentRequest(idx) {
+    const jw = currentJobWorks[idx];
+    if (!jw) return;
+    _prJwIdx = idx;
+    const paid = (jw.payments || []).reduce(function(s,p){ return s + parseFloat(p.amount||0); }, 0);
+    const pending = (jw.paymentRequests || []).filter(function(r){ return r.status === 'pending'; }).reduce(function(s,r){ return s + parseFloat(r.amount||0); }, 0);
+    const remaining = parseFloat(jw.contractValue||0) - paid - pending;
+    document.getElementById('prJobWorkName').value = jw.workType || '';
+    document.getElementById('prCategory').value = jw.category || 'In Quote';
+    document.getElementById('prAmount').value = '';
+    document.getElementById('prReason').value = '';
+    document.getElementById('prNotes').value = '';
+    document.getElementById('prAmount').placeholder = 'Max available: Rs ' + remaining.toLocaleString('en-IN');
+    document.getElementById('paymentRequestModal').classList.add('show');
+  }
+
+  async function savePaymentRequest() {
+    const jw = currentJobWorks[_prJwIdx];
+    if (!jw) return;
+    const amount = parseFloat(document.getElementById('prAmount').value);
+    const reason = document.getElementById('prReason').value.trim();
+    const notes = document.getElementById('prNotes').value.trim();
+    if (!amount || isNaN(amount) || amount <= 0) { showToast('Enter a valid amount', 'danger'); return; }
+    if (!reason) { showToast('Enter a reason for the request', 'danger'); return; }
+    const paid = (jw.payments || []).reduce(function(s,p){ return s + parseFloat(p.amount||0); }, 0);
+    const pending = (jw.paymentRequests || []).filter(function(r){ return r.status === 'pending'; }).reduce(function(s,r){ return s + parseFloat(r.amount||0); }, 0);
+    const remaining = parseFloat(jw.contractValue||0) - paid - pending;
+    if (amount > remaining) {
+      showToast('Amount exceeds available balance of Rs ' + remaining.toLocaleString('en-IN'), 'danger');
+      return;
+    }
+    const userName = window.currentUserName || sessionStorage.getItem('crm_name') || 'Unknown';
+    const userEmail = window.currentUserEmail || sessionStorage.getItem('crm_email') || '';
+    const req = {
+      id: 'pr_' + Date.now(),
+      amount: amount,
+      reason: reason,
+      notes: notes,
+      category: jw.category || 'In Quote',
+      jobWorkName: jw.workType || '',
+      requestedBy: userName,
+      requestedByEmail: userEmail,
+      requestedAt: new Date().toISOString(),
+      status: 'pending',
+      paidBy: '',
+      paidByEmail: '',
+      paidAt: null,
+      transactionId: '',
+      paymentMode: '',
+      paymentDate: null,
+      accountantNotes: '',
+      rejectedReason: ''
+    };
+    if (!jw.paymentRequests) jw.paymentRequests = [];
+    jw.paymentRequests.push(req);
+    await saveJobWorksToFirestore();
+    document.getElementById('paymentRequestModal').classList.remove('show');
+    renderJobWorks();
+    showToast('Payment request submitted!', 'success');
+    try {
+      const usersSnap = await db.collection('users').get();
+      usersSnap.forEach(function(ud) {
+        const u = ud.data();
+        if (['admin','superadmin','accounts'].includes(u.role)) {
+          TIC_NOTIF.send(db, u.name || u.email, userName + ' requested payment of Rs ' + amount.toLocaleString('en-IN') + ' for ' + (jw.workType||'Job Work'), 'payment', 'projects.html');
+        }
+      });
+    } catch(e) { console.error('Notification error:', e); }
+  }
+
+  let _prCurrentFilter = 'all';
+
+  function filterPayRequests(filter) {
+    _prCurrentFilter = filter;
+    ['all','pending','paid','rejected'].forEach(function(f) {
+      const btn = document.getElementById('prfilter-' + f);
+      if (!btn) return;
+      if (f === filter) {
+        btn.style.background = 'var(--primary-glow)';
+        btn.style.color = 'var(--primary)';
+        btn.style.border = '1px solid var(--primary)';
+      } else {
+        if (f === 'pending') { btn.style.background = 'rgba(255,152,0,0.15)'; btn.style.color = 'var(--warning)'; btn.style.border = '1px solid rgba(255,152,0,0.3)'; }
+        else if (f === 'paid') { btn.style.background = 'rgba(76,175,80,0.15)'; btn.style.color = 'var(--success)'; btn.style.border = '1px solid rgba(76,175,80,0.3)'; }
+        else if (f === 'rejected') { btn.style.background = 'rgba(244,67,54,0.15)'; btn.style.color = 'var(--danger)'; btn.style.border = '1px solid rgba(244,67,54,0.3)'; }
+        else { btn.style.background = 'transparent'; btn.style.color = 'var(--subtext)'; btn.style.border = '1px solid var(--border)'; }
+      }
+    });
+    renderPaymentRequests(filter);
+  }
+
+  function renderPaymentRequests(filter) {
+    const container = document.getElementById('payRequestsList');
+    if (!container) return;
+    const role = window.currentUserRole || sessionStorage.getItem('crm_role') || '';
+    const canApprove = ['admin','superadmin','accounts'].includes(role);
+    const allRequests = [];
+    currentJobWorks.forEach(function(jw, jwIdx) {
+      (jw.paymentRequests || []).forEach(function(req, reqIdx) {
+        allRequests.push({ req: req, jwIdx: jwIdx, reqIdx: reqIdx, jwName: jw.workType || 'Job Work' });
+      });
+    });
+    allRequests.sort(function(a, b) { return (b.req.requestedAt || '').localeCompare(a.req.requestedAt || ''); });
+    const filtered = filter === 'all' ? allRequests : allRequests.filter(function(r){ return r.req.status === filter; });
+    const pendingCount = allRequests.filter(function(r){ return r.req.status === 'pending'; }).length;
+    const badge = document.getElementById('prPendingBadge');
+    if (badge) {
+      badge.style.display = pendingCount > 0 ? 'inline' : 'none';
+      badge.textContent = pendingCount;
+    }
+    if (!filtered.length) {
+      container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--subtext);"><i class="fas fa-inbox" style="font-size:36px;opacity:0.3;display:block;margin-bottom:10px;"></i><p>No ' + (filter === 'all' ? '' : filter + ' ') + 'payment requests</p></div>';
+      return;
+    }
+    container.innerHTML = filtered.map(function(item) {
+      const req = item.req;
+      const statusColor = req.status === 'paid' ? 'var(--success)' : (req.status === 'rejected' ? 'var(--danger)' : 'var(--warning)');
+      const statusLabel = req.status === 'paid' ? 'PAID' : (req.status === 'rejected' ? 'REJECTED' : 'PENDING');
+      const statusBg = req.status === 'paid' ? 'rgba(76,175,80,0.12)' : (req.status === 'rejected' ? 'rgba(244,67,54,0.12)' : 'rgba(255,152,0,0.12)');
+      const catColor = (req.category === 'In Quote') ? 'var(--success)' : 'var(--warning)';
+      const dateStr = req.requestedAt ? new Date(req.requestedAt).toLocaleDateString('en-IN', {day:'2-digit',month:'short',year:'numeric'}) : '';
+      let extraInfo = '';
+      if (req.status === 'paid') {
+        extraInfo = '<div style="margin-top:8px;padding:8px;background:rgba(76,175,80,0.08);border-radius:8px;font-size:12px;color:var(--subtext);">' +
+          '<i class="fas fa-check-circle" style="color:var(--success);margin-right:4px;"></i>' +
+          'Paid by ' + (req.paidBy||'') + ' via ' + (req.paymentMode||'') +
+          (req.transactionId ? ' | TXN: ' + req.transactionId : '') +
+          (req.paymentDate ? ' | ' + req.paymentDate : '') +
+          (req.accountantNotes ? '<br><span style="color:var(--subtext);">' + req.accountantNotes + '</span>' : '') +
+          '</div>';
+      } else if (req.status === 'rejected') {
+        extraInfo = '<div style="margin-top:8px;padding:8px;background:rgba(244,67,54,0.08);border-radius:8px;font-size:12px;color:var(--danger);">' +
+          '<i class="fas fa-times-circle" style="margin-right:4px;"></i>Rejected: ' + (req.rejectedReason||'No reason given') + '</div>';
+      }
+      const actionBtns = (req.status === 'pending' && canApprove) ?
+        '<div style="display:flex;gap:8px;margin-top:10px;">' +
+        '<button class="btn" style="flex:1;font-size:12px;padding:7px;background:rgba(76,175,80,0.15);color:var(--success);border:1px solid rgba(76,175,80,0.3);" onclick="openMarkPaid(' + item.jwIdx + ',' + item.reqIdx + ')"><i class="fas fa-check"></i> Mark Paid</button>' +
+        '<button class="btn" style="flex:1;font-size:12px;padding:7px;background:rgba(244,67,54,0.15);color:var(--danger);border:1px solid rgba(244,67,54,0.3);" onclick="rejectPaymentRequest(' + item.jwIdx + ',' + item.reqIdx + ')"><i class="fas fa-times"></i> Reject</button>' +
+        '</div>' : '';
+      return '<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">' +
+        '<div>' +
+        '<div style="font-weight:700;font-size:15px;color:var(--text);">Rs ' + parseFloat(req.amount||0).toLocaleString('en-IN') + '</div>' +
+        '<div style="font-size:12px;color:var(--subtext);margin-top:2px;">' + item.jwName + ' &nbsp;|&nbsp; <span style="color:' + catColor + ';">' + (req.category||'In Quote') + '</span></div>' +
+        '<div style="font-size:12px;color:var(--subtext);margin-top:2px;"><i class="fas fa-user" style="margin-right:4px;"></i>' + (req.requestedBy||'') + ' &nbsp;|&nbsp; ' + dateStr + '</div>' +
+        '<div style="font-size:12px;color:var(--text);margin-top:4px;"><i class="fas fa-comment" style="margin-right:4px;color:var(--subtext);"></i>' + (req.reason||'') + (req.notes ? ' — ' + req.notes : '') + '</div>' +
+        '</div>' +
+        '<span style="padding:4px 10px;border-radius:10px;font-size:11px;font-weight:700;background:' + statusBg + ';color:' + statusColor + ';">' + statusLabel + '</span>' +
+        '</div>' +
+        extraInfo +
+        actionBtns +
+        '</div>';
+    }).join('');
+  }
+
+  let _markPaidJwIdx = null;
+  let _markPaidReqIdx = null;
+
+  function openMarkPaid(jwIdx, reqIdx) {
+    _markPaidJwIdx = jwIdx;
+    _markPaidReqIdx = reqIdx;
+    const req = currentJobWorks[jwIdx].paymentRequests[reqIdx];
+    document.getElementById('mpAmount').textContent = 'Rs ' + parseFloat(req.amount||0).toLocaleString('en-IN');
+    document.getElementById('mpJobWork').textContent = req.jobWorkName || currentJobWorks[jwIdx].workType || '';
+    document.getElementById('mpReason').textContent = req.reason || '';
+    document.getElementById('mpRequestedBy').textContent = req.requestedBy || '';
+    document.getElementById('mpPayMode').value = 'Cash';
+    document.getElementById('mpTxnId').value = '';
+    document.getElementById('mpPayDate').value = new Date().toISOString().split('T')[0];
+    document.getElementById('mpNotes').value = '';
+    document.getElementById('markPaidModal').classList.add('show');
+  }
+
+  async function saveMarkPaid() {
+    const jw = currentJobWorks[_markPaidJwIdx];
+    const req = jw.paymentRequests[_markPaidReqIdx];
+    if (!req) return;
+    const payMode = document.getElementById('mpPayMode').value;
+    const txnId = document.getElementById('mpTxnId').value.trim();
+    const payDate = document.getElementById('mpPayDate').value;
+    const notes = document.getElementById('mpNotes').value.trim();
+    if (!payDate) { showToast('Select payment date', 'danger'); return; }
+    const userName = window.currentUserName || sessionStorage.getItem('crm_name') || 'Unknown';
+    const userEmail = window.currentUserEmail || sessionStorage.getItem('crm_email') || '';
+    req.status = 'paid';
+    req.paidBy = userName;
+    req.paidByEmail = userEmail;
+    req.paidAt = new Date().toISOString();
+    req.paymentMode = payMode;
+    req.transactionId = txnId;
+    req.paymentDate = payDate;
+    req.accountantNotes = notes;
+    if (!jw.payments) jw.payments = [];
+    jw.payments.push({
+      amount: req.amount,
+      mode: payMode,
+      date: payDate,
+      note: 'Payment Request: ' + req.reason + (txnId ? ' | TXN: ' + txnId : ''),
+      paidBy: userName,
+      createdAt: new Date().toISOString()
+    });
+    await saveJobWorksToFirestore();
+    document.getElementById('markPaidModal').classList.remove('show');
+    renderJobWorks();
+    renderPaymentRequests(_prCurrentFilter);
+    showToast('Payment marked as paid!', 'success');
+    try {
+      const usersSnap = await db.collection('users').get();
+      usersSnap.forEach(function(ud) {
+        const u = ud.data();
+        if (u.email === req.requestedByEmail || ['admin','superadmin'].includes(u.role)) {
+          TIC_NOTIF.send(db, u.name || u.email, 'Payment of Rs ' + parseFloat(req.amount||0).toLocaleString('en-IN') + ' for ' + (jw.workType||'Job Work') + ' marked as paid by ' + userName, 'payment', 'projects.html');
+        }
+      });
+    } catch(e) { console.error('Notification error:', e); }
+  }
+
+  async function rejectPaymentRequest(jwIdx, reqIdx) {
+    const reason = prompt('Reason for rejection (required):');
+    if (reason === null) return;
+    if (!reason.trim()) { showToast('Please enter a rejection reason', 'danger'); return; }
+    const jw = currentJobWorks[jwIdx];
+    const req = jw.paymentRequests[reqIdx];
+    const userName = window.currentUserName || sessionStorage.getItem('crm_name') || 'Unknown';
+    req.status = 'rejected';
+    req.rejectedReason = reason.trim();
+    req.rejectedBy = userName;
+    req.rejectedAt = new Date().toISOString();
+    await saveJobWorksToFirestore();
+    renderPaymentRequests(_prCurrentFilter);
+    showToast('Request rejected', 'danger');
+    try {
+      const usersSnap = await db.collection('users').get();
+      usersSnap.forEach(function(ud) {
+        const u = ud.data();
+        if (u.email === req.requestedByEmail) {
+          TIC_NOTIF.send(db, u.name || u.email, 'Your payment request of Rs ' + parseFloat(req.amount||0).toLocaleString('en-IN') + ' for ' + (jw.workType||'Job Work') + ' was rejected: ' + reason.trim(), 'payment', 'projects.html');
+        }
+      });
+    } catch(e) { console.error('Notification error:', e); }
   }
 
   async function saveJobWorksToFirestore() {
@@ -3002,6 +3271,87 @@ function renderProjects() {
     <div class="modal-footer">
       <button class="btn btn-danger" onclick="document.getElementById('addPaymentModal').classList.remove('show')"><i class="fas fa-times"></i> Cancel</button>
       <button class="btn btn-primary" onclick="savePayment()"><i class="fas fa-save"></i> Log Payment</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- MARK PAID MODAL -->
+<div class="modal-overlay" id="markPaidModal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <h3><i class="fas fa-check-circle"></i> Mark as Paid</h3>
+      <button class="modal-close" onclick="document.getElementById('markPaidModal').classList.remove('show')"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <div style="background:rgba(76,175,80,0.08);border:1px solid rgba(76,175,80,0.2);border-radius:10px;padding:12px;margin-bottom:16px;">
+        <div style="font-size:13px;color:var(--subtext);margin-bottom:4px;">Payment Request Details</div>
+        <div style="font-size:20px;font-weight:700;color:var(--success);" id="mpAmount">Rs 0</div>
+        <div style="font-size:12px;color:var(--subtext);margin-top:4px;"><b>Job Work:</b> <span id="mpJobWork"></span></div>
+        <div style="font-size:12px;color:var(--subtext);margin-top:2px;"><b>Reason:</b> <span id="mpReason"></span></div>
+        <div style="font-size:12px;color:var(--subtext);margin-top:2px;"><b>Requested by:</b> <span id="mpRequestedBy"></span></div>
+      </div>
+      <div class="mform-group">
+        <label>Payment Mode *</label>
+        <select id="mpPayMode">
+          <option value="Cash">Cash</option>
+          <option value="UPI">UPI</option>
+          <option value="Transfer">Bank Transfer</option>
+          <option value="Cheque">Cheque</option>
+        </select>
+      </div>
+      <div class="mform-group">
+        <label>Transaction ID / Reference (optional)</label>
+        <input type="text" id="mpTxnId" placeholder="UPI ref, cheque no, etc."/>
+      </div>
+      <div class="mform-group">
+        <label>Payment Date *</label>
+        <input type="date" id="mpPayDate"/>
+      </div>
+      <div class="mform-group">
+        <label>Notes (optional)</label>
+        <input type="text" id="mpNotes" placeholder="Any additional notes"/>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" onclick="document.getElementById('markPaidModal').classList.remove('show')"><i class="fas fa-times"></i> Cancel</button>
+      <button class="btn btn-primary" onclick="saveMarkPaid()"><i class="fas fa-check"></i> Confirm Payment</button>
+    </div>
+  </div>
+</div>
+
+<!-- PAYMENT REQUEST MODAL -->
+<div class="modal-overlay" id="paymentRequestModal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <h3><i class="fas fa-money-bill-wave"></i> Request Payment</h3>
+      <button class="modal-close" onclick="document.getElementById('paymentRequestModal').classList.remove('show')"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="mform-group">
+        <label>Job Work</label>
+        <input type="text" id="prJobWorkName" readonly style="background:rgba(255,255,255,0.05);color:var(--subtext);"/>
+      </div>
+      <div class="mform-group">
+        <label>Category</label>
+        <input type="text" id="prCategory" readonly style="background:rgba(255,255,255,0.05);color:var(--subtext);"/>
+      </div>
+      <div class="mform-group">
+        <label>Amount (Rs) *</label>
+        <input type="number" id="prAmount" placeholder="e.g. 15000"/>
+      </div>
+      <div class="mform-group">
+        <label>Reason *</label>
+        <input type="text" id="prReason" placeholder="e.g. First installment, Advance"/>
+      </div>
+      <div class="mform-group">
+        <label>Notes (optional)</label>
+        <input type="text" id="prNotes" placeholder="Any additional details"/>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" onclick="document.getElementById('paymentRequestModal').classList.remove('show')"><i class="fas fa-times"></i> Cancel</button>
+      <button class="btn btn-primary" onclick="savePaymentRequest()"><i class="fas fa-paper-plane"></i> Submit Request</button>
     </div>
   </div>
 </div>
