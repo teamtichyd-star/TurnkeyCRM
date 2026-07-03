@@ -1,9 +1,9 @@
 =======================================================
 TURNKEY CRM — AI CONTEXT FILE
 =======================================================
-Last Updated: 01 June 2026
-Current Session Working On: Google Ads -> CRM Lead Integration (IN PROGRESS)
-Next Session Should Start With: Test push reliability on mobile
+Last Updated: 03 July 2026
+Current Session Working On: Vendor Payment Workflow (COMPLETE)
+Next Session Should Start With: Admin Feature Control Panel (Phase 2)
 =======================================================
 
 PROJECT OVERVIEW:
@@ -28,18 +28,23 @@ FIREBASE:
 - App ID: 9bc49e74-801f-4ffb-ab7e-ea78ba2f1089
 
 PAGES IN THE APP:
-1. index.html       → Dashboard / Login + Parent shell (bell lives here)
-2. leads.html       → Lead Management
-3. projects.html    → Project Tracking + Payments + Snag List
-4. tasks.html       → Task Management
-5. followups.html   → Follow-up Tracker
-6. sheets.html      → Sheets/Reports
-7. export.html      → Data Export
-8. admin-panel.html → Admin Controls
-9. client-view.html → Client Portal (Snag List + Payments)
+1. index.html            -> Dashboard / Login + Parent shell (bell lives here)
+2. leads.html            -> Lead Management
+3. projects.html         -> Project Tracking + Payments + Snag List + Expenditure
+4. tasks.html            -> Task Management
+5. followups.html        -> Follow-up Tracker
+6. sheets.html           -> Sheets/Reports
+7. export.html           -> Data Export
+8. admin-panel.html      -> Admin Controls
+9. client-view.html      -> Client Portal (Snag List + Payments)
+10. vendors.html         -> Vendor Management
+11. attendance.html      -> Attendance (mark own)
+12. attendance-admin.html -> Attendance Admin (all users + CSV)
+13. staff-profile.html   -> Staff Profile Form
+14. staff-profile-admin.html -> Staff Directory (admin only)
 
 KEY JS FILES:
-- js/notifications.js → TIC_NOTIF engine (in-app + web push)
+- js/notifications.js -> TIC_NOTIF engine (in-app + web push)
 - js/userManagement.js
 
 RULES FOR ALL AIs — FOLLOW STRICTLY:
@@ -62,115 +67,156 @@ USER ROLES:
 - Designer can see ALL projects
 - Supervisor sees only assigned
 
-CURRENT MODULE STATUS:
-- Dashboard:      complete
-- Leads:          complete (notifications added)
-- Projects:       complete (notifications added)
-- Tasks:          complete (notifications added)
-- Follow-ups:     complete (notifications added)
-- Sheets:         complete
-- Export:         complete
-- Admin Panel:    complete
-- Client Portal:  complete (snag notifications added)
-- Notifications:  complete (in-app + web push; mobile shows white silhouette in status bar - Android PWA limitation, not bug)
-
 FIRESTORE COLLECTIONS (DO NOT RENAME):
-- users               → name, email, role, notifications[]
-- leads               → name, phone, status, assignedTo
-- projects            → name, client, manager, snags[], updates[]
-- tasks               → title, assignedTo, status
-- followups           → name, date, assignedTo
-- notifications       → to, toName, title, body, type, link, read, createdAt
+- users               -> name, email, role, notifications[]
+- leads               -> name, phone, status, assignedTo
+- projects            -> name, client, manager, snags[], updates[], jobWorks[]
+- tasks               -> title, assignedTo, status, comments[]
+- followups           -> name, date, assignedTo
+- notifications       -> to, toName, title, body, type, link, read, createdAt
+- vendors             -> name, phone, workType, gst, pan, upi
+- attendance          -> userEmail, userName, date, time, type, gpsLat, gpsLng, gpsAddress, projectId, projectName, notes, createdAt
+- staffProfiles       -> employeeId, fullName, email, mobile1/2/3, address, emergency, aadhar/pan, education, work, bank, declarationAccepted, profileStatus, driveFolderId
 
 =======================================================
-NOTIFICATION SYSTEM (FULLY DOCUMENTED)
+VENDOR PAYMENT WORKFLOW — COMPLETE (v18.3)
 =======================================================
 
-✅ HOW IT WORKS:
-- Call TIC_NOTIF.send(db, userName, message, type, link)
-- Auto-resolves userName → email via users collection
-- Writes to 'notifications' collection
-- Bell badge updates real-time (onSnapshot listener)
-- OS notification fires if Notification.permission granted
+WHAT WAS BUILT (Session 03 July 2026):
 
-📍 WHERE TIC_NOTIF.send IS CALLED:
-- projects.html (4 places): new project, update, manager assign, snag
-- tasks.html (2 places): new + update
-- leads.html (2 places): new + update
-- followups.html (2 places): new + update
-- client-view.html (1 place): client adds snag → notify project manager
+1. CATEGORY FIELD on Job Works
+   - "In Quote" (green badge) or "Additional Work" (orange badge)
+   - Shows on job work card
+   - editJobWork() loads category correctly
 
-🔔 BELL HTML LOCATION:
-- File: index.html (parent shell, NOT in iframes)
-- Element IDs: notifBell, bellIcon, notifCount
-- Click handler: showNotifications()
-- Real-time listener: listenNotifications(userEmail) using onSnapshot
-- Variable: window._notifUnsub (unsubscribe handle)
+2. REQUEST PAYMENT BUTTON on job work cards
+   - Blue money-bill-wave button
+   - Visible to: admin, superadmin, manager, supervisor, accounts
+   - Opens Payment Request modal
 
-🎯 WEB PUSH (OS NOTIFICATIONS):
-- Permission button: enablePushNotifications() in index.html
-- Uses service worker: navigator.serviceWorker.ready.showNotification()
-- Service worker file: sw.js (handles notification clicks)
-- Icon URL: https://teamtichyd-star.github.io/TurnkeyCRM/icon-192.png
-- Sound + vibration: vibrate: [300, 100, 300, 100, 300]
+3. PAYMENT REQUEST MODAL
+   - Fields: Scope (Within Scope / Additional Work), Amount, Reason, Notes
+   - Job Work name + Category shown read-only
+   - Hard block: cannot exceed available balance
+   - Saves to jw.paymentRequests[] with status='pending'
+   - Notifies all admins + accounts via bell
 
-📌 RESTORE POINTS (git tags):
-- v1-notifications-complete = stable in-app only
-- v2-webpush-stable = current (web push added)
-- working-notifications-v1 = early stable
-- stable-no-bell = before any bell work
+4. PAY REQUESTS SUB-TAB (3rd sub-tab in Expenditure)
+   - Filter buttons: All / Pending / Paid / Rejected
+   - Pending badge count on tab button
+   - Request cards show: amount, job work, category, scope, requester, date, reason, status
+   - Paid cards show: payment mode, TXN ID, date, accountant notes
+   - Rejected cards show: rejection reason
 
-KNOWN ISSUES:
-- Web push fires intermittently on mobile (works sometimes, not always)
-- Suspected: service worker cache, OS battery saver, PWA not installed
-- iOS requires PWA install + iOS 16.4+
-- "Fetch event handler no-op" warnings = harmless service worker warning
-- OneSignal old code disabled (commented out) but still in files
+5. MARK PAID MODAL (accounts/admin)
+   - Fields: Payment Mode, TXN ID, Date, Notes
+   - Auto-logs to jw.payments[] for tracking
+   - Notifies requester + admins
+
+6. REJECT (accounts/admin)
+   - Prompt for rejection reason
+   - Notifies requester with reason
+
+7. ADMIN EDIT/DELETE
+   - Edit pending request: change amount, scope, reason
+   - Edit paid request: change payment details
+   - Delete any request (removes from payments log if paid)
+   - Visible to: admin, superadmin ONLY
+
+8. ADDITIONAL WORKS SUMMARY in Expenditure
+   - Summary card shows: Total Contract / Total Paid / Balance (top)
+   - Additional Works breakdown below: Contract / Paid / Pending (orange)
+   - Calculated from jw.category === 'Additional Work'
+
+DATA STRUCTURES:
+
+Job Work object:
+{
+  id, workType, vendorId, vendorName,
+  contractValue,
+  category: "In Quote" | "Additional Work",
+  status: "active",
+  notes,
+  payments: [ {amount, mode, date, note, paidBy, createdAt} ],
+  paymentRequests: [ ...see below... ]
+}
+
+Payment Request object:
+{
+  id: "pr_" + timestamp,
+  amount, reason, notes,
+  scope: "Within Scope" | "Additional Work",
+  category: "In Quote" | "Additional Work",
+  jobWorkName,
+  requestedBy, requestedByEmail, requestedAt,
+  status: "pending" | "paid" | "rejected",
+  paidBy, paidByEmail, paidAt,
+  transactionId, paymentMode, paymentDate, accountantNotes,
+  rejectedReason, rejectedBy, rejectedAt,
+  lastEditedBy, lastEditedAt
+}
+
+ROLE PERMISSIONS (Payment Workflow):
+- Request Payment:  admin, superadmin, manager, supervisor, accounts
+- Mark Paid:        admin, superadmin, accounts
+- Reject:           admin, superadmin, accounts
+- Edit Request:     admin, superadmin ONLY
+- Delete Request:   admin, superadmin ONLY
+- Edit Payment:     admin, superadmin ONLY
+
+KEY GOTCHAS LEARNED:
+1. Role variable in projects.html is 'currentUserRole' (local var from URL param)
+   NOT window.currentUserRole — always use: currentUserRole || window.currentUserRole
+2. HTML sub-sections added to SPA must be verified with grep after Python write
+3. switchExpSubTab must use null-safe checks for all section divs
 
 =======================================================
-PENDING UI FIXES:
+GIT TAGS (RESTORE POINTS):
 =======================================================
-- Share tab: WhatsApp button should be green, Email button should be blue
-- Client portal: GST breakdown missing in payments tab
-- Share tab: WhatsApp button green styling not applying
+- v18.3-vendor-payment-complete = CURRENT STABLE (full payment workflow)
+- v18.2-vendor-payment-requests = payment requests tab
+- v18.1-vendor-payment-wip = category field only
+- v18-tasks-comments-mobile-notifications = before vendor payment work
+- v17-staff-profile-complete = staff profile module
+- v16-stable-drive-integration = drive integration
+- v15-stable-permissions-stage3-complete = permissions
+- v12-permissions-stage2 = permissions stage 2
+- v10-attendance-module-live = attendance module
+- v9-expenditure-mobile-ux = expenditure + mobile UX
+- v8-vendors-module-live = vendors module
+- v7-firestore-rules-locked = firestore rules
+- v6-zapier-notifications-live = zapier notifications
 
 =======================================================
-COMPLETED IN PREVIOUS SESSIONS:
-=======================================================
-- Fixed projects page (try-catch syntax error)
-- Designer role can access all projects
-- Added Snag List + Payments tabs to client portal
-- Removed 4 duplicate sendSnagNotification functions
-- Built complete notification system (in-app + web push)
-- Real-time bell updates via onSnapshot
-- Auto mark-read on bell click
-- Logo on push notifications
-
-=======================================================
-TODO / NEXT SESSION:
+PENDING NEXT SESSION (in priority order):
 =======================================================
 
-🔴 PRIORITY - DEBUG NOTIFICATIONS:
-- [ ] Test why mobile push fails sometimes
-- [ ] Verify service worker properly registered on each device
-- [ ] Add console logs to track notification flow
-- [ ] Test with PWA installed vs browser tab
-- [ ] Check phone battery optimization settings
-- [ ] Document working/non-working scenarios
+1. 🔴 ADMIN FEATURE CONTROL PANEL (Phase 2)
+   - Unified permission system per user
+   - Control who can: request payment, mark paid, edit, delete
+   - Merge with existing permissions stage 3
+   - Already agreed: build after payment workflow complete
 
-🟡 PENDING UI:
-- [ ] WhatsApp button green (share tab)
-- [ ] Email button blue (share tab)
-- [ ] GST breakdown in client portal payments
-- [ ] Notification action buttons (Mark Done, Open)
+2. 🟡 CASH FLOW ENHANCEMENTS
+   - Show pending payment requests amount in summary
+   - (Paid + Pending Requests + True Balance)
 
-🟢 FUTURE (LARGER WORK):
-- [ ] Real WhatsApp-like push when app closed
-  → Requires Firebase Cloud Functions (Blaze plan)
-  → Free tier sufficient for normal usage
-  → Requires credit card on file
-- [ ] Capacitor wrap → Play Store deployment
-- [ ] Native FCM for true background notifications
+3. 🟡 SNAG -> TASK SYNC
+   - When snag added -> auto-create task
+   - Two-way status sync
+   - SNAG badge on task card
+
+4. 🟢 UI POLISH (carryover)
+   - WhatsApp button green (#25D366)
+   - Email button blue (#4A90E2)
+   - GST breakdown in client portal payments
+
+5. 🟢 NICE-TO-HAVE
+   - Expense Tracking module (project P&L)
+   - Invoice Generator (PDF)
+   - PWA Install Prompt banner
+   - Global Search
+   - Auto-mark Sundays as Weekly Off
 
 =======================================================
 GIT WORKFLOW:
@@ -185,855 +231,4 @@ ROLLBACK LAST COMMIT:
   git reset --hard HEAD~1 && git push origin main --force
 
 RESTORE STABLE POINT:
-  git checkout v2-webpush-stable
-
-TERMINAL SHORTCUT (set once):
-  echo 'alias crm="cd ~/Desktop/TIC/CRMLocal/TurnkeyCRM"' >> ~/.zshrc
-  source ~/.zshrc
-  Then just type 'crm' from anywhere
-
-=======================================================
-DEBUGGING TIPS:
-=======================================================
-- Bell not updating? → Check listenNotifications() called on login
-- Notification not sending? → Check Firestore 'notifications' collection
-- Web push not firing? → Check Notification.permission === 'granted'
-- Service worker cached? → Chrome → site settings → clear & reset
-- Check console for: "✅ Notification sent to..." (confirms TIC_NOTIF works)
-
-=======================================================
-
-
-=======================================================
-SESSION UPDATE - 01 June 2026
-=======================================================
-
-WORKING ON: Google Ads Lead Form -> CRM Auto-Integration
-
-PROGRESS:
-- Decided: Zapier (Option E) - extend existing Google Ads -> Telegram zap
-- Added Firebase Firestore action to Zap (3rd step)
-- Test sent record to Firestore successfully
-- BUT broke leads page (missing fields error)
-- Discovered 90+ existing leads also missing 'assignedTo' field
-- FIXED: Added empty defaults to all existing leads
-- DELETED: Bad Zapier test lead (QhXIsDZrq8ZnK7zsMpue)
-- Leads page working again
-
-WHERE TO RESUME:
-- Zapier Firebase action is configured but NOT published
-- Need to: properly map ALL required fields in Zapier
-- Need to: test again with safe defaults
-- Need to: add notification trigger when lead created via Zapier
-
-REQUIRED LEAD FIELDS (from leads.html saveLead function):
-- name (required)
-- phone (required)
-- email
-- company
-- projectType
-- location
-- budget
-- source
-- status (default: 'New')
-- followupDate
-- followupNote
-- assignedTo (default: 'Mustaq')
-- area
-- notes
-- date
-- createdAt
-- updatedAt
-
-ASSIGNMENT RULE:
-- All Google Ads leads -> assignedTo: "Mustaq" (manager role)
-- Mustaq email: admin@sbinteriorsolutions.net
-
-LEAD SOURCE FORMAT FROM TELEGRAM:
-- Name + Last Name -> combine into 'name'
-- Phone -> phone (strip country code if present)
-- Email -> email
-- Requirements -> notes
-- Form Name -> source as "Google Ads - [Form Name]"
-- Submitted date -> date field
-
-PENDING NEXT SESSION:
-1. Re-configure Zapier Firebase action with ALL fields mapped
-2. Use empty strings for blank fields (NOT undefined)
-3. Test once - verify leads page works
-4. Add: When Zapier creates lead -> also write to 'notifications' collection
-   so Mustaq gets bell notification
-5. Then publish Zap
-6. Later: add notifications to other pages from PENDING UI section
-
-CRITICAL LEARNING:
-- Firestore documents from Zapier MUST have ALL fields with proper types
-- Missing field = undefined = breaks .toLowerCase() in filterLeads
-- Always send empty string '' instead of leaving field out
-
-=======================================================
-
-=======================================================
-SESSION UPDATE - 03 June 2026
-=======================================================
-
-✅ COMPLETED: Google Ads -> Zapier -> CRM Integration LIVE!
-
-ARCHITECTURE (FREE PLAN OPTIMIZED):
-- Zap 1: "Tic leads to telegram" (existing)
-    Google Ads -> Telegram alert (1 task)
-- Zap 2: "Google Ads to CRM" (NEW, LIVE)
-    Google Ads -> Firestore 'leads' collection (1 task)
-- Total: 2 tasks per lead = 50 leads/month FREE
-
-ZAPIER FIELD MAPPING (Zap 2):
-- name: Full Name
-- phone: Phone Number (raw, with +91)
-- notes: Could You Tell Us More About Your Project
-- source: "Google Ads" (hardcoded)
-- status: "New" (hardcoded)
-- assignedTo: "Mustaq" (hardcoded)
-- email: (empty space - form has email but not required)
-- 8 other empty fields skipped (CRM auto-fills)
-- date/createdAt/updatedAt: skipped (CRM auto-fills)
-
-CRM PATCH (leads.html loadLeads function):
-- Strips +91 prefix from phone on display
-- Auto-fills missing createdAt/date/updatedAt
-- Defaults blank fields to empty strings (prevents .toLowerCase crashes)
-- Defaults status to 'New', assignedTo to '' if missing
-- Won't affect existing 90+ leads (they already have all fields)
-
-KNOWN BEHAVIOR:
-- Phone stored in Firestore WITH +91 (raw from Google Ads)
-- Phone displayed in CRM WITHOUT +91 (normalized on load)
-- WhatsApp links work correctly: https://wa.me/91{stripped_phone}
-- Test lead "Adinath k Wadekar" exists in CRM (can delete)
-
-GOOGLE ADS FORM FIELDS:
-- Full Name (required)
-- Phone Number (required, +91 format)
-- Email (optional, NOT required by Google Ads rule)
-- Could You Tell Us More About Your Project (free text)
-
-ZAPIER FREE PLAN LIMITS:
-- 100 tasks/month total
-- 2-step Zaps only (3+ steps = Pro plan trigger)
-- Formatter steps require Pro
-- Triggers are FREE (don't count)
-
-PENDING NEXT SESSION:
-1. Add bell notification for Mustaq when Zapier lead arrives
-   - Implementation: Firestore onSnapshot listener in leads.html
-   - Detect new leads where source='Google Ads' AND assignedTo='Mustaq'
-   - Call TIC_NOTIF.send() to write notification + trigger bell
-   - FREE - runs in browser, no Zapier task used
-2. Test web push reliability on mobile (carry over from previous session)
-3. Pending UI fixes (WhatsApp green, Email blue buttons, GST breakdown)
-
-RESTORE POINTS:
-- v5-google-ads-integration-live = CURRENT STABLE
-- v4-google-ads-integration-wip = before this session
-- v3-notifications-final = before Google Ads work
-- v2-webpush-stable = web push baseline
-- v1-notifications-complete = in-app notif baseline
-
-
-=======================================================
-SESSION UPDATE - 03 June 2026 (Part 2)
-=======================================================
-
-✅ COMPLETED: Auto-Bell Notification for Google Ads Leads
-
-IMPLEMENTATION:
-- Added Firestore onSnapshot listener at bottom of leads.html
-- Listener wrapped in <script> tags (was floating outside, didn't run)
-- Uses zapierListenerReady flag (3s timeout) to skip initial page load
-- Filters: lead.source === 'Google Ads' only
-- Notifies BOTH:
-    * Mustaq (manager)
-    * admin@sbinteriorsolutions.net (main admin)
-- Cost: ZERO Zapier tasks (runs in browser)
-
-DEBUG LOGS IN CONSOLE:
-- 📡 Firestore snapshot received, changes: N
-- ➕ Added lead: NAME | source: X | armed: true/false
-- 🔔 Zapier listener now armed (after 3s)
-- ✅ New Google Ads lead detected! Sending notifications...
-
-KNOWN LIMITATION (CARRY OVER):
-- Mobile push notification favicon sometimes missing
-- Android status bar shows white silhouette (OS-level, not bug)
-- Documented as known issue, deferred for dedicated session
-
-RESTORE POINTS:
-- v6-zapier-notifications-live = CURRENT STABLE (auto-bell working)
-- v5-google-ads-integration-live = before notifications
-- v4-google-ads-integration-wip = before this session
-
-PENDING NEXT SESSION:
-1. Debug mobile push reliability (favicon + intermittent delivery)
-   - Check service worker cache strategy
-   - Verify icon URL works on mobile data
-   - Test PWA install vs browser tab behavior
-2. Pending UI fixes:
-   - WhatsApp button green (share tab)
-   - Email button blue (share tab)
-   - GST breakdown in client portal payments
-3. Consider: Add Telegram step removal if redundant (save 50 leads/month)
-
-
-
-=======================================================
-SESSION UPDATE - 03 June 2026 (Part 3)
-=======================================================
-
-ATTEMPTED: Firestore Security Rules Hardening - FAILED
-
-CURRENT STATE:
-- Firestore rules are OPEN (allow read, write: if true)
-- CRM working perfectly with open rules
-- Database is publicly accessible via API (CRITICAL VULNERABILITY)
-
-WHAT WAS TRIED:
-1. Strict role-based rules with isAdmin() helper - FAILED (permission denied)
-2. Simpler isAuth() only rules - FAILED (permission denied)
-3. Multiple rule variations - all FAILED
-
-DIAGNOSTICS CONFIRMED:
-- Firebase Auth works in iframes (currentUser populated)
-- User email: info@sbinteriorsolutions.net
-- User doc exists at /users/{email} with role: admin
-- Auth token has email field
-- BUT rules still block all reads/writes when isAuth() check applied
-
-UNKNOWN ROOT CAUSE - NEEDS INVESTIGATION:
-- Possibly: service worker caching old auth state
-- Possibly: iframe origin not matching auth domain
-- Possibly: email not in token claims (may need email verification)
-- Possibly: rule syntax issue with get() lookup
-- Possibly: token timing - rules check before token fully ready
-
-CRM AUTH ARCHITECTURE:
-- Login: index.html uses auth.signInWithEmailAndPassword()
-- User creation: admin-panel.html uses secondaryAuth.createUserWithEmailAndPassword()
-- Users collection: doc ID = email, has uid field
-- Pages use iframes (each child page loaded inside index.html)
-- URL params like role=admin are DISPLAY ONLY, not security
-- Real auth handled by Firebase
-
-PENDING NEXT SESSION (PRIORITY 1):
-1. Debug WHY strict Firestore rules fail despite valid auth
-2. Deploy working strict rules
-3. Tag stable: v7-secure-auth
-
-PENDING AFTER SECURITY FIX:
-1. Build Vendors page (vendors.html)
-2. Build Expenditure tab in projects.html with Job Work Contracts and payment log
-3. Mobile push reliability fix
-4. UI fixes (WhatsApp green, Email blue, GST breakdown)
-
-DESIGN AGREED FOR VENDOR/EXPENDITURE:
-- New collection: vendors (name, phone, workType, gst, pan, upi)
-- Job works and expenditures as nested arrays in projects docs
-- Payment modes: Cash, UPI, Transfer
-- Admin can change job work value
-- No GST tracking, no bill uploads
-- Labour only (material via Zoho)
-- One job work per vendor per project
-- All except client can view/add expenditure
-- Mobile-responsive matching existing UI theme
-
-RESTORE POINTS:
-- v6.1-pre-vendor-feature = before security attempt
-- v6-zapier-notifications-live = STABLE (use for rollback)
-- v5-google-ads-integration-live
-- v4-google-ads-integration-wip
-
-═══════════════════════════════════════════════════════════
-SESSION UPDATE - 04 June 2026
-═══════════════════════════════════════════════════════════
-
-✅ FIRESTORE RULES SUCCESSFULLY LOCKED
-
-ROOT CAUSES IDENTIFIED:
-1. firebase-auth-compat.js was missing from 6 HTML files
-2. Init functions ran BEFORE auth state was ready (race condition)
-3. authStateReady() doesn't exist in Firebase compat SDK 10.12.0
-
-FIXES APPLIED:
-- Added firebase-auth-compat.js to all pages
-- Wrapped all init calls in firebase.auth().onAuthStateChanged()
-- Locked Firestore rules to per-collection with isSignedIn()
-
-COLLECTIONS ALLOWED:
-leads, users, tasks, projects, followups, notifications
-
-STABLE TAG: v7-firestore-rules-locked
-
-═══════════════════════════════════════════════════════════
-SESSION UPDATE - 04 June 2026 (Firestore Rules Fixed)
-═══════════════════════════════════════════════════════════
-
-✅ FIRESTORE RULES SUCCESSFULLY LOCKED FROM OPEN
-
-ROOT CAUSES (took full day to diagnose):
-1. firebase-auth-compat.js was MISSING from 6 HTML files
-   (only firebase-app + firebase-firestore were loaded)
-2. Init functions ran BEFORE auth state was ready (race condition)
-3. authStateReady() does NOT exist in Firebase compat SDK 10.12.0
-   (only available in modular v9+ modules)
-
-FIXES APPLIED:
-- Added firebase-auth-compat.js to:
-  client-view.html, export.html, followups.html,
-  leads.html, sheets.html, tasks.html
-- Wrapped all loadX() init calls in firebase.auth().onAuthStateChanged()
-- Locked Firestore rules to per-collection with isSignedIn()
-
-COLLECTIONS WITH RULES:
-leads, users, tasks, projects, followups, notifications
-(All others blocked with `if false`)
-
-STABLE TAG: v7-firestore-rules-locked
-
-NEXT POSSIBLE TASK:
-- Role-based access control (admin / sales / supervisor)
-- Currently any signed-in user can read/write all collections
-
-=======================================================
-SESSION LOG — 05 June 2026
-=======================================================
-
-✅ COMPLETED TODAY:
-
-1. VENDORS MODULE — Integrated into SPA
-   - vendors.html rewritten to match leads.html style exactly
-   - Removed standalone bottom nav (index.html handles it)
-   - Added to index.html: iframe page block, sidebar menu item, bottom nav item
-   - Added 'vendors' to all roleModules (superadmin, admin, manager, supervisor, purchase, designer, accounts)
-   - Added 'vendors' to pageTitles + allMenus loop + role-restriction loops
-   - Added projectmanager + client roles to roleModules/roleNames
-   - Role-based delete: only admin/superadmin can delete vendors
-   - All other roles: view + add + edit
-   - Fields: name, phone, workType, gst, pan, upi
-   - Search + filter by work type + sort
-   - Quick call + WhatsApp action buttons
-
-2. EXPENDITURE TAB in projects.html
-   - New tab inside project portal modal
-   - 2 sub-tabs: "Job Works" and "Vendor Payouts"
-   - Job Works sub-tab:
-     * Add Job Work modal (work type, vendor from dropdown, contract value, notes)
-     * Card shows: contract, paid, balance, payout %, progress bar
-     * SETTLED badge when fully paid
-     * Vendor call + WhatsApp buttons (cached from vendors collection)
-     * Admin only: edit + delete
-   - Vendor Payouts sub-tab:
-     * Filter by job work
-     * Log Payout button (with job work picker)
-     * All payouts list (sorted by date desc)
-     * Admin only: delete payout
-   - Summary card (always visible): Total Contract / Total Paid / Balance
-   - HARD BLOCK: cannot log payout exceeding remaining contract value
-   - Data stored as nested arrays in projects/{id}.jobWorks[]
-
-3. MOBILE UX FIXES (project portal)
-   - Removed Share tab (already available from project card)
-   - Portal tabs now 2-row grid (3 columns) — no horizontal scroll
-   - Sticky footer for Edit/Close buttons — always visible
-   - Better tab spacing + min-height for touch targets
-
-GIT TAGS:
-- v8-vendors-module-live — Vendors module integrated into SPA
-- v9-expenditure-mobile-ux — Expenditure + mobile UX improvements
-
-FIRESTORE COLLECTIONS NOW IN USE:
-- leads, users, tasks, projects, followups, notifications, vendors
-- projects docs now have nested array: jobWorks[] (each with payments[])
-
-KEY GOTCHAS LEARNED:
-1. SPA integration requires updates in 5 places:
-   - iframe-page block in HTML
-   - sidebar menu-item
-   - bottom-nav-item
-   - roleModules[] for each role
-   - pageTitles[]
-   - allMenus[] forEach loop
-   - role-restriction forEach loops (multiple)
-2. Iframe height must be calc(100vh - 70px) to match other iframe pages
-3. Heredoc with backticks (template literals) breaks bash — use Python file with string concat instead
-4. currentProjectIdForExp must be set inside openPortal() function
-
-NEXT SESSION SHOULD START WITH:
-- Mobile push notification reliability fix
-- UI polish: WhatsApp green, Email blue, GST breakdown
-- Optional: bell notifications for new job works/payouts
-
-
-=======================================================
-SESSION LOG — 06 June 2026 (Attendance Module)
-=======================================================
-
-✅ COMPLETED:
-
-1. ATTENDANCE MODULE (full build)
-   Files created:
-   - attendance.html (user-facing: mark + view own history)
-   - attendance-admin.html (admin: all users + CSV export)
-
-   Features:
-   - GPS REQUIRED (Geolocation API) — denied = can't submit
-   - Reverse geocoding via Nominatim (OpenStreetMap) — FREE, no API key
-   - 3 mark types: Present / Weekly Off / Holiday
-   - Project dropdown (auto-fetched from projects collection + "Office")
-   - One entry per day per user (doc id = email_date — prevents duplicates)
-   - Dashboard card showing today's status (auto-injected on dashboard page)
-   - 11 AM in-app banner + push notification if not marked
-   - Alert shown only once per day (tracked via localStorage)
-   - Monthly history view with stats (Present/Off/Holiday/Absent/Avg Time)
-   - Admin summary view: per-user stats + last location + GPS map link
-   - Admin detail view: every record with GPS coordinates
-   - CSV exports: Summary (for salary) + Detail (audit trail)
-   - Auto-cleanup: silently deletes records >60 days when admin opens page
-   - Manual cleanup button as backup
-   - Late detection: any check-in after 10:30 AM marked LATE
-
-   Firestore collection: attendance
-   Doc fields: userEmail, userName, date, time, type, gpsLat, gpsLng, gpsAddress, projectId, projectName, notes, createdAt
-
-   Firestore rules added:
-   match /attendance/{docId} { allow read, write: if isSignedIn(); }
-
-   Role access:
-   - All roles: attendance (view + mark own)
-   - admin/superadmin only: attendanceadmin (all users + export + cleanup)
-
-2. FREE TIER VERIFIED SAFE:
-   - 20 users × 1 entry/day = 20 writes/day (0.1% of 20K free)
-   - ~200 reads/day total (0.4% of 50K free)
-   - Storage: ~480 KB for 2 months (0.05% of 1 GB free)
-   - Even 100 users = only 2% of free limits
-
-3. FIXES APPLIED:
-   - History query: removed compound where(date>=, date<=) — fetch by email then filter client-side (avoids needing Firestore composite index)
-   - Admin table: replaced "Range" column with "Last Location" showing project + GPS address
-
-GIT TAG: v10-attendance-module-live
-
-KEY LEARNINGS:
-1. Firestore compound queries with where(==) + where(>=) + where(<=) need composite index — workaround: fetch single field then filter in JS
-2. Nominatim works perfectly for reverse geocoding without API key (just respect fair use)
-3. localStorage tracks one-time-per-day alerts well (key includes date)
-4. Geolocation API requires user gesture — auto-fetch on modal open works fine
-5. Doc ID pattern (email_date) auto-prevents duplicate entries — no need for query check first
-
-NEXT SESSION TASKS PENDING:
-- Mobile push notification reliability fix
-- UI polish: WhatsApp green, Email blue, GST breakdown
-- Optional: bell notifications for new job works/payouts
-- Optional: auto-mark Sundays as Weekly Off
-- Optional: configurable late time (currently hardcoded 10:30)
-
-
-=======================================================
-SESSION LOG — 06 June 2026 (Part 3: Permissions Stage 2)
-=======================================================
-
-✅ COMPLETED:
-- Stage 2: Sidebar + bottom nav + showPage() now respect custom user permissions
-- Admin/superadmin bypass — always see everything
-- Falls back to role defaults if no custom permissions saved
-- canReadModule(m) exposed globally as window._canReadModule for future use
-- First Stage 2 attempt broke CRM (white screen) — reverted, then surgical patch applied
-
-⚠️ NOT YET TESTED:
-- Need to test with non-admin user (Anusha) — pending next session
-- Verify custom permission saved in admin panel actually hides menu
-
-GIT TAG: v12-permissions-stage2
-
-NEXT SESSION:
-- Test Stage 2 with Anusha/manager account
-- Stage 3: wire edit/delete permissions inside each module (leads.html, projects.html, tasks.html, vendors.html, attendance.html, followups.html)
-- Mobile push notification reliability
-- UI polish: WhatsApp green, Email blue, GST breakdown
-
-
-
-=======================================================
-SESSION LOG — 22 June 2026 (Staff Profile Module)
-=======================================================
-
-✅ COMPLETED: Full Staff Profile System with Drive Integration
-
-FILES CREATED:
-- staff-profile.html (529 lines) - Employee profile form
-- staff-profile-admin.html (369 lines) - Admin directory view
-
-FILES MODIFIED:
-- index.html - Added SPA iframe pages, sidebar menu, roleModules
-- admin-panel.html - Added Staff Directory card
-- Apps Script (Google) - Extended with staff folder + file upload
-- Firestore rules - Added staffProfiles collection
-
-FEATURES BUILT:
-
-1. STAFF PROFILE FORM (staff-profile.html):
-   - 8 sections: Personal, Address, Emergency, ID Docs, Education, Work, Bank, Declaration
-   - Auto-generated Employee ID (EMP-YYYY-XXX format)
-   - Profile photo upload (max 2MB)
-   - Aadhar card photo upload (mandatory)
-   - PAN card photo upload (optional)
-   - Degree certificate photo upload (mandatory)
-   - Mobile 1 & 2 mandatory, Mobile 3 optional
-   - Emergency Phone 1 & 2 mandatory, Phone 3 optional
-   - "Same as permanent address" checkbox
-   - Save Draft (unlimited)
-   - Submit Profile (locks form, only admin can edit after)
-   - Declaration with 7 confidentiality points
-   - Captures: who agreed, when, employee ID
-
-2. ADMIN STAFF DIRECTORY (staff-profile-admin.html):
-   - Card-based grid view of all staff
-   - Stats: Total / Draft / Submitted / Verified
-   - Search by name, ID, mobile, email
-   - Filter by status (draft/submitted/verified)
-   - View full details modal
-   - Edit any field (admin override)
-   - Verify profile (changes status to verified)
-   - Open Drive folder link
-   - View individual document links (photo/aadhar/pan/degree)
-   - Export to CSV
-   - Access: admin/superadmin only
-
-3. GOOGLE DRIVE INTEGRATION:
-   - Auto-creates "Staff Records" parent folder (one-time)
-   - Per-staff folder: "EMP-2025-001_Full_Name/"
-   - Uploads: profile_photo.jpg, aadhar_card.jpg, pan_card.jpg, degree_certificate.jpg
-   - Drive folder URL saved to Firestore
-
-4. APPS SCRIPT EXTENDED (Code.gs):
-   Actions supported:
-   - createProjectFolder (existing, unchanged)
-   - createStaffFolder (NEW)
-   - uploadStaffFile (NEW - base64 upload)
-   - doGet (NEW - for testing/health check)
-
-5. FIRESTORE STRUCTURE:
-   Collection: staffProfiles
-   Document ID: user.uid
-   Fields: employeeId, fullName, email, mobile1/2/3, 
-           permanent/temporary address, emergency contact,
-           aadhar/pan numbers + photo URLs, education details,
-           work history, bank details, declarationAccepted,
-           declarationTimestamp, profileStatus, driveFolderId/URL,
-           photo URLs, submittedAt, verifiedAt, lastUpdated
-
-6. NOTIFICATIONS:
-   - When staff submits profile -> all admins get bell notification
-   - Uses existing notifications collection
-
-PERMISSIONS:
-- All staff roles see "My Profile" in sidebar (fill own profile only)
-- admin/superadmin see "Staff Directory" in sidebar
-- Staff cannot edit after submit
-- Admin can edit anyone anytime
-- Profile locks immediately on submit (per user request)
-
-KEY GOTCHAS LEARNED:
-1. iframe pages need CSS variables defined inside (parent vars don't cascade)
-2. Apps Script deployment URL changes only on "New deployment", not "New version"
-3. "Page not found" error from curl POST = wrong URL or access setting
-4. Need doGet function to test Apps Script in browser
-5. Firestore rules MUST include each new collection explicitly
-6. generateEmployeeId() must be awaited properly (was setting empty empId)
-7. Apps Script "Who has access" must be "Anyone" (not "Anyone with Google")
-
-ENVIRONMENT VALUES:
-- Apps Script URL: https://script.google.com/macros/s/AKfycbzHx0f5fFmL4slk9QoCyXQUieK5G7kyduTNcFLfKa6WbYQfpECy7tTR1CNwASMkQUHRXw/exec
-- Parent Drive Folder ID: 1Ne30UOA-T011qCEwY46HB9PgNeQ9ATE6
-- Parent folder name: "TurnkeyCRM Drive Folders"
-- Apps Script account: hari1.sbis@gmail.com
-- Drive account: same
-
-FIRESTORE RULES (current):
-match /staffProfiles/{docId} { allow read, write: if isSignedIn(); }
-
-GIT TAGS:
-- v17-staff-profile-complete = CURRENT STABLE (Staff Profile module live)
-- v16-stable-drive-integration = previous stable
-- v15-stable-permissions-stage3-complete = before
-
-PENDING NEXT SESSION:
-1. Optional: PWA install reminder
-2. Optional: Expense tracking module
-3. Optional: Invoice generator
-4. Optional: Global search
-5. Optional: Auto-mark Sundays as Weekly Off in attendance
-6. UI polish: WhatsApp green, Email blue, GST breakdown (carryover)
-7. Mobile push reliability (carryover)
-
-
-
-=======================================================
-SESSION LOG — 22 June 2026 (PART 2 - Tasks + Mobile + Notifications)
-=======================================================
-
-✅ COMPLETED IN THIS SESSION:
-
-1. TASKS MODULE ENHANCEMENTS
-   - Hide completed tasks by default in "All" tab
-   - "Show Completed" toggle button beside tabs
-   - Comments system per task (ClickUp/WhatsApp chat style)
-     * My comments right-aligned (golden)
-     * Others left-aligned (gray) with avatar + name
-     * Chronological order (oldest first)
-     * Auto-scroll to latest
-     * Enter to send, Shift+Enter for new line
-     * Prevent double-clicks with loading spinner
-     * Comment count badge on icon
-   - WhatsApp Reminder button per task
-     * Pre-filled message with task details
-     * Includes project name, due date, priority
-     * Includes status update link back to CRM
-   - Comments saved in tasks/{id}.comments[] array
-     * Schema: {by, email, date, timestamp, text}
-
-2. PROJECTS - RUNNING DAYS BADGE
-   - Shows on project card (visible to all staff, NOT client)
-   - Shows in project portal Start Date card
-   - Color coded:
-     * Green: 0-30 days
-     * Yellow: 31-60 days
-     * Orange: 61-90 days
-     * Red: 90+ days
-   - Function: getRunningDaysBadge(startDate)
-
-3. MOBILE RESPONSIVENESS FIXES (Comprehensive)
-   - Sidebar height: calc(100vh - 60px) to fit above bottom nav
-   - Sidebar-menu scrolls independently
-   - Sidebar-footer sticky at bottom (logout always visible)
-   - Project cards stack header vertically on mobile
-   - Project card actions wrap 4 buttons per row
-   - Added global mobile CSS in newstyle.css covering:
-     * Lead cards, task cards, vendor cards, followup cards
-     * Modals 95% width on mobile
-     * Tables horizontal scroll
-     * Filter bars stack
-     * Page headers stack
-     * Form rows single column
-
-4. NOTIFICATION SYSTEM OVERHAUL (3-Layer Reliable System)
-   - LAYER 1: In-page toast banner (always works)
-     * Slides up from bottom (mobile-friendly)
-     * Golden gradient design
-     * Auto-dismiss after 8 seconds
-     * Click to navigate
-     * Progress bar countdown
-   - LAYER 2: Web Audio API beep (no external CDN)
-     * WhatsApp-like two-tone (800Hz + 1000Hz)
-     * Vibrate on mobile [200,100,200]
-     * Reliable across all browsers
-   - LAYER 3: OS Push notification (best-effort, existing)
-   - Mute button next to bell icon
-     * Saved in localStorage
-     * Persists across sessions
-   - Bell icon pulses when unread notifications
-   - All in index.html
-
-FILES MODIFIED IN THIS SESSION:
-- index.html: notification system, sidebar mobile, bell pulse, toast
-- tasks.html: comments modal, WhatsApp button, hide completed toggle
-- projects.html: running days badge function + display
-- newstyle.css: global mobile responsive CSS
-
-FIRESTORE COLLECTION UPDATES:
-- tasks/{id}.comments[] = Array of {by, email, date, timestamp, text}
-- staffProfiles (added earlier in PART 1)
-
-KEY GOTCHAS LEARNED:
-1. Service worker doesn't run notifications when tab closed (need paid FCM)
-2. localStorage persists mute state across reloads (good UX)
-3. Web Audio API requires user gesture on iOS (won't auto-play silently)
-4. CSS transform animations work great for toast slide-in
-5. Comment buttons need preventDefault to avoid form submit issues
-6. Chat-style UI needs sort by timestamp ASC (not reverse)
-7. Mobile sidebar height MUST account for bottom nav (60px)
-8. Projects card needs 4-button wrap layout: flex: 1 1 calc(25% - 6px)
-
-GIT TAGS:
-- v18-tasks-comments-mobile-notifications = CURRENT STABLE
-- v17-staff-profile-complete = before this session
-- v16-stable-drive-integration = previous stable
-
-PENDING NEXT SESSION (in priority order):
-
-1. 🟡 SNAG -> TASK SYNC (discussed, not built)
-   - When snag added in project, auto-create task with:
-     linkedSnagId, linkedProjectId, source: "snag"
-   - Display SNAG badge on task card
-   - Two-way status sync:
-     * Task done -> snag status updates
-     * Snag complete -> task marked done
-     * Snag deleted -> task deleted
-   - Confirmed: Medium priority, 7-day default due date
-
-2. 🟢 UI POLISH (carryover)
-   - WhatsApp button green color (#25D366)
-   - Email button blue color (#4A90E2)
-   - GST breakdown in client portal payments
-
-3. 🟢 NICE-TO-HAVE
-   - Expense Tracking module (project P&L)
-   - Invoice Generator (PDF)
-   - PWA Install Prompt banner
-   - Global Search across all collections
-   - Auto-mark Sundays as Weekly Off
-   - Excel export improvements
-
-LIMITATIONS DOCUMENTED:
-- Web push when tab closed: requires Firebase Cloud Messaging (Blaze plan)
-- iOS Safari audio: may not play unless user interacted
-- Toast + sound only work when CRM tab is open
-
-
-
-=======================================================
-🚨 RESUME POINT — 22 June 2026 (Session Paused Here)
-=======================================================
-
-⏸️ STOPPED IN THE MIDDLE OF: Vendor Payment Approval Workflow (Phase 1)
-
-✅ STEP 1 COMPLETED IN THIS SESSION:
-- Added "Category" field to Job Work modal (In Quote / Additional Work)
-- saveJobWork() now saves category + initializes empty paymentRequests[] array
-- openAddJobWork() resets category to "In Quote" default
-
-🔴 NEXT STEP TO DO IMMEDIATELY WHEN RESUMING (Step 2):
-
-1. Update editJobWork() to load category from existing job work
-   Location: projects.html around line 2735
-   Add: document.getElementById('jwCategory').value = jw.category || 'In Quote';
-
-2. Update job work CARD rendering to show:
-   - Category badge (green for "In Quote", orange for "Additional Work")
-   - NEW button: "💰 Request Payment" (opens payment request modal)
-   Location: projects.html around line 2690-2705
-
-3. Build "Payment Request" modal:
-   - Fields: Amount, Reason, Category (auto), Job Work ref
-   - Save to project.jobWorks[i].paymentRequests[] with status="pending"
-   - Send notification to Accountants + Admins
-
-4. Build "Payment Requests" sub-tab UI:
-   - Filter: All / Pending / Paid / Rejected
-   - Show pending prominently at top
-
-5. Build "Mark as Paid" modal (accountant only):
-   - Fields: Payment Mode, Transaction ID, Payment Date, Notes
-   - Update request status to "paid"
-   - Also add to existing jw.payments[] for tracking
-   - Notify requester
-
-6. Build Cash Flow Summary Panel:
-   - Contract Total (In Quote + Additional breakdown)
-   - Paid Total (In Quote + Additional breakdown)
-   - Pending Requests amount
-   - Balance
-
-7. Role-based button visibility:
-   - "Raise Payment Request": admin, superadmin, manager, supervisor
-   - "Mark as Paid": admin, superadmin, accounts
-   - "Reject Payment": admin, superadmin, accounts
-
-8. Notifications flow:
-   - Request raised -> Accountants + Admins
-   - Payment done -> Requester + Admin
-   - Rejection -> Requester with reason
-
-📋 FULL CONFIRMED PLAN (already agreed upon):
-- Q1: Notifications to Accountants + All Admins
-- Q2: Yes, can reject with reason
-- Q3: Keep both (payments log + payment requests)
-- Q4: No partial payments - all or nothing
-- Q5: Default category = "In Quote"
-- Cash Flow Tracking: YES
-- Admin Feature Control Panel: YES (Phase 2 - next session after this)
-- Approach: Merge existing + new into unified permission system (Phase 2)
-- Real-time updates: Next page refresh
-
-📊 DATA STRUCTURES (already designed):
-
-Job Work object (enhanced):
-{
-  id, workType, vendorId, vendorName,
-  contractValue,
-  category: "In Quote" | "Additional Work",  ← NEW
-  status: "active",
-  notes,
-  payments: [ ...existing... ],
-  paymentRequests: [ ...NEW... ]  ← NEW
-}
-
-Payment Request object (NEW):
-{
-  id: "pr_" + timestamp,
-  amount: 15000,
-  reason: "First installment",
-  category: "In Quote",  // inherited from job work
-  requestedBy: userName,
-  requestedByEmail: userEmail,
-  requestedAt: timestamp,
-  status: "pending",  // "pending" / "paid" / "rejected"
-  
-  // Filled by accountant:
-  paidBy: "",
-  paidByEmail: "",
-  paidAt: null,
-  transactionId: "",
-  paymentMode: "",
-  paymentDate: null,
-  accountantNotes: "",
-  
-  // If rejected:
-  rejectedReason: ""
-}
-
-🎨 UI COMPONENTS TO BUILD:
-1. Category badge on job work card (green/orange)
-2. "Request Payment" button on card
-3. Payment Request modal (form)
-4. Payment Requests list/sub-tab
-5. "Mark as Paid" modal (accountant)
-6. Cash Flow Summary panel
-
-⚙️ FILES TO MODIFY:
-- projects.html (main file - 90% of changes here)
-- js/notifications.js (may need updates for payment notif types)
-- index.html (may need role check helpers if not existing)
-
-🕐 ESTIMATED TIME TO COMPLETE:
-- Step 2-3 (edit + card + request modal): 30 min
-- Step 4-5 (list UI + mark paid modal): 30 min
-- Step 6-7 (cash flow + roles): 20 min
-- Step 8 + testing: 20 min
-- TOTAL REMAINING: ~1.5 hours
-
-💾 CURRENT GIT STATE:
-- Last commit: (whatever the latest one shows)
-- Tag: v18-tasks-comments-mobile-notifications
-- All previous work is saved and pushed
-
-🎯 HOW TO RESUME NEXT SESSION:
-1. Open new AI chat
-2. Say: "Read AI-CONTEXT.txt and continue from Vendor Payment Workflow Step 2"
-3. AI should immediately understand and start with editJobWork() update
-
-⚠️ CRITICAL - DO NOT BREAK:
-- Existing payments log (jw.payments[]) must keep working
-- All existing job works don't have "category" - default to "In Quote" when reading
-- All existing job works don't have "paymentRequests" - initialize to [] when needed
-- Backward compatibility is essential
-
-=======================================================
+  git checkout v18.3-vendor-payment-complete
