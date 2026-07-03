@@ -2994,6 +2994,7 @@ function renderProjects() {
     document.getElementById('prReason').value = '';
     document.getElementById('prNotes').value = '';
     document.getElementById('prAmount').placeholder = 'Max available: Rs ' + remaining.toLocaleString('en-IN');
+    window._editingPrReqIdx = null;
     document.getElementById('paymentRequestModal').classList.add('show');
   }
 
@@ -3003,10 +3004,14 @@ function renderProjects() {
     const amount = parseFloat(document.getElementById('prAmount').value);
     const reason = document.getElementById('prReason').value.trim();
     const notes = document.getElementById('prNotes').value.trim();
+    const scope = document.getElementById('prScope').value || 'Within Scope';
     if (!amount || isNaN(amount) || amount <= 0) { showToast('Enter a valid amount', 'danger'); return; }
     if (!reason) { showToast('Enter a reason for the request', 'danger'); return; }
+    var isEditing = (window._editingPrReqIdx !== null && window._editingPrReqIdx !== undefined);
+    var editingReq = isEditing ? jw.paymentRequests[window._editingPrReqIdx] : null;
+    var excludeAmount = (isEditing && editingReq && editingReq.status === 'pending') ? parseFloat(editingReq.amount||0) : 0;
     const paid = (jw.payments || []).reduce(function(s,p){ return s + parseFloat(p.amount||0); }, 0);
-    const pending = (jw.paymentRequests || []).filter(function(r){ return r.status === 'pending'; }).reduce(function(s,r){ return s + parseFloat(r.amount||0); }, 0);
+    const pending = (jw.paymentRequests || []).filter(function(r){ return r.status === 'pending'; }).reduce(function(s,r){ return s + parseFloat(r.amount||0); }, 0) - excludeAmount;
     const remaining = parseFloat(jw.contractValue||0) - paid - pending;
     if (amount > remaining) {
       showToast('Amount exceeds available balance of Rs ' + remaining.toLocaleString('en-IN'), 'danger');
@@ -3014,12 +3019,28 @@ function renderProjects() {
     }
     const userName = window.currentUserName || sessionStorage.getItem('crm_name') || 'Unknown';
     const userEmail = window.currentUserEmail || sessionStorage.getItem('crm_email') || '';
+    if (isEditing && editingReq) {
+      editingReq.amount = amount;
+      editingReq.reason = reason;
+      editingReq.notes = notes;
+      editingReq.scope = scope;
+      editingReq.category = jw.category || 'In Quote';
+      editingReq.lastEditedBy = userName;
+      editingReq.lastEditedAt = new Date().toISOString();
+      window._editingPrReqIdx = null;
+      await saveJobWorksToFirestore();
+      document.getElementById('paymentRequestModal').classList.remove('show');
+      renderJobWorks();
+      renderPaymentRequests(_prCurrentFilter);
+      showToast('Payment request updated!', 'success');
+      return;
+    }
     const req = {
       id: 'pr_' + Date.now(),
       amount: amount,
       reason: reason,
       notes: notes,
-      scope: document.getElementById('prScope').value || 'Within Scope',
+      scope: scope,
       category: jw.category || 'In Quote',
       jobWorkName: jw.workType || '',
       requestedBy: userName,
@@ -3116,11 +3137,30 @@ function renderProjects() {
         extraInfo = '<div style="margin-top:8px;padding:8px;background:rgba(244,67,54,0.08);border-radius:8px;font-size:12px;color:var(--danger);">' +
           '<i class="fas fa-times-circle" style="margin-right:4px;"></i>Rejected: ' + (req.rejectedReason||'No reason given') + '</div>';
       }
-      const actionBtns = (req.status === 'pending' && canApprove) ?
-        '<div style="display:flex;gap:8px;margin-top:10px;">' +
-        '<button class="btn" style="flex:1;font-size:12px;padding:7px;background:rgba(76,175,80,0.15);color:var(--success);border:1px solid rgba(76,175,80,0.3);" onclick="openMarkPaid(' + item.jwIdx + ',' + item.reqIdx + ')"><i class="fas fa-check"></i> Mark Paid</button>' +
-        '<button class="btn" style="flex:1;font-size:12px;padding:7px;background:rgba(244,67,54,0.15);color:var(--danger);border:1px solid rgba(244,67,54,0.3);" onclick="rejectPaymentRequest(' + item.jwIdx + ',' + item.reqIdx + ')"><i class="fas fa-times"></i> Reject</button>' +
-        '</div>' : '';
+      const isAdminRole = ['admin','superadmin'].includes(role);
+      let actionBtns = '';
+      if (req.status === 'pending') {
+        actionBtns = '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">';
+        if (canApprove) {
+          actionBtns += '<button class="btn" style="flex:1;font-size:12px;padding:7px;background:rgba(76,175,80,0.15);color:var(--success);border:1px solid rgba(76,175,80,0.3);" onclick="openMarkPaid(' + item.jwIdx + ',' + item.reqIdx + ')"><i class="fas fa-check"></i> Mark Paid</button>';
+          actionBtns += '<button class="btn" style="flex:1;font-size:12px;padding:7px;background:rgba(244,67,54,0.15);color:var(--danger);border:1px solid rgba(244,67,54,0.3);" onclick="rejectPaymentRequest(' + item.jwIdx + ',' + item.reqIdx + ')"><i class="fas fa-times"></i> Reject</button>';
+        }
+        if (isAdminRole) {
+          actionBtns += '<button class="btn" style="flex:1;font-size:12px;padding:7px;background:rgba(33,150,243,0.15);color:#2196F3;border:1px solid rgba(33,150,243,0.3);" onclick="editPaymentRequest(' + item.jwIdx + ',' + item.reqIdx + ')"><i class="fas fa-edit"></i> Edit</button>';
+          actionBtns += '<button class="btn" style="flex:1;font-size:12px;padding:7px;background:rgba(244,67,54,0.15);color:var(--danger);border:1px solid rgba(244,67,54,0.3);" onclick="deletePaymentRequest(' + item.jwIdx + ',' + item.reqIdx + ')"><i class="fas fa-trash"></i> Delete</button>';
+        }
+        actionBtns += '</div>';
+      } else if (req.status === 'paid' && isAdminRole) {
+        actionBtns = '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">' +
+          '<button class="btn" style="flex:1;font-size:12px;padding:7px;background:rgba(33,150,243,0.15);color:#2196F3;border:1px solid rgba(33,150,243,0.3);" onclick="editPaymentRequest(' + item.jwIdx + ',' + item.reqIdx + ')"><i class="fas fa-edit"></i> Edit Request</button>' +
+          '<button class="btn" style="flex:1;font-size:12px;padding:7px;background:rgba(200,169,110,0.15);color:var(--primary);border:1px solid rgba(200,169,110,0.3);" onclick="openMarkPaid(' + item.jwIdx + ',' + item.reqIdx + ')"><i class="fas fa-edit"></i> Edit Payment</button>' +
+          '<button class="btn" style="flex:1;font-size:12px;padding:7px;background:rgba(244,67,54,0.15);color:var(--danger);border:1px solid rgba(244,67,54,0.3);" onclick="deletePaymentRequest(' + item.jwIdx + ',' + item.reqIdx + ')"><i class="fas fa-trash"></i> Delete</button>' +
+          '</div>';
+      } else if (req.status === 'rejected' && isAdminRole) {
+        actionBtns = '<div style="display:flex;gap:8px;margin-top:10px;">' +
+          '<button class="btn" style="flex:1;font-size:12px;padding:7px;background:rgba(244,67,54,0.15);color:var(--danger);border:1px solid rgba(244,67,54,0.3);" onclick="deletePaymentRequest(' + item.jwIdx + ',' + item.reqIdx + ')"><i class="fas fa-trash"></i> Delete</button>' +
+          '</div>';
+      }
       return '<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px;">' +
         '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">' +
         '<div>' +
@@ -3135,6 +3175,39 @@ function renderProjects() {
         actionBtns +
         '</div>';
     }).join('');
+  }
+
+  function editPaymentRequest(jwIdx, reqIdx) {
+    const jw = currentJobWorks[jwIdx];
+    const req = jw.paymentRequests[reqIdx];
+    if (!req) return;
+    _prJwIdx = jwIdx;
+    document.getElementById('prJobWorkName').value = jw.workType || '';
+    document.getElementById('prCategory').value = jw.category || 'In Quote';
+    document.getElementById('prScope').value = req.scope || 'Within Scope';
+    document.getElementById('prAmount').value = req.amount || '';
+    document.getElementById('prReason').value = req.reason || '';
+    document.getElementById('prNotes').value = req.notes || '';
+    document.getElementById('prAmount').placeholder = 'Amount';
+    window._editingPrReqIdx = reqIdx;
+    document.getElementById('paymentRequestModal').classList.add('show');
+  }
+
+  async function deletePaymentRequest(jwIdx, reqIdx) {
+    if (!confirm('Delete this payment request? This cannot be undone.')) return;
+    const jw = currentJobWorks[jwIdx];
+    const req = jw.paymentRequests[reqIdx];
+    // If paid, also remove from payments log
+    if (req && req.status === 'paid') {
+      jw.payments = (jw.payments || []).filter(function(p) {
+        return !(p.note && p.note.indexOf('Payment Request: ' + req.reason) !== -1 && p.amount === req.amount);
+      });
+    }
+    jw.paymentRequests.splice(reqIdx, 1);
+    await saveJobWorksToFirestore();
+    renderJobWorks();
+    renderPaymentRequests(_prCurrentFilter);
+    showToast('Payment request deleted', 'danger');
   }
 
   let _markPaidJwIdx = null;
@@ -3166,6 +3239,12 @@ function renderProjects() {
     if (!payDate) { showToast('Select payment date', 'danger'); return; }
     const userName = window.currentUserName || sessionStorage.getItem('crm_name') || 'Unknown';
     const userEmail = window.currentUserEmail || sessionStorage.getItem('crm_email') || '';
+    // If re-editing a paid request, remove old payment log entry first
+    if (req.status === 'paid') {
+      jw.payments = (jw.payments || []).filter(function(p) {
+        return !(p.note && p.note.indexOf('Payment Request: ' + req.reason) !== -1 && p.amount === req.amount);
+      });
+    }
     req.status = 'paid';
     req.paidBy = userName;
     req.paidByEmail = userEmail;
