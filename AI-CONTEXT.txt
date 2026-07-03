@@ -897,3 +897,143 @@ LIMITATIONS DOCUMENTED:
 - iOS Safari audio: may not play unless user interacted
 - Toast + sound only work when CRM tab is open
 
+
+
+=======================================================
+🚨 RESUME POINT — 22 June 2026 (Session Paused Here)
+=======================================================
+
+⏸️ STOPPED IN THE MIDDLE OF: Vendor Payment Approval Workflow (Phase 1)
+
+✅ STEP 1 COMPLETED IN THIS SESSION:
+- Added "Category" field to Job Work modal (In Quote / Additional Work)
+- saveJobWork() now saves category + initializes empty paymentRequests[] array
+- openAddJobWork() resets category to "In Quote" default
+
+🔴 NEXT STEP TO DO IMMEDIATELY WHEN RESUMING (Step 2):
+
+1. Update editJobWork() to load category from existing job work
+   Location: projects.html around line 2735
+   Add: document.getElementById('jwCategory').value = jw.category || 'In Quote';
+
+2. Update job work CARD rendering to show:
+   - Category badge (green for "In Quote", orange for "Additional Work")
+   - NEW button: "💰 Request Payment" (opens payment request modal)
+   Location: projects.html around line 2690-2705
+
+3. Build "Payment Request" modal:
+   - Fields: Amount, Reason, Category (auto), Job Work ref
+   - Save to project.jobWorks[i].paymentRequests[] with status="pending"
+   - Send notification to Accountants + Admins
+
+4. Build "Payment Requests" sub-tab UI:
+   - Filter: All / Pending / Paid / Rejected
+   - Show pending prominently at top
+
+5. Build "Mark as Paid" modal (accountant only):
+   - Fields: Payment Mode, Transaction ID, Payment Date, Notes
+   - Update request status to "paid"
+   - Also add to existing jw.payments[] for tracking
+   - Notify requester
+
+6. Build Cash Flow Summary Panel:
+   - Contract Total (In Quote + Additional breakdown)
+   - Paid Total (In Quote + Additional breakdown)
+   - Pending Requests amount
+   - Balance
+
+7. Role-based button visibility:
+   - "Raise Payment Request": admin, superadmin, manager, supervisor
+   - "Mark as Paid": admin, superadmin, accounts
+   - "Reject Payment": admin, superadmin, accounts
+
+8. Notifications flow:
+   - Request raised -> Accountants + Admins
+   - Payment done -> Requester + Admin
+   - Rejection -> Requester with reason
+
+📋 FULL CONFIRMED PLAN (already agreed upon):
+- Q1: Notifications to Accountants + All Admins
+- Q2: Yes, can reject with reason
+- Q3: Keep both (payments log + payment requests)
+- Q4: No partial payments - all or nothing
+- Q5: Default category = "In Quote"
+- Cash Flow Tracking: YES
+- Admin Feature Control Panel: YES (Phase 2 - next session after this)
+- Approach: Merge existing + new into unified permission system (Phase 2)
+- Real-time updates: Next page refresh
+
+📊 DATA STRUCTURES (already designed):
+
+Job Work object (enhanced):
+{
+  id, workType, vendorId, vendorName,
+  contractValue,
+  category: "In Quote" | "Additional Work",  ← NEW
+  status: "active",
+  notes,
+  payments: [ ...existing... ],
+  paymentRequests: [ ...NEW... ]  ← NEW
+}
+
+Payment Request object (NEW):
+{
+  id: "pr_" + timestamp,
+  amount: 15000,
+  reason: "First installment",
+  category: "In Quote",  // inherited from job work
+  requestedBy: userName,
+  requestedByEmail: userEmail,
+  requestedAt: timestamp,
+  status: "pending",  // "pending" / "paid" / "rejected"
+  
+  // Filled by accountant:
+  paidBy: "",
+  paidByEmail: "",
+  paidAt: null,
+  transactionId: "",
+  paymentMode: "",
+  paymentDate: null,
+  accountantNotes: "",
+  
+  // If rejected:
+  rejectedReason: ""
+}
+
+🎨 UI COMPONENTS TO BUILD:
+1. Category badge on job work card (green/orange)
+2. "Request Payment" button on card
+3. Payment Request modal (form)
+4. Payment Requests list/sub-tab
+5. "Mark as Paid" modal (accountant)
+6. Cash Flow Summary panel
+
+⚙️ FILES TO MODIFY:
+- projects.html (main file - 90% of changes here)
+- js/notifications.js (may need updates for payment notif types)
+- index.html (may need role check helpers if not existing)
+
+🕐 ESTIMATED TIME TO COMPLETE:
+- Step 2-3 (edit + card + request modal): 30 min
+- Step 4-5 (list UI + mark paid modal): 30 min
+- Step 6-7 (cash flow + roles): 20 min
+- Step 8 + testing: 20 min
+- TOTAL REMAINING: ~1.5 hours
+
+💾 CURRENT GIT STATE:
+- Last commit: (whatever the latest one shows)
+- Tag: v18-tasks-comments-mobile-notifications
+- All previous work is saved and pushed
+
+🎯 HOW TO RESUME NEXT SESSION:
+1. Open new AI chat
+2. Say: "Read AI-CONTEXT.txt and continue from Vendor Payment Workflow Step 2"
+3. AI should immediately understand and start with editJobWork() update
+
+⚠️ CRITICAL - DO NOT BREAK:
+- Existing payments log (jw.payments[]) must keep working
+- All existing job works don't have "category" - default to "In Quote" when reading
+- All existing job works don't have "paymentRequests" - initialize to [] when needed
+- Backward compatibility is essential
+
+=======================================================

@@ -2713,6 +2713,7 @@ function renderProjects() {
     document.getElementById('jwModalTitle').textContent = 'Add Job Work';
     document.getElementById('jwWorkType').value = '';
     document.getElementById('jwContractValue').value = '';
+    document.getElementById('jwCategory').value = 'In Quote';
     document.getElementById('jwNotes').value = '';
     window._editingJwIdx = null;
     loadVendorsForJW('');
@@ -2754,7 +2755,8 @@ function renderProjects() {
     const notes = document.getElementById('jwNotes').value.trim();
     if (!workType) { showToast('Enter work type', 'danger'); return; }
     if (!contractValue || isNaN(contractValue)) { showToast('Enter valid contract value', 'danger'); return; }
-    const jw = { workType: workType, vendorName: vendorName, contractValue: contractValue, notes: notes, payments: [], createdAt: new Date().toISOString() };
+    const category = document.getElementById('jwCategory').value || 'In Quote';
+    const jw = { workType: workType, vendorName: vendorName, contractValue: contractValue, category: category, notes: notes, payments: [], paymentRequests: [], createdAt: new Date().toISOString() };
     if (window._editingJwIdx !== null && window._editingJwIdx !== undefined) {
       jw.payments = currentJobWorks[window._editingJwIdx].payments || [];
       jw.createdAt = currentJobWorks[window._editingJwIdx].createdAt || jw.createdAt;
@@ -2944,6 +2946,13 @@ function renderProjects() {
       <div class="mform-group">
         <label>Contract Value (Rs) *</label>
         <input type="number" id="jwContractValue" placeholder="e.g. 50000"/>
+      </div>
+      <div class="mform-group">
+        <label>Category *</label>
+        <select id="jwCategory">
+          <option value="In Quote">✅ In Quote (Original Scope)</option>
+          <option value="Additional Work">➕ Additional Work</option>
+        </select>
       </div>
       <div class="mform-group">
         <label>Notes</label>
