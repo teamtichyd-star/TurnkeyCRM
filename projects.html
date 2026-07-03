@@ -2672,7 +2672,7 @@ function renderProjects() {
     document.getElementById('expTotalContract').textContent = '\u20b9' + totalContract.toLocaleString('en-IN');
     document.getElementById('expTotalPaid').textContent = '\u20b9' + totalPaid.toLocaleString('en-IN');
     document.getElementById('expTotalBalance').textContent = '\u20b9' + balance.toLocaleString('en-IN');
-    const role = window.currentUserRole || sessionStorage.getItem('crm_role') || '';
+    const role = currentUserRole || window.currentUserRole || sessionStorage.getItem('crm_role') || '';
     const isAdmin = ['admin','superadmin'].includes(role);
     if (!currentJobWorks.length) {
       container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--subtext)"><i class="fas fa-hard-hat" style="font-size:40px;opacity:0.3;display:block;margin-bottom:12px"></i><p>No job works added yet</p></div>';
@@ -3039,7 +3039,7 @@ function renderProjects() {
   function renderPaymentRequests(filter) {
     const container = document.getElementById('payRequestsList');
     if (!container) return;
-    const role = window.currentUserRole || sessionStorage.getItem('crm_role') || '';
+    const role = currentUserRole || window.currentUserRole || sessionStorage.getItem('crm_role') || '';
     const canApprove = ['admin','superadmin','accounts'].includes(role);
     const allRequests = [];
     currentJobWorks.forEach(function(jw, jwIdx) {
