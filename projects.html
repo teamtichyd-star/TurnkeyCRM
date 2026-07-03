@@ -1019,6 +1019,17 @@
           <div id="jobWorksList"></div>
         </div>
 
+        <!-- PAYMENT REQUESTS SUB-SECTION -->
+        <div id="expsec-requests" style="display:none;">
+          <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+            <button onclick="filterPayRequests('all')" id="prfilter-all" class="btn btn-primary" style="font-size:12px;padding:7px 14px;">All</button>
+            <button onclick="filterPayRequests('pending')" id="prfilter-pending" class="btn" style="font-size:12px;padding:7px 14px;background:rgba(255,152,0,0.15);color:var(--warning);border:1px solid rgba(255,152,0,0.3);">Pending</button>
+            <button onclick="filterPayRequests('paid')" id="prfilter-paid" class="btn" style="font-size:12px;padding:7px 14px;background:rgba(76,175,80,0.15);color:var(--success);border:1px solid rgba(76,175,80,0.3);">Paid</button>
+            <button onclick="filterPayRequests('rejected')" id="prfilter-rejected" class="btn" style="font-size:12px;padding:7px 14px;background:rgba(244,67,54,0.15);color:var(--danger);border:1px solid rgba(244,67,54,0.3);">Rejected</button>
+          </div>
+          <div id="payRequestsList"></div>
+        </div>
+
         <!-- VENDOR PAYOUTS SUB-SECTION -->
         <div id="expsec-payouts" style="display:none;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:10px;flex-wrap:wrap;">
