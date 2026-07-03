@@ -2860,9 +2860,12 @@ function renderProjects() {
       activeBtn.style.background = 'var(--primary-glow)';
       activeBtn.style.color = 'var(--primary)';
     }
-    document.getElementById('expsec-jobworks').style.display = (tab === 'jobworks') ? 'block' : 'none';
-    document.getElementById('expsec-payouts').style.display = (tab === 'payouts') ? 'block' : 'none';
-    document.getElementById('expsec-requests').style.display = (tab === 'requests') ? 'block' : 'none';
+    var secJW = document.getElementById('expsec-jobworks');
+    var secPO = document.getElementById('expsec-payouts');
+    var secRQ = document.getElementById('expsec-requests');
+    if (secJW) secJW.style.display = (tab === 'jobworks') ? 'block' : 'none';
+    if (secPO) secPO.style.display = (tab === 'payouts') ? 'block' : 'none';
+    if (secRQ) secRQ.style.display = (tab === 'requests') ? 'block' : 'none';
     if (tab === 'payouts') renderPayouts();
     if (tab === 'requests') renderPaymentRequests('all');
   }
