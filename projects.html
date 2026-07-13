@@ -1380,6 +1380,7 @@
   });
 
   const currentUserName = decodeURIComponent(urlParams.get('user') || '');
+  const currentUserEmail = (firebase.auth().currentUser && firebase.auth().currentUser.email) || '';
 
   async function loadUsersDropdown() {
     try {
@@ -3017,8 +3018,8 @@ function renderProjects() {
       showToast('Amount exceeds available balance of Rs ' + remaining.toLocaleString('en-IN'), 'danger');
       return;
     }
-    const userName = window.currentUserName || sessionStorage.getItem('crm_name') || 'Unknown';
-    const userEmail = window.currentUserEmail || sessionStorage.getItem('crm_email') || '';
+    const userName = currentUserName || window.currentUserName || sessionStorage.getItem('crm_name') || '';
+    const userEmail = currentUserEmail || window.currentUserEmail || sessionStorage.getItem('crm_email') || '';
     if (isEditing && editingReq) {
       editingReq.amount = amount;
       editingReq.reason = reason;
@@ -3067,7 +3068,9 @@ function renderProjects() {
       usersSnap.forEach(function(ud) {
         const u = ud.data();
         if (['admin','superadmin','accounts'].includes(u.role)) {
-          TIC_NOTIF.send(db, u.name || u.email, userName + ' requested payment of Rs ' + amount.toLocaleString('en-IN') + ' for ' + (jw.workType||'Job Work'), 'payment', 'projects.html');
+          var projName = projects.find(function(p){ return p.id === currentProjectIdForExp; });
+          projName = projName ? projName.name || projName.client || 'Project' : 'Project';
+          TIC_NOTIF.send(db, u.name || u.email, (currentUserName || userName) + ' requested payment of Rs ' + amount.toLocaleString('en-IN') + ' for ' + (jw.workType||'Job Work') + ' in ' + projName, 'payment', 'projects.html');
         }
       });
     } catch(e) { console.error('Notification error:', e); }
@@ -3237,8 +3240,8 @@ function renderProjects() {
     const payDate = document.getElementById('mpPayDate').value;
     const notes = document.getElementById('mpNotes').value.trim();
     if (!payDate) { showToast('Select payment date', 'danger'); return; }
-    const userName = window.currentUserName || sessionStorage.getItem('crm_name') || 'Unknown';
-    const userEmail = window.currentUserEmail || sessionStorage.getItem('crm_email') || '';
+    const userName = currentUserName || window.currentUserName || sessionStorage.getItem('crm_name') || '';
+    const userEmail = currentUserEmail || window.currentUserEmail || sessionStorage.getItem('crm_email') || '';
     // If re-editing a paid request, remove old payment log entry first
     if (req.status === 'paid') {
       jw.payments = (jw.payments || []).filter(function(p) {
@@ -3272,7 +3275,9 @@ function renderProjects() {
       usersSnap.forEach(function(ud) {
         const u = ud.data();
         if (u.email === req.requestedByEmail || ['admin','superadmin'].includes(u.role)) {
-          TIC_NOTIF.send(db, u.name || u.email, 'Payment of Rs ' + parseFloat(req.amount||0).toLocaleString('en-IN') + ' for ' + (jw.workType||'Job Work') + ' marked as paid by ' + userName, 'payment', 'projects.html');
+          var projName = projects.find(function(p){ return p.id === currentProjectIdForExp; });
+          projName = projName ? projName.name || projName.client || 'Project' : 'Project';
+          TIC_NOTIF.send(db, u.name || u.email, 'Payment of Rs ' + parseFloat(req.amount||0).toLocaleString('en-IN') + ' for ' + (jw.workType||'Job Work') + ' in ' + projName + ' marked as paid by ' + (currentUserName || userName), 'payment', 'projects.html');
         }
       });
     } catch(e) { console.error('Notification error:', e); }
@@ -3284,7 +3289,7 @@ function renderProjects() {
     if (!reason.trim()) { showToast('Please enter a rejection reason', 'danger'); return; }
     const jw = currentJobWorks[jwIdx];
     const req = jw.paymentRequests[reqIdx];
-    const userName = window.currentUserName || sessionStorage.getItem('crm_name') || 'Unknown';
+    const userName = currentUserName || window.currentUserName || sessionStorage.getItem('crm_name') || '';
     req.status = 'rejected';
     req.rejectedReason = reason.trim();
     req.rejectedBy = userName;
@@ -3297,7 +3302,9 @@ function renderProjects() {
       usersSnap.forEach(function(ud) {
         const u = ud.data();
         if (u.email === req.requestedByEmail) {
-          TIC_NOTIF.send(db, u.name || u.email, 'Your payment request of Rs ' + parseFloat(req.amount||0).toLocaleString('en-IN') + ' for ' + (jw.workType||'Job Work') + ' was rejected: ' + reason.trim(), 'payment', 'projects.html');
+          var projName = projects.find(function(p){ return p.id === currentProjectIdForExp; });
+          projName = projName ? projName.name || projName.client || 'Project' : 'Project';
+          TIC_NOTIF.send(db, u.name || u.email, 'Your payment request of Rs ' + parseFloat(req.amount||0).toLocaleString('en-IN') + ' for ' + (jw.workType||'Job Work') + ' in ' + projName + ' was rejected: ' + reason.trim(), 'payment', 'projects.html');
         }
       });
     } catch(e) { console.error('Notification error:', e); }
