@@ -2,8 +2,8 @@
 TURNKEY CRM — AI CONTEXT FILE
 =======================================================
 Last Updated: 03 July 2026
-Current Session Working On: Vendor Payment Workflow (COMPLETE)
-Next Session Should Start With: Admin Feature Control Panel (Phase 2)
+Current Session Working On: Marketing Module Planning (COMPLETE)
+Next Session Should Start With: Marketing Module Phase 1 - Contacts
 =======================================================
 
 PROJECT OVERVIEW:
@@ -28,24 +28,26 @@ FIREBASE:
 - App ID: 9bc49e74-801f-4ffb-ab7e-ea78ba2f1089
 
 PAGES IN THE APP:
-1. index.html            -> Dashboard / Login + Parent shell (bell lives here)
-2. leads.html            -> Lead Management
-3. projects.html         -> Project Tracking + Payments + Snag List + Expenditure
-4. tasks.html            -> Task Management
-5. followups.html        -> Follow-up Tracker
-6. sheets.html           -> Sheets/Reports
-7. export.html           -> Data Export
-8. admin-panel.html      -> Admin Controls
-9. client-view.html      -> Client Portal (Snag List + Payments)
-10. vendors.html         -> Vendor Management
-11. attendance.html      -> Attendance (mark own)
-12. attendance-admin.html -> Attendance Admin (all users + CSV)
-13. staff-profile.html   -> Staff Profile Form
-14. staff-profile-admin.html -> Staff Directory (admin only)
+1. index.html              -> Dashboard / Login + Parent shell
+2. leads.html              -> Lead Management
+3. projects.html           -> Project Tracking + Payments + Expenditure
+4. tasks.html              -> Task Management
+5. followups.html          -> Follow-up Tracker
+6. sheets.html             -> Sheets/Reports
+7. export.html             -> Data Export
+8. admin-panel.html        -> Admin Controls
+9. client-view.html        -> Client Portal
+10. vendors.html           -> Vendor Management
+11. attendance.html        -> Attendance (mark own)
+12. attendance-admin.html  -> Attendance Admin
+13. staff-profile.html     -> Staff Profile Form
+14. staff-profile-admin.html -> Staff Directory
 
-KEY JS FILES:
-- js/notifications.js -> TIC_NOTIF engine (in-app + web push)
-- js/userManagement.js
+PAGES TO BUILD (Marketing Module):
+15. contacts.html          -> Master contact list (Phase 1)
+16. pipeline.html          -> Kanban sales pipeline (Phase 2)
+17. campaigns.html         -> Email + WhatsApp campaigns (Phase 3+4)
+18. marketing-dash.html    -> Marketing analytics dashboard (Phase 5)
 
 RULES FOR ALL AIs — FOLLOW STRICTLY:
 1. Vanilla JS ONLY — No React, Vue or any framework
@@ -64,97 +66,30 @@ RULES FOR ALL AIs — FOLLOW STRICTLY:
 
 USER ROLES:
 - superadmin, admin, manager, designer, supervisor, accounts, projectmanager
+- marketing (NEW - full access to marketing module)
 - Designer can see ALL projects
 - Supervisor sees only assigned
 
 FIRESTORE COLLECTIONS (DO NOT RENAME):
-- users               -> name, email, role, notifications[]
-- leads               -> name, phone, status, assignedTo
-- projects            -> name, client, manager, snags[], updates[], jobWorks[]
-- tasks               -> title, assignedTo, status, comments[]
-- followups           -> name, date, assignedTo
-- notifications       -> to, toName, title, body, type, link, read, createdAt
-- vendors             -> name, phone, workType, gst, pan, upi
-- attendance          -> userEmail, userName, date, time, type, gpsLat, gpsLng, gpsAddress, projectId, projectName, notes, createdAt
-- staffProfiles       -> employeeId, fullName, email, mobile1/2/3, address, emergency, aadhar/pan, education, work, bank, declarationAccepted, profileStatus, driveFolderId
+- users, leads, projects, tasks, followups, notifications
+- vendors, attendance, staffProfiles
+- contacts (NEW)     -> master contact list
+- campaigns (NEW)    -> email + whatsapp campaigns
+- whatsapp_messages (NEW) -> outbound WA log
 
 =======================================================
 VENDOR PAYMENT WORKFLOW — COMPLETE (v18.3)
 =======================================================
-
-WHAT WAS BUILT (Session 03 July 2026):
-
-1. CATEGORY FIELD on Job Works
-   - "In Quote" (green badge) or "Additional Work" (orange badge)
-   - Shows on job work card
-   - editJobWork() loads category correctly
-
-2. REQUEST PAYMENT BUTTON on job work cards
-   - Blue money-bill-wave button
-   - Visible to: admin, superadmin, manager, supervisor, accounts
-   - Opens Payment Request modal
-
-3. PAYMENT REQUEST MODAL
-   - Fields: Scope (Within Scope / Additional Work), Amount, Reason, Notes
-   - Job Work name + Category shown read-only
-   - Hard block: cannot exceed available balance
-   - Saves to jw.paymentRequests[] with status='pending'
-   - Notifies all admins + accounts via bell
-
-4. PAY REQUESTS SUB-TAB (3rd sub-tab in Expenditure)
-   - Filter buttons: All / Pending / Paid / Rejected
-   - Pending badge count on tab button
-   - Request cards show: amount, job work, category, scope, requester, date, reason, status
-   - Paid cards show: payment mode, TXN ID, date, accountant notes
-   - Rejected cards show: rejection reason
-
-5. MARK PAID MODAL (accounts/admin)
-   - Fields: Payment Mode, TXN ID, Date, Notes
-   - Auto-logs to jw.payments[] for tracking
-   - Notifies requester + admins
-
-6. REJECT (accounts/admin)
-   - Prompt for rejection reason
-   - Notifies requester with reason
-
-7. ADMIN EDIT/DELETE
-   - Edit pending request: change amount, scope, reason
-   - Edit paid request: change payment details
-   - Delete any request (removes from payments log if paid)
-   - Visible to: admin, superadmin ONLY
-
-8. ADDITIONAL WORKS SUMMARY in Expenditure
-   - Summary card shows: Total Contract / Total Paid / Balance (top)
-   - Additional Works breakdown below: Contract / Paid / Pending (orange)
-   - Calculated from jw.category === 'Additional Work'
-
-DATA STRUCTURES:
-
-Job Work object:
-{
-  id, workType, vendorId, vendorName,
-  contractValue,
-  category: "In Quote" | "Additional Work",
-  status: "active",
-  notes,
-  payments: [ {amount, mode, date, note, paidBy, createdAt} ],
-  paymentRequests: [ ...see below... ]
-}
-
-Payment Request object:
-{
-  id: "pr_" + timestamp,
-  amount, reason, notes,
-  scope: "Within Scope" | "Additional Work",
-  category: "In Quote" | "Additional Work",
-  jobWorkName,
-  requestedBy, requestedByEmail, requestedAt,
-  status: "pending" | "paid" | "rejected",
-  paidBy, paidByEmail, paidAt,
-  transactionId, paymentMode, paymentDate, accountantNotes,
-  rejectedReason, rejectedBy, rejectedAt,
-  lastEditedBy, lastEditedAt
-}
+- Category badge on job work cards (In Quote / Additional Work)
+- Request Payment button (blue) on cards
+- Payment Request modal with Scope field
+- Pay Requests sub-tab with filters + badge count
+- Mark Paid modal (accounts/admin)
+- Reject with reason
+- Admin Edit/Delete for all request states
+- Additional Works summary in expenditure card
+- Notifications show user name + project name
+- Bell notifications now clickable → navigate to page
 
 ROLE PERMISSIONS (Payment Workflow):
 - Request Payment:  admin, superadmin, manager, supervisor, accounts
@@ -162,61 +97,164 @@ ROLE PERMISSIONS (Payment Workflow):
 - Reject:           admin, superadmin, accounts
 - Edit Request:     admin, superadmin ONLY
 - Delete Request:   admin, superadmin ONLY
-- Edit Payment:     admin, superadmin ONLY
 
-KEY GOTCHAS LEARNED:
-1. Role variable in projects.html is 'currentUserRole' (local var from URL param)
-   NOT window.currentUserRole — always use: currentUserRole || window.currentUserRole
-2. HTML sub-sections added to SPA must be verified with grep after Python write
-3. switchExpSubTab must use null-safe checks for all section divs
+KEY GOTCHA:
+- Role in projects.html = local var 'currentUserRole' from URL param
+- Always use: currentUserRole || window.currentUserRole
+- currentUserEmail from firebase.auth().currentUser.email
+
+=======================================================
+MARKETING MODULE — FULL PLAN (AGREED)
+=======================================================
+
+STATUS: Planning complete. Ready to build Phase 1.
+
+EXTERNAL SERVICES:
+- Brevo: HAVE ACCOUNT (free: 300 emails/day, 100K/month)
+- Meta WhatsApp Business API: ALREADY APPROVED (person working on it separately)
+- Zoho Books: Have account (export contacts as CSV)
+
+CONTACT LIST:
+- ~5000 contacts in Brevo
+- More in Zoho Books
+- Existing CRM leads (~90+)
+- Strategy: import via CSV, deduplicate by phone/email
+- Firebase free tier safe with pagination (load 50 at a time)
+
+FIRESTORE CONTACTS STRUCTURE:
+{
+  name, phone, email,
+  source: 'brevo' | 'zoho' | 'crm' | 'manual',
+  type: 'residential' | 'commercial' | 'unknown',
+  tags: [],
+  brevoId, zohoId,
+  status: 'active' | 'unsubscribed',
+  pipelineStage: 'new' | 'contacted' | 'sitevisit' | 'proposal' | 'negotiation' | 'won' | 'lost',
+  assignedTo,
+  lastContacted,
+  notes,
+  createdAt, updatedAt
+}
+
+CAMPAIGNS STRUCTURE:
+{
+  name, type: 'email' | 'whatsapp',
+  segment: 'residential' | 'commercial' | 'all',
+  status: 'draft' | 'sent' | 'scheduled',
+  brevoTemplateId,
+  message, subject,
+  sentCount, openCount,
+  createdAt, sentAt
+}
+
+PIPELINE STAGES (Kanban):
+New → Contacted → Site Visit → Proposal → Negotiation → Won → Lost
+- Won → auto-move to contacts + option to create project
+- Lost → auto-move to contacts with lost tag
+- Cards show: name, phone, budget, days in stage
+
+CAMPAIGNS PLAN:
+- 2 monthly campaigns (residential + commercial separate)
+- Email via Brevo API
+- WhatsApp via Meta Cloud API (direct, free 1000 conv/month)
+- Image + text + CTA button templates
+
+WHATSAPP TEMPLATES TO BUILD (Meta approved):
+1. New project launch (image + text + link)
+2. Follow-up after site visit
+3. Festive offer
+4. Payment reminder
+
+ROLE ACCESS:
+- marketing: full access to contacts, campaigns, pipeline, whatsapp
+- admin/superadmin: full access
+- manager: view pipeline + contacts, move stages, no campaigns
+- sales (future): own leads only
+
+BUILD ORDER:
+Phase 1: contacts.html    (import, dedup, list, search, pagination)
+Phase 2: pipeline.html    (Kanban drag-drop)
+Phase 3: campaigns.html   (Brevo email campaigns)
+Phase 4: WhatsApp         (Meta Cloud API integration)
+Phase 5: marketing-dash   (analytics)
+
+SUBDOMAIN MOVE: LATER (after marketing module complete)
 
 =======================================================
 GIT TAGS (RESTORE POINTS):
 =======================================================
-- v18.3-vendor-payment-complete = CURRENT STABLE (full payment workflow)
+- v18.3-vendor-payment-complete = CURRENT STABLE
 - v18.2-vendor-payment-requests = payment requests tab
 - v18.1-vendor-payment-wip = category field only
-- v18-tasks-comments-mobile-notifications = before vendor payment work
+- v18-tasks-comments-mobile-notifications = before vendor payment
 - v17-staff-profile-complete = staff profile module
-- v16-stable-drive-integration = drive integration
-- v15-stable-permissions-stage3-complete = permissions
-- v12-permissions-stage2 = permissions stage 2
 - v10-attendance-module-live = attendance module
 - v9-expenditure-mobile-ux = expenditure + mobile UX
 - v8-vendors-module-live = vendors module
 - v7-firestore-rules-locked = firestore rules
-- v6-zapier-notifications-live = zapier notifications
 
 =======================================================
 PENDING NEXT SESSION (in priority order):
 =======================================================
 
-1. 🔴 ADMIN FEATURE CONTROL PANEL (Phase 2)
-   - Unified permission system per user
-   - Control who can: request payment, mark paid, edit, delete
-   - Merge with existing permissions stage 3
-   - Already agreed: build after payment workflow complete
+1. 🔴 MARKETING PHASE 1 — contacts.html
+   BEFORE CODING — collect from user:
+   a. Brevo API key (Settings -> API Keys)
+   b. Export Brevo contacts as CSV (provide file)
+   c. Export Zoho Books customers as CSV (provide file)
+   
+   THEN BUILD:
+   - contacts.html page (list, search, filter, pagination 50/page)
+   - CSV import modal (parse, dedup, save to Firestore)
+   - Manual add contact form
+   - Tags system (residential/commercial)
+   - Add to index.html SPA (sidebar + roleModules)
+   - Firestore rules update for contacts collection
 
-2. 🟡 CASH FLOW ENHANCEMENTS
-   - Show pending payment requests amount in summary
-   - (Paid + Pending Requests + True Balance)
+2. 🟡 MARKETING PHASE 2 — pipeline.html (Kanban)
+3. 🟡 MARKETING PHASE 3 — campaigns.html (Brevo email)
+4. 🟡 MARKETING PHASE 4 — WhatsApp (Meta API)
+5. 🟡 MARKETING PHASE 5 — marketing-dash.html
 
-3. 🟡 SNAG -> TASK SYNC
-   - When snag added -> auto-create task
-   - Two-way status sync
-   - SNAG badge on task card
+6. 🟢 ADMIN FEATURE CONTROL PANEL (deferred)
+7. 🟢 SUBDOMAIN MOVE (after marketing complete)
+8. 🟢 UI POLISH: WhatsApp green, Email blue, GST breakdown
 
-4. 🟢 UI POLISH (carryover)
-   - WhatsApp button green (#25D366)
-   - Email button blue (#4A90E2)
-   - GST breakdown in client portal payments
+=======================================================
+RESUME COMMAND FOR NEXT SESSION:
+=======================================================
 
-5. 🟢 NICE-TO-HAVE
-   - Expense Tracking module (project P&L)
-   - Invoice Generator (PDF)
-   - PWA Install Prompt banner
-   - Global Search
-   - Auto-mark Sundays as Weekly Off
+EXACT COMMAND TO PASTE IN NEW AI CHAT:
+---
+23.Turnkey CRM
+
+PROJECT: TurnkeyCRM (Construction/Real Estate CRM)
+LOCATION: /Users/haritalla/Desktop/TIC/CRMLocal/TurnkeyCRM
+LIVE URL: https://teamtichyd-star.github.io/TurnkeyCRM/
+CURRENT TAG: v18.3-vendor-payment-complete
+
+CRITICAL RULES:
+1. Vanilla JS ONLY (no React, no npm)
+2. Terminal commands only (sed, cat, python3)
+3. NO backticks inside Python heredocs
+4. Always use existing newstyle.css classes
+5. Always start with git status
+
+STEP 1 - Run this first:
+cd /Users/haritalla/Desktop/TIC/CRMLocal/TurnkeyCRM && git log --oneline -10 && cat AI-CONTEXT.txt
+
+STEP 2 - Read the RESUME POINT section at bottom of AI-CONTEXT.txt
+
+STEP 3 - Continue from Marketing Module Phase 1:
+Build contacts.html - master contact list with CSV import, dedup, pagination
+
+BEFORE STARTING CODE - ask user for:
+1. Brevo API key
+2. Brevo contacts CSV export
+3. Zoho Books customers CSV export
+
+DO NOT start over. DO NOT re-plan. Continue exactly where we left off.
+---
 
 =======================================================
 GIT WORKFLOW:
@@ -229,6 +267,3 @@ UNDO UNSAVED CHANGES:
 
 ROLLBACK LAST COMMIT:
   git reset --hard HEAD~1 && git push origin main --force
-
-RESTORE STABLE POINT:
-  git checkout v18.3-vendor-payment-complete
