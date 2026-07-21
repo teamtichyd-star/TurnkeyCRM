@@ -42,7 +42,7 @@
     .filter-select { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-size:13px; cursor:pointer; }
     .filter-select:focus { outline:none; border-color:var(--primary); }
     .contacts-list { padding:0 20px 20px; display:flex; flex-direction:column; gap:8px; }
-    .contact-card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; cursor:pointer; transition:all 0.2s; display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+    .contact-card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; transition:all 0.2s; display:flex; justify-content:space-between; align-items:center; gap:10px; }
     .contact-card:hover { border-color:var(--primary); transform:translateY(-1px); box-shadow:var(--shadow); }
     .contact-name { font-size:15px; font-weight:600; color:var(--text); }
     .contact-sub { font-size:12px; color:var(--subtext); margin-top:3px; }
@@ -157,8 +157,36 @@
   </select>
 </div>
 
-<!-- Count -->
-<div style="padding:0 20px 10px; font-size:13px; color:#8888aa;" id="contactCount"></div>
+<!-- Bulk Actions Toolbar (shows when items selected) -->
+<div id="bulkBar" style="display:none; background:var(--card); border:1px solid var(--primary); border-radius:12px; margin:0 20px 10px; padding:10px 16px; align-items:center; gap:10px; flex-wrap:wrap;">
+  <span style="color:var(--primary); font-weight:600; font-size:13px;">
+    <i class="fa fa-check-square"></i> <span id="bulkCount">0</span> selected
+  </span>
+  <button class="btn btn-secondary btn-sm" onclick="bulkSetType('commercial')">🏢 Mark Commercial</button>
+  <button class="btn btn-secondary btn-sm" onclick="bulkSetType('residential')">🏠 Mark Residential</button>
+  <select id="bulkStageSelect" class="filter-select" style="padding:5px 10px; font-size:12px;">
+    <option value="">Change Stage...</option>
+    <option value="new">New</option>
+    <option value="contacted">Contacted</option>
+    <option value="sitevisit">Site Visit</option>
+    <option value="proposal">Proposal</option>
+    <option value="negotiation">Negotiation</option>
+    <option value="won">Won</option>
+    <option value="lost">Lost</option>
+  </select>
+  <button class="btn btn-secondary btn-sm" onclick="bulkSetStage()">Apply Stage</button>
+  <button class="btn btn-danger btn-sm" onclick="bulkDelete()"><i class="fa fa-trash"></i> Delete</button>
+  <button class="btn btn-secondary btn-sm" onclick="clearSelection()" style="margin-left:auto;">Clear</button>
+</div>
+
+<!-- Count + Select All -->
+<div style="padding:0 20px 10px; font-size:13px; color:#8888aa; display:flex; align-items:center; gap:12px;">
+  <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+    <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()" style="cursor:pointer;">
+    <span style="font-size:12px;">Select all on page</span>
+  </label>
+  <span id="contactCount"></span>
+</div>
 
 <!-- Contacts List -->
 <div class="contacts-list" id="contactsList">
@@ -507,8 +535,10 @@
 
     list.innerHTML = pageData.map(c => {
       const initials = (c.name || "?").split(" ").map(w => w[0]).join("").toUpperCase().slice(0,2);
-      return '<div class="contact-card" onclick="showDetail(\''+c.id+'\')">'+
-        '<div style="display:flex;gap:12px;align-items:center;flex:1;">'+
+      const checked = selectedIds.has(c.id) ? "checked" : "";
+      return '<div class="contact-card">'+
+        '<input type="checkbox" '+checked+' onclick="event.stopPropagation();toggleSelect(\''+c.id+'\')" style="margin-right:8px; cursor:pointer; width:16px; height:16px;">'+
+        '<div style="display:flex;gap:12px;align-items:center;flex:1;cursor:pointer;" onclick="showDetail(\''+c.id+'\')">'+
           '<div style="width:40px;height:40px;border-radius:50%;background:var(--primary-glow);border:1px solid var(--primary);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--primary);flex-shrink:0;">'+initials+'</div>'+
           '<div style="flex:1;min-width:0;">'+
             '<div class="contact-name">'+(c.name || "No Name")+'</div>'+
@@ -882,6 +912,99 @@
 
   // ── DETAIL VIEW ──────────────────────────────────
   let currentDetailId = null;
+  let selectedIds = new Set();
+
+  function toggleSelect(id) {
+    if (selectedIds.has(id)) selectedIds.delete(id);
+    else selectedIds.add(id);
+    updateBulkBar();
+    renderList();
+  }
+
+  function toggleSelectAll() {
+    const cb = document.getElementById("selectAllCheckbox");
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const pageData = filteredContacts.slice(start, start + PAGE_SIZE);
+    if (cb.checked) {
+      pageData.forEach(c => selectedIds.add(c.id));
+    } else {
+      pageData.forEach(c => selectedIds.delete(c.id));
+    }
+    updateBulkBar();
+    renderList();
+  }
+
+  function clearSelection() {
+    selectedIds.clear();
+    document.getElementById("selectAllCheckbox").checked = false;
+    updateBulkBar();
+    renderList();
+  }
+
+  function updateBulkBar() {
+    const bar = document.getElementById("bulkBar");
+    const count = selectedIds.size;
+    document.getElementById("bulkCount").innerText = count;
+    bar.style.display = count > 0 ? "flex" : "none";
+  }
+
+  async function bulkSetType(type) {
+    if (selectedIds.size === 0) return;
+    if (!confirm("Set " + selectedIds.size + " contact(s) as " + type + "?")) return;
+
+    let batch = db.batch(); let batchCount = 0;
+    for (const id of selectedIds) {
+      batch.update(db.collection("contacts").doc(id), {
+        type: type,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      batchCount++;
+      if (batchCount >= 400) { await batch.commit(); batch = db.batch(); batchCount = 0; }
+    }
+    if (batchCount > 0) await batch.commit();
+    alert("Updated " + selectedIds.size + " contact(s) to " + type);
+    clearSelection();
+    loadContacts();
+  }
+
+  async function bulkSetStage() {
+    const stage = document.getElementById("bulkStageSelect").value;
+    if (!stage) { alert("Select a stage first"); return; }
+    if (selectedIds.size === 0) return;
+    if (!confirm("Set " + selectedIds.size + " contact(s) to stage: " + stage + "?")) return;
+
+    let batch = db.batch(); let batchCount = 0;
+    for (const id of selectedIds) {
+      batch.update(db.collection("contacts").doc(id), {
+        pipelineStage: stage,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      batchCount++;
+      if (batchCount >= 400) { await batch.commit(); batch = db.batch(); batchCount = 0; }
+    }
+    if (batchCount > 0) await batch.commit();
+    alert("Updated " + selectedIds.size + " contact(s) to stage: " + stage);
+    document.getElementById("bulkStageSelect").value = "";
+    clearSelection();
+    loadContacts();
+  }
+
+  async function bulkDelete() {
+    if (selectedIds.size === 0) return;
+    if (!confirm("DELETE " + selectedIds.size + " contact(s)?\n\nThis cannot be undone!")) return;
+    if (!confirm("Are you REALLY sure? This will permanently delete " + selectedIds.size + " contacts.")) return;
+
+    let batch = db.batch(); let batchCount = 0;
+    for (const id of selectedIds) {
+      batch.delete(db.collection("contacts").doc(id));
+      batchCount++;
+      if (batchCount >= 400) { await batch.commit(); batch = db.batch(); batchCount = 0; }
+    }
+    if (batchCount > 0) await batch.commit();
+    alert("Deleted " + selectedIds.size + " contact(s)");
+    clearSelection();
+    loadContacts();
+  }
 
   function showDetail(id) {
     const c = allContacts.find(x => x.id === id);
