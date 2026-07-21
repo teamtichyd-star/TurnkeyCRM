@@ -417,7 +417,7 @@
 
   async function saveContact() {
     const name    = document.getElementById("addName").value.trim();
-    const phone   = document.getElementById("addPhone").value.trim().replace(/\s/g,"");
+    const phone   = normalizePhone(document.getElementById("addPhone").value.trim());
     const email   = document.getElementById("addEmail").value.trim().toLowerCase();
     const company = document.getElementById("addCompany").value.trim();
     const type    = document.getElementById("addType").value;
@@ -452,6 +452,19 @@
     document.getElementById("csvFile").value = "";
     document.getElementById("importProgress").innerText = "";
     document.getElementById("importResult").style.display = "none";
+  }
+
+  function normalizePhone(p) {
+    if (!p) return "";
+    // Remove spaces, dashes, dots, brackets
+    let n = p.replace(/[\s\-\.\(\)]/g, "");
+    // Remove leading + 
+    n = n.replace(/^\+/, "");
+    // Remove country code 91 if 12 digits starting with 91
+    if (n.length === 12 && n.startsWith("91")) n = n.slice(2);
+    // Remove leading 0
+    if (n.length === 11 && n.startsWith("0")) n = n.slice(1);
+    return n;
   }
 
   function parseCSVLine(line) {
@@ -490,7 +503,7 @@
       existingSnap.docs.forEach(d => {
         const data = d.data();
         if (data.email && data.email.trim()) existingEmails.add(data.email.toLowerCase().trim());
-        if (data.phone && data.phone.trim()) existingPhones.add(data.phone.trim().replace(/\s/g,""));
+        if (data.phone && data.phone.trim()) existingPhones.add(normalizePhone(data.phone));
       });
 
       let imported = 0, skipped = 0, errors = 0;
@@ -506,7 +519,7 @@
             const fn = get(row,"FIRSTNAME"); const ln = get(row,"LASTNAME");
             contact = {
               name:    (fn + " " + ln).trim(),
-              phone:   (get(row,"WHATSAPP") || get(row,"SMS") || "").replace(/\s/g,""),
+              phone:   normalizePhone(get(row,"WHATSAPP") || get(row,"SMS") || ""),
               email:   get(row,"EMAIL").toLowerCase(),
               company: get(row,"COMPANY"),
               source:  "brevo",
@@ -516,7 +529,7 @@
           } else {
             contact = {
               name:    get(row,"Display Name"),
-              phone:   (get(row,"MobilePhone") || get(row,"Phone") || "").replace(/\s/g,""),
+              phone:   normalizePhone(get(row,"MobilePhone") || get(row,"Phone") || ""),
               email:   get(row,"EmailID").toLowerCase(),
               company: get(row,"Company Name"),
               source:  "zoho",
@@ -528,11 +541,11 @@
           if (!contact.name && !contact.phone && !contact.email) { skipped++; continue; }
 
           const eMatch = contact.email && existingEmails.has(contact.email);
-          const pMatch = contact.phone && existingPhones.has(contact.phone);
+          const pMatch = contact.phone && existingPhones.has(normalizePhone(contact.phone));
           if (eMatch || pMatch) { skipped++; continue; }
 
           if (contact.email) existingEmails.add(contact.email);
-          if (contact.phone) existingPhones.add(contact.phone);
+          if (contact.phone) existingPhones.add(normalizePhone(contact.phone));
 
           const ref = db.collection("contacts").doc();
           batch.set(ref, {
