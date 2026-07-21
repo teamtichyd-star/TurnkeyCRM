@@ -103,6 +103,7 @@
 <div class="top-bar">
   <button class="back-btn" onclick="history.back()"><i class="fa fa-arrow-left"></i></button>
   <h1><i class="fa fa-address-book" style="margin-right:8px;"></i>Contacts</h1>
+  <button class="btn btn-secondary btn-sm" onclick="reclassifyAll()" title="Re-run smart classifier on all contacts"><i class="fa fa-magic"></i> Re-classify</button>
   <button class="btn btn-secondary btn-sm" onclick="openImportModal()"><i class="fa fa-upload"></i> Import</button>
   <button class="btn btn-primary btn-sm" onclick="openAddModal()"><i class="fa fa-plus"></i> Add</button>
 </div>
@@ -269,6 +270,16 @@
           </select>
         </div>
 
+        <div class="form-group">
+          <label class="form-label">Type Detection</label>
+          <select id="importTypeMode" class="form-input" onchange="renderPreview()">
+            <option value="auto">🤖 Auto-detect (Smart)</option>
+            <option value="commercial">🏢 All Commercial</option>
+            <option value="residential">🏠 All Residential</option>
+            <option value="unknown">❓ All Unknown</option>
+          </select>
+        </div>
+
         <div style="margin-top:14px; margin-bottom:8px; font-size:13px; color:var(--primary); font-weight:600;">
           <i class="fa fa-arrows-alt-h"></i> Map Your CSV Columns to Our Fields
         </div>
@@ -313,19 +324,82 @@
   .map-select { font-size:12px; padding:6px 10px; }
 </style>
 
-<!-- ===== CONTACT DETAIL MODAL ===== -->
+<!-- ===== CONTACT DETAIL / EDIT MODAL ===== -->
 <div id="detailModal" class="modal-overlay" style="display:none;">
   <div class="modal-box">
     <div class="modal-header">
       <h3 id="detailTitle">Contact Details</h3>
       <button class="modal-close" onclick="closeDetailModal()"><i class="fa fa-times"></i></button>
     </div>
+
+    <!-- VIEW MODE -->
     <div class="modal-body" id="detailBody"></div>
-    <div class="modal-footer">
+
+    <!-- EDIT MODE -->
+    <div class="modal-body" id="editBody" style="display:none;">
+      <div class="form-group">
+        <label class="form-label">Full Name *</label>
+        <input id="editName" class="form-input">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Phone / WhatsApp</label>
+        <input id="editPhone" class="form-input">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input id="editEmail" class="form-input" type="email">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Company</label>
+        <input id="editCompany" class="form-input">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Type</label>
+        <select id="editType" class="form-input">
+          <option value="unknown">Unknown</option>
+          <option value="residential">🏠 Residential</option>
+          <option value="commercial">🏢 Commercial</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Pipeline Stage</label>
+        <select id="editStage" class="form-input">
+          <option value="new">New</option>
+          <option value="contacted">Contacted</option>
+          <option value="sitevisit">Site Visit</option>
+          <option value="proposal">Proposal</option>
+          <option value="negotiation">Negotiation</option>
+          <option value="won">Won</option>
+          <option value="lost">Lost</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Source</label>
+        <select id="editSource" class="form-input">
+          <option value="brevo">Brevo</option>
+          <option value="zoho">Zoho</option>
+          <option value="manual">Manual</option>
+          <option value="crm">CRM</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <textarea id="editNotes" class="form-input" rows="3"></textarea>
+      </div>
+    </div>
+
+    <div class="modal-footer" id="detailFooter">
+      <button class="btn btn-primary" onclick="switchToEdit()"><i class="fa fa-pen"></i> Edit</button>
+      <button class="btn btn-danger" onclick="deleteContact()"><i class="fa fa-trash"></i> Delete</button>
       <button class="btn btn-secondary" onclick="closeDetailModal()">Close</button>
+    </div>
+    <div class="modal-footer" id="editFooter" style="display:none;">
+      <button class="btn btn-primary" onclick="saveEdit()"><i class="fa fa-save"></i> Save</button>
+      <button class="btn btn-secondary" onclick="switchToView()">Cancel</button>
     </div>
   </div>
 </div>
+
 
 <script>
   const firebaseConfig = {
@@ -527,6 +601,61 @@
     return n;
   }
 
+  // ── SMART TYPE CLASSIFIER ──
+  const PERSONAL_EMAIL_DOMAINS = [
+    "gmail.com","yahoo.com","yahoo.co.in","yahoo.in","hotmail.com","outlook.com",
+    "rediffmail.com","icloud.com","live.com","aol.com","me.com","mac.com",
+    "msn.com","ymail.com","protonmail.com","zoho.com","gmx.com","mail.com"
+  ];
+  const BUSINESS_EMAIL_PREFIXES = [
+    "info","sales","hr","support","admin","contact","accounts","enquiry",
+    "enquiries","help","service","office","hello","team","careers","jobs",
+    "billing","finance","operations","marketing","business","reception"
+  ];
+  const COMPANY_SUFFIXES = [
+    "pvt ltd","pvt. ltd","private limited","pvt.ltd","p ltd","p.ltd",
+    "llp","llc","inc","inc.","corp","corp.","corporation","ltd","ltd.",
+    "limited","company","co.","enterprises","solutions","services",
+    "industries","technologies","technology","systems","group","holdings",
+    "consultancy","consulting","associates","partners","international"
+  ];
+
+  function classifyContact(c) {
+    const name = (c.name || "").toLowerCase();
+    const email = (c.email || "").toLowerCase();
+    const company = (c.company || "").toLowerCase();
+
+    let score = 0;
+
+    // Company name filled → strong commercial signal
+    if (company && company.length > 2) score += 3;
+
+    // Company suffixes in name or company
+    for (const suf of COMPANY_SUFFIXES) {
+      if (name.includes(suf) || company.includes(suf)) { score += 3; break; }
+    }
+
+    if (email) {
+      const domain = email.split("@")[1] || "";
+      const prefix = (email.split("@")[0] || "").split(".")[0].split("+")[0];
+
+      // Business email prefix (info@, sales@ etc.)
+      if (BUSINESS_EMAIL_PREFIXES.includes(prefix)) score += 3;
+
+      // Personal email domain → residential signal
+      if (PERSONAL_EMAIL_DOMAINS.includes(domain)) {
+        score -= 2;
+      } else if (domain && domain.includes(".")) {
+        // Custom domain → commercial signal
+        score += 2;
+      }
+    }
+
+    if (score >= 3) return "commercial";
+    if (score <= -1) return "residential";
+    return "unknown";
+  }
+
   function parseCSVLine(line, delim) {
     const d = delim || ",";
     const result = []; let cur = ""; let inQ = false;
@@ -627,9 +756,14 @@
     const email = getMappedValue(row, "mapEmail").toLowerCase();
     const company = getMappedValue(row, "mapCompany");
     const extId = getMappedValue(row, "mapExtId");
-    return {
-      name, phone: normalizePhone(phoneRaw), email, company, extId
-    };
+    const base = { name, phone: normalizePhone(phoneRaw), email, company, extId };
+
+    // Type detection
+    const mode = document.getElementById("importTypeMode")?.value || "auto";
+    if (mode === "auto") base.type = classifyContact(base);
+    else base.type = mode;
+
+    return base;
   }
 
   function renderPreview() {
@@ -638,8 +772,11 @@
     if (sample.length === 0) { box.innerHTML = "<i>No data</i>"; return; }
     box.innerHTML = sample.map((r,i) => {
       const c = buildContact(r);
+      const typeColor = c.type === "commercial" ? "#ff8c42" : c.type === "residential" ? "#5dbb6e" : "#888";
+      const typeIcon = c.type === "commercial" ? "🏢" : c.type === "residential" ? "🏠" : "❓";
       return '<div style="padding:6px 0; border-bottom:1px solid var(--border);">' +
         '<b style="color:var(--primary);">Row '+(i+1)+':</b> ' +
+        '<span style="color:'+typeColor+';">'+typeIcon+' '+c.type+'</span> | ' +
         '<span style="color:var(--text);">'+(c.name||"(no name)")+'</span>' +
         ' | ' + (c.phone||"-") +
         ' | ' + (c.email||"-") +
@@ -696,7 +833,7 @@
             email: built.email,
             company: built.company,
             source: source,
-            type: "unknown",
+            type: built.type || "unknown",
             pipelineStage: "new",
             status: "active",
             tags: [],
@@ -738,9 +875,12 @@
   }
 
   // ── DETAIL VIEW ──────────────────────────────────
+  let currentDetailId = null;
+
   function showDetail(id) {
     const c = allContacts.find(x => x.id === id);
     if (!c) return;
+    currentDetailId = id;
     document.getElementById("detailTitle").innerText = c.name || "Contact";
     const rows = [
       ["Phone",   c.phone   || "-"],
@@ -754,9 +894,103 @@
     ];
     document.getElementById("detailBody").innerHTML =
       rows.map(r => '<div class="detail-row"><span class="detail-label">'+r[0]+'</span><span class="detail-value">'+r[1]+'</span></div>').join("");
+    switchToView();
     document.getElementById("detailModal").style.display = "flex";
   }
-  function closeDetailModal() { document.getElementById("detailModal").style.display = "none"; }
+
+  function closeDetailModal() {
+    document.getElementById("detailModal").style.display = "none";
+    currentDetailId = null;
+  }
+
+  function switchToView() {
+    document.getElementById("detailBody").style.display = "block";
+    document.getElementById("editBody").style.display = "none";
+    document.getElementById("detailFooter").style.display = "flex";
+    document.getElementById("editFooter").style.display = "none";
+  }
+
+  function switchToEdit() {
+    const c = allContacts.find(x => x.id === currentDetailId);
+    if (!c) return;
+    document.getElementById("editName").value    = c.name    || "";
+    document.getElementById("editPhone").value   = c.phone   || "";
+    document.getElementById("editEmail").value   = c.email   || "";
+    document.getElementById("editCompany").value = c.company || "";
+    document.getElementById("editType").value    = c.type    || "unknown";
+    document.getElementById("editStage").value   = c.pipelineStage || "new";
+    document.getElementById("editSource").value  = c.source  || "manual";
+    document.getElementById("editNotes").value   = c.notes   || "";
+    document.getElementById("detailBody").style.display = "none";
+    document.getElementById("editBody").style.display = "block";
+    document.getElementById("detailFooter").style.display = "none";
+    document.getElementById("editFooter").style.display = "flex";
+  }
+
+  async function saveEdit() {
+    if (!currentDetailId) return;
+    const name    = document.getElementById("editName").value.trim();
+    const phone   = normalizePhone(document.getElementById("editPhone").value.trim());
+    const email   = document.getElementById("editEmail").value.trim().toLowerCase();
+    const company = document.getElementById("editCompany").value.trim();
+    const type    = document.getElementById("editType").value;
+    const stage   = document.getElementById("editStage").value;
+    const source  = document.getElementById("editSource").value;
+    const notes   = document.getElementById("editNotes").value.trim();
+
+    if (!name && !phone) { alert("Enter at least name or phone"); return; }
+
+    try {
+      await db.collection("contacts").doc(currentDetailId).update({
+        name, phone, email, company, type, source, notes,
+        pipelineStage: stage,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      closeDetailModal();
+      loadContacts();
+    } catch(e) {
+      alert("Error saving: " + e.message);
+    }
+  }
+
+  async function deleteContact() {
+    if (!currentDetailId) return;
+    const c = allContacts.find(x => x.id === currentDetailId);
+    if (!confirm("Delete contact: " + (c?.name || "?") + "?\n\nThis cannot be undone.")) return;
+    try {
+      await db.collection("contacts").doc(currentDetailId).delete();
+      closeDetailModal();
+      loadContacts();
+    } catch(e) {
+      alert("Error deleting: " + e.message);
+    }
+  }
+
+  async function reclassifyAll() {
+    if (allContacts.length === 0) { alert("No contacts to classify"); return; }
+    if (!confirm("Re-classify all " + allContacts.length + " contacts using smart classifier?\n\nThis will update the Type (Residential/Commercial) for each contact.")) return;
+
+    let updated = 0, unchanged = 0;
+    let batch = db.batch(); let batchCount = 0;
+
+    for (const c of allContacts) {
+      const newType = classifyContact(c);
+      if (newType !== c.type) {
+        batch.update(db.collection("contacts").doc(c.id), {
+          type: newType,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        batchCount++; updated++;
+        if (batchCount >= 400) { await batch.commit(); batch = db.batch(); batchCount = 0; }
+      } else {
+        unchanged++;
+      }
+    }
+    if (batchCount > 0) await batch.commit();
+
+    alert("Re-classification complete!\n\nUpdated: " + updated + "\nUnchanged: " + unchanged);
+    loadContacts();
+  }
 
 </script>
 </body>
