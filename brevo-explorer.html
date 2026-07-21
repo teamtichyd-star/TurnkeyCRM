@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Brevo Deep Analyzer</title>
+<style>
+  body { font-family: -apple-system, system-ui, sans-serif; background: #0e0e1a; color: #f0f0f0; padding: 30px; max-width: 1400px; margin: auto; }
+  h1 { color: #c8a96e; }
+  h2 { color: #c8a96e; margin-top: 30px; border-bottom: 1px solid #333; padding-bottom: 8px; }
+  .section { background: #16213e; border-radius: 12px; padding: 20px; margin: 15px 0; border: 1px solid #333; }
+  .item { padding: 8px; border-bottom: 1px solid #222; font-size: 13px; display: flex; justify-content: space-between; align-items: center; }
+  .item b { color: #c8a96e; }
+  .badge { padding: 3px 10px; border-radius: 10px; font-size: 11px; font-weight: 700; }
+  .badge-ok { background: #4caf50; color: #fff; }
+  .badge-warn { background: #ff9800; color: #fff; }
+  .badge-empty { background: #666; color: #fff; }
+  .badge-big { background: #2196f3; color: #fff; }
+  button { background: #c8a96e; color: #000; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 14px; margin: 5px; }
+  .loading { color: #888; font-style: italic; }
+  .list-detail { background: #0a0a15; margin: 5px 0; padding: 12px; border-radius: 6px; font-size: 12px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #222; font-size: 12px; }
+  th { background: #1a2550; color: #c8a96e; }
+  .list-name { color: #c8a96e; font-weight: 600; }
+  .sync-yes { color: #4caf50; }
+  .sync-no { color: #666; }
+  .contacts-preview { max-height: 200px; overflow-y: auto; margin-top: 10px; }
+  .contact-row { padding: 5px 0; font-size: 11px; color: #888; border-bottom: 1px solid #222; }
+</style>
+</head>
+<body>
+
+<h1>🔍 Brevo Deep Analyzer</h1>
+<p style="color:#888;">Deep analysis of your Brevo account structure.</p>
+
+<button onclick="runFull()">▶️ Analyze Everything</button>
+<button onclick="analyzeListsDetailed()">📁 Analyze Lists in Detail</button>
+<button onclick="checkZohoSync()">🔍 Check Zoho Sync</button>
+
+<div id="output"></div>
+
+<script>
+const API_KEY = "YOUR_KEY_HERE";
+const HEADERS = {
+  "accept": "application/json",
+  "content-type": "application/json",
+  "api-key": API_KEY
+};
+
+async function callBrevo(endpoint) {
+  try {
+    const r = await fetch("https://api.brevo.com/v3" + endpoint, { headers: HEADERS });
+    const data = await r.json();
+    return { ok: r.ok, status: r.status, data };
+  } catch(e) {
+    return { ok: false, error: e.message };
+  }
+}
+
+function section(title, content) {
+  return "<div class=section><h2>" + title + "</h2>" + content + "</div>";
+}
+
+async function runFull() {
+  const out = document.getElementById("output");
+  out.innerHTML = "<div class=loading>⏳ Running full analysis...</div>";
+
+  const results = [];
+
+  // 1. Account summary
+  const acc = await callBrevo("/account");
+  if (acc.ok) {
+    results.push(section("💼 Account", 
+      "<div class=item><span>Email</span><b>" + acc.data.email + "</b></div>" +
+      "<div class=item><span>Plan</span><b>" + (acc.data.plan?.[0]?.type || "-") + "</b></div>" +
+      "<div class=item><span>Email Credits</span><b>" + (acc.data.plan?.[0]?.credits || "-") + "</b></div>"
+    ));
+  }
+
+  // 2. Total contacts
+  const contactCount = await callBrevo("/contacts?limit=1");
+  results.push(section("👥 Total Contacts",
+    "<div class=item><span>Total in Brevo</span><b class=\"badge badge-big\">" + (contactCount.data?.count || 0) + "</b></div>"
+  ));
+
+  // 3. All lists with real sizes (call each individually)
+  results.push("<div class=section><h2>📁 All Lists (with real counts)</h2><div id=listsTable>Loading...</div></div>");
+
+  out.innerHTML = results.join("");
+
+  // Populate real list sizes
+  const listsResp = await callBrevo("/contacts/lists?limit=50");
+  if (listsResp.ok) {
+    const lists = listsResp.data.lists || [];
+    let table = "<table><tr><th>ID</th><th>Name</th><th>Subs (list.totalSubs)</th><th>Real Contact Count</th><th>Folder</th><th>Sync Status</th></tr>";
+
+    for (const l of lists) {
+      // Fetch real contact count
+      const detail = await callBrevo("/contacts/lists/" + l.id);
+      const realCount = detail.ok ? (detail.data.uniqueSubscribers || 0) : "?";
+      const folderId = detail.data?.folderId || "-";
+      const dynamic = detail.data?.dynamicList ? "🔄 Dynamic" : "📌 Static";
+
+      const badge = realCount > 0 
+        ? "<span class=\"badge badge-ok\">" + realCount + "</span>"
+        : "<span class=\"badge badge-empty\">Empty</span>";
+
+      table += "<tr>" +
+        "<td>" + l.id + "</td>" +
+        "<td class=list-name>" + l.name + "</td>" +
+        "<td>" + l.totalSubscribers + "</td>" +
+        "<td>" + badge + "</td>" +
+        "<td>" + folderId + "</td>" +
+        "<td>" + dynamic + "</td>" +
+        "</tr>";
+    }
+    table += "</table>";
+    document.getElementById("listsTable").innerHTML = table;
+  }
+
+  // 4. Folders
+  const folders = await callBrevo("/contacts/folders?limit=20");
+  if (folders.ok) {
+    const items = (folders.data.folders || []).map(f =>
+      "<div class=item><span>#" + f.id + " " + f.name + "</span><b>" + (f.uniqueSubscribers || 0) + " subs</b></div>"
+    ).join("");
+    out.innerHTML += section("📂 Folders", items || "<div class=item>No folders</div>");
+  }
+
+  // 5. Look for Zoho-related lists
+  await checkZohoSync();
+}
+
+async function checkZohoSync() {
+  const out = document.getElementById("output");
+  const listsResp = await callBrevo("/contacts/lists?limit=50");
+  if (!listsResp.ok) return;
+
+  const lists = listsResp.data.lists || [];
+  const zohoLists = lists.filter(l => 
+    l.name.toLowerCase().includes("zoho") || 
+    l.name.toLowerCase().includes("zbc")
+  );
+
+  let html = "<h2>🔍 Zoho-Related Lists Found (" + zohoLists.length + ")</h2>";
+
+  for (const l of zohoLists) {
+    const detail = await callBrevo("/contacts/lists/" + l.id);
+    const real = detail.ok ? detail.data.uniqueSubscribers : "?";
+    html += "<div class=list-detail>" +
+      "<b class=list-name>" + l.name + "</b> (ID: " + l.id + ")<br>" +
+      "Real subscribers: " + real + "<br>" +
+      "Created: " + (detail.data?.createdAt || "-") + "<br>" +
+      "</div>";
+
+    // Try to fetch first 5 contacts from this list
+    if (real > 0) {
+      const contacts = await callBrevo("/contacts/lists/" + l.id + "/contacts?limit=5");
+      if (contacts.ok && contacts.data.contacts) {
+        html += "<div class=contacts-preview><b>First 5 contacts:</b>";
+        contacts.data.contacts.forEach(c => {
+          html += "<div class=contact-row>" + (c.email || "-") + " | " + (c.attributes?.FIRSTNAME || "") + " " + (c.attributes?.LASTNAME || "") + "</div>";
+        });
+        html += "</div>";
+      }
+    }
+  }
+
+  out.innerHTML += "<div class=section>" + html + "</div>";
+}
+
+async function analyzeListsDetailed() {
+  const out = document.getElementById("output");
+  out.innerHTML = "<div class=loading>⏳ Analyzing each list in detail...</div>";
+
+  const listsResp = await callBrevo("/contacts/lists?limit=50");
+  if (!listsResp.ok) { out.innerHTML = "Error"; return; }
+
+  const lists = listsResp.data.lists || [];
+  let html = "<h2>📁 Detailed List Analysis</h2>";
+
+  for (const l of lists) {
+    const detail = await callBrevo("/contacts/lists/" + l.id);
+    const contacts = await callBrevo("/contacts/lists/" + l.id + "/contacts?limit=3");
+
+    html += "<div class=list-detail>";
+    html += "<b class=list-name>ID " + l.id + ": " + l.name + "</b>";
+    html += " <span class=badge " + (detail.data?.uniqueSubscribers > 0 ? "badge-ok" : "badge-empty") + ">" + (detail.data?.uniqueSubscribers || 0) + " contacts</span>";
+    html += "<br>Type: " + (detail.data?.dynamicList ? "🔄 Dynamic" : "📌 Static");
+    html += " | Folder: " + (detail.data?.folderId || "none");
+    html += " | Created: " + (detail.data?.createdAt || "-");
+
+    if (contacts.ok && contacts.data.contacts && contacts.data.contacts.length > 0) {
+      html += "<br><b style=color:#4da6ff>Sample contacts:</b>";
+      contacts.data.contacts.forEach(c => {
+        html += "<div class=contact-row>• " + (c.email || "-") + 
+                " | " + (c.attributes?.FIRSTNAME || "") + " " + (c.attributes?.LASTNAME || "") + 
+                " | " + (c.attributes?.WHATSAPP || c.attributes?.SMS || "-") + "</div>";
+      });
+    }
+    html += "</div>";
+  }
+
+  out.innerHTML = "<div class=section>" + html + "</div>";
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  // Replace API key placeholder
+  const keyInput = prompt("Paste your Brevo API key:", "PASTE_YOUR_KEY_HERE");
+  if (keyInput) {
+    window.API_KEY_OVERRIDE = keyInput;
+    HEADERS["api-key"] = keyInput;
+  }
+});
+</script>
+
+</body>
+</html>
