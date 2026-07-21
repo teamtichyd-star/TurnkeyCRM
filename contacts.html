@@ -232,37 +232,86 @@
 
 <!-- ===== IMPORT CSV MODAL ===== -->
 <div id="importModal" class="modal-overlay" style="display:none;">
-  <div class="modal-box">
+  <div class="modal-box" style="max-width:640px;">
     <div class="modal-header">
       <h3><i class="fa fa-file-csv"></i> Import Contacts CSV</h3>
       <button class="modal-close" onclick="closeImportModal()"><i class="fa fa-times"></i></button>
     </div>
     <div class="modal-body">
-      <div class="form-group">
-        <label class="form-label">CSV Source</label>
-        <select id="importSource" class="form-input">
-          <option value="brevo">Brevo Export</option>
-          <option value="zoho">Zoho Books Export</option>
-        </select>
+
+      <!-- STEP 1: Upload -->
+      <div id="importStep1">
+        <div class="form-group">
+          <label class="form-label">Step 1: Select CSV File</label>
+          <input type="file" id="csvFile" accept=".csv" class="form-input" onchange="onFileSelected()">
+        </div>
+        <div style="background:var(--card2); border-radius:8px; padding:12px; font-size:12px; color:var(--subtext);">
+          <b style="color:var(--text);">Supported formats:</b> Any CSV with headers (comma, semicolon, or tab separated)<br>
+          Works with: Brevo, Zoho, Google Contacts, iPhone Export, Excel exports, custom lists<br>
+          After upload, you can map your CSV columns to our fields.
+        </div>
       </div>
-      <div class="form-group">
-        <label class="form-label">Select CSV File</label>
-        <input type="file" id="csvFile" accept=".csv" class="form-input">
+
+      <!-- STEP 2: Map Columns -->
+      <div id="importStep2" style="display:none;">
+        <div style="background:var(--card2); border-radius:8px; padding:10px 14px; margin-bottom:14px; font-size:12px;">
+          <b style="color:var(--primary);"><i class="fa fa-check-circle"></i> File loaded:</b>
+          <span id="fileInfo" style="color:var(--text);"></span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Source Tag</label>
+          <select id="importSource" class="form-input">
+            <option value="brevo">Brevo</option>
+            <option value="zoho">Zoho</option>
+            <option value="manual">Manual/Other</option>
+            <option value="crm">CRM Import</option>
+          </select>
+        </div>
+
+        <div style="margin-top:14px; margin-bottom:8px; font-size:13px; color:var(--primary); font-weight:600;">
+          <i class="fa fa-arrows-alt-h"></i> Map Your CSV Columns to Our Fields
+        </div>
+
+        <div style="border:1px solid var(--border); border-radius:8px; overflow:hidden;">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0; background:var(--card2); padding:8px 12px; font-size:11px; color:var(--subtext); font-weight:600;">
+            <div>OUR FIELD</div>
+            <div>YOUR CSV COLUMN</div>
+          </div>
+
+          <div class="map-row"><div class="map-label">Name (First)</div><select id="mapFirstName" class="form-input map-select"></select></div>
+          <div class="map-row"><div class="map-label">Name (Last)</div><select id="mapLastName" class="form-input map-select"></select></div>
+          <div class="map-row"><div class="map-label">Name (Full)<div style="font-size:10px; color:var(--subtext); font-weight:400;">Use if no first/last split</div></div><select id="mapFullName" class="form-input map-select"></select></div>
+          <div class="map-row"><div class="map-label">Phone/Mobile *</div><select id="mapPhone" class="form-input map-select"></select></div>
+          <div class="map-row"><div class="map-label">Email</div><select id="mapEmail" class="form-input map-select"></select></div>
+          <div class="map-row"><div class="map-label">Company</div><select id="mapCompany" class="form-input map-select"></select></div>
+          <div class="map-row"><div class="map-label">External ID</div><select id="mapExtId" class="form-input map-select"></select></div>
+        </div>
+
+        <!-- Preview -->
+        <div style="margin-top:14px; font-size:13px; color:var(--primary); font-weight:600;">
+          <i class="fa fa-eye"></i> Preview (first 3 rows)
+        </div>
+        <div id="previewBox" style="background:var(--darker); border:1px solid var(--border); border-radius:8px; padding:10px; margin-top:6px; font-size:11px; max-height:150px; overflow:auto;"></div>
+
+        <div id="importProgress" class="import-progress"></div>
+        <div id="importResult" class="import-result" style="display:none;"></div>
       </div>
-      <div style="background:var(--card2); border-radius:8px; padding:12px; font-size:12px; color:var(--subtext);">
-        <b style="color:var(--text);">Brevo columns used:</b> EMAIL, FIRSTNAME, LASTNAME, WHATSAPP, SMS, COMPANY, CONTACT ID<br><br>
-        <b style="color:var(--text);">Zoho columns used:</b> Display Name, EmailID, MobilePhone, Phone, Company Name, Contact ID<br><br>
-        Duplicates (same email or phone) will be skipped automatically.
-      </div>
-      <div id="importProgress" class="import-progress"></div>
-      <div id="importResult" class="import-result" style="display:none;"></div>
+
     </div>
     <div class="modal-footer">
-      <button class="btn btn-primary" onclick="processCSV()"><i class="fa fa-upload"></i> Start Import</button>
+      <button id="importBackBtn" class="btn btn-secondary" onclick="importBackToStep1()" style="display:none;"><i class="fa fa-arrow-left"></i> Back</button>
+      <button id="importGoBtn" class="btn btn-primary" onclick="processCSV()" style="display:none;"><i class="fa fa-upload"></i> Start Import</button>
       <button class="btn btn-secondary" onclick="closeImportModal()">Cancel</button>
     </div>
   </div>
 </div>
+
+<style>
+  .map-row { display:grid; grid-template-columns:1fr 1fr; gap:0; padding:8px 12px; border-top:1px solid var(--border); align-items:center; }
+  .map-label { font-size:12px; color:var(--text); font-weight:500; }
+  .map-select { font-size:12px; padding:6px 10px; }
+</style>
 
 <!-- ===== CONTACT DETAIL MODAL ===== -->
 <div id="detailModal" class="modal-overlay" style="display:none;">
@@ -445,57 +494,167 @@
     loadContacts();
   }
 
-  // ── IMPORT CSV ───────────────────────────────────
-  function openImportModal() { document.getElementById("importModal").style.display = "flex"; }
+  // ── IMPORT CSV (Column Mapping System) ───────────
+  let csvHeaders = [];
+  let csvRows    = [];
+  let csvDelimiter = ",";
+
+  function openImportModal() {
+    document.getElementById("importModal").style.display = "flex";
+    importBackToStep1();
+  }
   function closeImportModal() {
     document.getElementById("importModal").style.display = "none";
+    importBackToStep1();
+  }
+  function importBackToStep1() {
+    document.getElementById("importStep1").style.display = "block";
+    document.getElementById("importStep2").style.display = "none";
+    document.getElementById("importBackBtn").style.display = "none";
+    document.getElementById("importGoBtn").style.display = "none";
     document.getElementById("csvFile").value = "";
     document.getElementById("importProgress").innerText = "";
     document.getElementById("importResult").style.display = "none";
+    csvHeaders = []; csvRows = [];
   }
 
-  function normalizePhone(p) {
-    if (!p) return "";
-    // Remove spaces, dashes, dots, brackets
-    let n = p.replace(/[\s\-\.\(\)]/g, "");
-    // Remove leading + 
-    n = n.replace(/^\+/, "");
-    // Remove country code 91 if 12 digits starting with 91
-    if (n.length === 12 && n.startsWith("91")) n = n.slice(2);
-    // Remove leading 0
-    if (n.length === 11 && n.startsWith("0")) n = n.slice(1);
-    return n;
-  }
-
-  function parseCSVLine(line) {
+  function parseCSVLine(line, delim) {
+    const d = delim || ",";
     const result = []; let cur = ""; let inQ = false;
     for (let i = 0; i < line.length; i++) {
       const ch = line[i];
       if (ch === '"' && inQ && line[i+1] === '"') { cur += '"'; i++; }
       else if (ch === '"') { inQ = !inQ; }
-      else if (ch === ',' && !inQ) { result.push(cur.trim()); cur = ""; }
+      else if (ch === d && !inQ) { result.push(cur.trim()); cur = ""; }
       else { cur += ch; }
     }
     result.push(cur.trim());
     return result;
   }
 
-  async function processCSV() {
-    const file   = document.getElementById("csvFile").files[0];
-    const source = document.getElementById("importSource").value;
-    if (!file) { alert("Please select a CSV file"); return; }
+  async function onFileSelected() {
+    const file = document.getElementById("csvFile").files[0];
+    if (!file) return;
 
+    try {
+      const text = await file.text();
+      const lines = text.split(/?
+/).filter(l => l.trim());
+      if (lines.length < 2) { alert("CSV has no data rows"); return; }
+
+      // Auto-detect delimiter
+      const firstLine = lines[0];
+      const commas = (firstLine.match(/,/g)||[]).length;
+      const semis  = (firstLine.match(/;/g)||[]).length;
+      const tabs   = (firstLine.match(/	/g)||[]).length;
+      csvDelimiter = ",";
+      if (semis > commas && semis > tabs) csvDelimiter = ";";
+      if (tabs  > commas && tabs  > semis) csvDelimiter = "	";
+
+      csvHeaders = parseCSVLine(lines[0], csvDelimiter);
+      csvRows = lines.slice(1).map(l => parseCSVLine(l, csvDelimiter));
+
+      document.getElementById("fileInfo").innerText =
+        file.name + " (" + csvRows.length + " rows, " + csvHeaders.length + " columns, " +
+        (csvDelimiter === "	" ? "tab" : csvDelimiter) + "-separated)";
+
+      // Populate all mapping dropdowns
+      const selectIds = ["mapFirstName","mapLastName","mapFullName","mapPhone","mapEmail","mapCompany","mapExtId"];
+      const options = '<option value="">-- Not Mapped --</option>' +
+        csvHeaders.map((h,i) => '<option value="'+i+'">'+h+'</option>').join("");
+      selectIds.forEach(id => { document.getElementById(id).innerHTML = options; });
+
+      // Auto-guess mappings based on common header names
+      autoMap("mapFirstName", ["FIRSTNAME","First Name","first_name","firstname","First"]);
+      autoMap("mapLastName",  ["LASTNAME","Last Name","last_name","lastname","Last"]);
+      autoMap("mapFullName",  ["Display Name","Full Name","Name","Contact Name"]);
+      autoMap("mapPhone",     ["WHATSAPP","MobilePhone","Mobile Phone","Mobile","Phone","SMS","LANDLINE_NUMBER","Contact Number"]);
+      autoMap("mapEmail",     ["EMAIL","EmailID","Email ID","Email","email"]);
+      autoMap("mapCompany",   ["COMPANY","Company Name","Company","Organization"]);
+      autoMap("mapExtId",     ["CONTACT ID","Contact ID","ID"]);
+
+      // Auto-suggest source
+      const src = document.getElementById("importSource");
+      const hUpper = csvHeaders.map(h=>h.toUpperCase()).join("|");
+      if (hUpper.includes("WHATSAPP") && hUpper.includes("FIRSTNAME")) src.value = "brevo";
+      else if (hUpper.includes("EMAILID") || hUpper.includes("DISPLAY NAME")) src.value = "zoho";
+      else src.value = "manual";
+
+      renderPreview();
+
+      // Attach preview refresh on any mapping change
+      selectIds.forEach(id => document.getElementById(id).onchange = renderPreview);
+
+      // Show step 2
+      document.getElementById("importStep1").style.display = "none";
+      document.getElementById("importStep2").style.display = "block";
+      document.getElementById("importBackBtn").style.display = "inline-block";
+      document.getElementById("importGoBtn").style.display = "inline-block";
+
+    } catch(e) {
+      alert("Error reading CSV: " + e.message);
+    }
+  }
+
+  function autoMap(selectId, candidates) {
+    const sel = document.getElementById(selectId);
+    for (const cand of candidates) {
+      const idx = csvHeaders.findIndex(h => h.toLowerCase().trim() === cand.toLowerCase().trim());
+      if (idx !== -1) { sel.value = idx; return; }
+    }
+  }
+
+  function getMappedValue(row, selectId) {
+    const idx = document.getElementById(selectId).value;
+    if (idx === "") return "";
+    return (row[parseInt(idx)] || "").trim().replace(/^"|"$/g,"");
+  }
+
+  function buildContact(row) {
+    const fn = getMappedValue(row, "mapFirstName");
+    const ln = getMappedValue(row, "mapLastName");
+    const full = getMappedValue(row, "mapFullName");
+    const name = full || (fn + " " + ln).trim();
+    const phoneRaw = getMappedValue(row, "mapPhone");
+    const email = getMappedValue(row, "mapEmail").toLowerCase();
+    const company = getMappedValue(row, "mapCompany");
+    const extId = getMappedValue(row, "mapExtId");
+    return {
+      name, phone: normalizePhone(phoneRaw), email, company, extId
+    };
+  }
+
+  function renderPreview() {
+    const box = document.getElementById("previewBox");
+    const sample = csvRows.slice(0, 3);
+    if (sample.length === 0) { box.innerHTML = "<i>No data</i>"; return; }
+    box.innerHTML = sample.map((r,i) => {
+      const c = buildContact(r);
+      return '<div style="padding:6px 0; border-bottom:1px solid var(--border);">' +
+        '<b style="color:var(--primary);">Row '+(i+1)+':</b> ' +
+        '<span style="color:var(--text);">'+(c.name||"(no name)")+'</span>' +
+        ' | ' + (c.phone||"-") +
+        ' | ' + (c.email||"-") +
+        (c.company ? ' | '+c.company : '') +
+        '</div>';
+    }).join("");
+  }
+
+  async function processCSV() {
+    if (csvRows.length === 0) { alert("No data to import"); return; }
+
+    const source = document.getElementById("importSource").value;
     const progress = document.getElementById("importProgress");
     const resultEl = document.getElementById("importResult");
     resultEl.style.display = "none";
-    progress.innerText = "Reading file...";
+
+    // Validate phone mapping
+    if (document.getElementById("mapPhone").value === "" && document.getElementById("mapEmail").value === "") {
+      alert("Please map at least Phone or Email column");
+      return;
+    }
 
     try {
-      const text  = await file.text();
-      const lines = text.split("\n").filter(l => l.trim());
-      const headers = parseCSVLine(lines[0]);
-      const get = (row, col) => (row[headers.indexOf(col)] || "").trim().replace(/^"|"$/g,"");
-
       progress.innerText = "Loading existing contacts for dedup check...";
       const existingSnap   = await db.collection("contacts").get();
       const existingEmails = new Set();
@@ -509,53 +668,41 @@
       let imported = 0, skipped = 0, errors = 0;
       let batch = db.batch(); let batchCount = 0;
 
-      for (let i = 1; i < lines.length; i++) {
-        if (!lines[i].trim()) continue;
+      for (let i = 0; i < csvRows.length; i++) {
         try {
-          const row = parseCSVLine(lines[i]);
-          let contact = {};
+          const row = csvRows[i];
+          const built = buildContact(row);
 
-          if (source === "brevo") {
-            const fn = get(row,"FIRSTNAME"); const ln = get(row,"LASTNAME");
-            contact = {
-              name:    (fn + " " + ln).trim(),
-              phone:   normalizePhone(get(row,"WHATSAPP") || get(row,"SMS") || ""),
-              email:   get(row,"EMAIL").toLowerCase(),
-              company: get(row,"COMPANY"),
-              source:  "brevo",
-              brevoId: get(row,"CONTACT ID"),
-              type:    "unknown"
-            };
-          } else {
-            contact = {
-              name:    get(row,"Display Name"),
-              phone:   normalizePhone(get(row,"MobilePhone") || get(row,"Phone") || ""),
-              email:   get(row,"EmailID").toLowerCase(),
-              company: get(row,"Company Name"),
-              source:  "zoho",
-              zohoId:  get(row,"Contact ID"),
-              type:    "unknown"
-            };
-          }
+          if (!built.name && !built.phone && !built.email) { skipped++; continue; }
 
-          if (!contact.name && !contact.phone && !contact.email) { skipped++; continue; }
-
-          const eMatch = contact.email && existingEmails.has(contact.email);
-          const pMatch = contact.phone && existingPhones.has(normalizePhone(contact.phone));
+          const eMatch = built.email && existingEmails.has(built.email);
+          const pMatch = built.phone && existingPhones.has(built.phone);
           if (eMatch || pMatch) { skipped++; continue; }
 
-          if (contact.email) existingEmails.add(contact.email);
-          if (contact.phone) existingPhones.add(normalizePhone(contact.phone));
+          if (built.email) existingEmails.add(built.email);
+          if (built.phone) existingPhones.add(built.phone);
 
-          const ref = db.collection("contacts").doc();
-          batch.set(ref, {
-            ...contact,
+          const doc = {
+            name: built.name,
+            phone: built.phone,
+            email: built.email,
+            company: built.company,
+            source: source,
+            type: "unknown",
             pipelineStage: "new",
             status: "active",
             tags: [],
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-          });
+          };
+          if (built.extId) {
+            if (source === "brevo") doc.brevoId = built.extId;
+            else if (source === "zoho") doc.zohoId = built.extId;
+            else doc.extId = built.extId;
+          }
+
+          const ref = db.collection("contacts").doc();
+          batch.set(ref, doc);
           batchCount++; imported++;
 
           if (batchCount >= 400) {
@@ -564,7 +711,7 @@
             progress.innerText = "Importing... " + imported + " saved so far";
           }
 
-        } catch(rowErr) { errors++; }
+        } catch(rowErr) { errors++; console.error("Row error:", rowErr); }
       }
 
       if (batchCount > 0) await batch.commit();
@@ -578,6 +725,7 @@
 
     } catch(e) {
       progress.innerText = "Error: " + e.message;
+      console.error(e);
     }
   }
 
