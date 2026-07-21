@@ -104,6 +104,7 @@
   <button class="back-btn" onclick="history.back()"><i class="fa fa-arrow-left"></i></button>
   <h1><i class="fa fa-address-book" style="margin-right:8px;"></i>Contacts</h1>
   <button class="btn btn-secondary btn-sm" onclick="reclassifyAll()" title="Re-run smart classifier on all contacts"><i class="fa fa-magic"></i> Re-classify</button>
+  <button class="btn btn-secondary btn-sm" onclick="cleanPhones()" title="Clean phone numbers (strip apostrophes, +91, etc)"><i class="fa fa-broom"></i> Clean Phones</button>
   <button class="btn btn-secondary btn-sm" onclick="openImportModal()"><i class="fa fa-upload"></i> Import</button>
   <button class="btn btn-primary btn-sm" onclick="openAddModal()"><i class="fa fa-plus"></i> Add</button>
 </div>
@@ -594,9 +595,10 @@
 
   function normalizePhone(p) {
     if (!p) return "";
-    let n = String(p).replace(/[\s\-\.\(\)]/g, "");
+    let n = String(p).replace(/[\s\-\.\(\)\']/g, "");
     n = n.replace(/^\+/, "");
     if (n.length === 12 && n.startsWith("91")) n = n.slice(2);
+    if (n.length === 13 && n.startsWith("919")) n = n.slice(2);
     if (n.length === 11 && n.startsWith("0")) n = n.slice(1);
     return n;
   }
@@ -964,6 +966,31 @@
     } catch(e) {
       alert("Error deleting: " + e.message);
     }
+  }
+
+  async function cleanPhones() {
+    if (allContacts.length === 0) { alert("No contacts"); return; }
+    if (!confirm("Clean phone numbers for all " + allContacts.length + " contacts?\n\nThis will strip apostrophes, +91, spaces from phone numbers.")) return;
+
+    let updated = 0, unchanged = 0;
+    let batch = db.batch(); let batchCount = 0;
+
+    for (const c of allContacts) {
+      const newPhone = normalizePhone(c.phone);
+      if (newPhone !== c.phone) {
+        batch.update(db.collection("contacts").doc(c.id), {
+          phone: newPhone,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        batchCount++; updated++;
+        if (batchCount >= 400) { await batch.commit(); batch = db.batch(); batchCount = 0; }
+      } else {
+        unchanged++;
+      }
+    }
+    if (batchCount > 0) await batch.commit();
+    alert("Phone cleaning complete!\n\nCleaned: " + updated + "\nUnchanged: " + unchanged);
+    loadContacts();
   }
 
   async function reclassifyAll() {
