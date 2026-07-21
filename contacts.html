@@ -518,6 +518,15 @@
     csvHeaders = []; csvRows = [];
   }
 
+  function normalizePhone(p) {
+    if (!p) return "";
+    let n = String(p).replace(/[\s\-\.\(\)]/g, "");
+    n = n.replace(/^\+/, "");
+    if (n.length === 12 && n.startsWith("91")) n = n.slice(2);
+    if (n.length === 11 && n.startsWith("0")) n = n.slice(1);
+    return n;
+  }
+
   function parseCSVLine(line, delim) {
     const d = delim || ",";
     const result = []; let cur = ""; let inQ = false;
