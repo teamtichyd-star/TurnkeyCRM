@@ -538,25 +538,24 @@
 
     try {
       const text = await file.text();
-      const lines = text.split(/?
-/).filter(l => l.trim());
+      const lines = text.split(/\r?\n/).filter(l => l.trim());
       if (lines.length < 2) { alert("CSV has no data rows"); return; }
 
       // Auto-detect delimiter
       const firstLine = lines[0];
       const commas = (firstLine.match(/,/g)||[]).length;
       const semis  = (firstLine.match(/;/g)||[]).length;
-      const tabs   = (firstLine.match(/	/g)||[]).length;
+      const tabs   = (firstLine.match(/\t/g)||[]).length;
       csvDelimiter = ",";
       if (semis > commas && semis > tabs) csvDelimiter = ";";
-      if (tabs  > commas && tabs  > semis) csvDelimiter = "	";
+      if (tabs  > commas && tabs  > semis) csvDelimiter = "\t";
 
       csvHeaders = parseCSVLine(lines[0], csvDelimiter);
       csvRows = lines.slice(1).map(l => parseCSVLine(l, csvDelimiter));
 
       document.getElementById("fileInfo").innerText =
         file.name + " (" + csvRows.length + " rows, " + csvHeaders.length + " columns, " +
-        (csvDelimiter === "	" ? "tab" : csvDelimiter) + "-separated)";
+        (csvDelimiter === "\t" ? "tab" : csvDelimiter) + "-separated)";
 
       // Populate all mapping dropdowns
       const selectIds = ["mapFirstName","mapLastName","mapFullName","mapPhone","mapEmail","mapCompany","mapExtId"];
