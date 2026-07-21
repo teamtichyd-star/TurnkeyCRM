@@ -596,9 +596,13 @@
   function normalizePhone(p) {
     if (!p) return "";
     let n = String(p).replace(/[\s\-\.\(\)\']/g, "");
-    n = n.replace(/^\+/, "");
-    if (n.length === 12 && n.startsWith("91")) n = n.slice(2);
-    if (n.length === 13 && n.startsWith("919")) n = n.slice(2);
+    n = n.replace(/^\+/g, "");
+    // Strip repeated 91 prefixes (up to 3 times)
+    for (let i = 0; i < 3; i++) {
+      if (n.length > 10 && n.startsWith("91") && (n.length === 12 || n.length === 13 || n.length === 14)) {
+        n = n.slice(2);
+      }
+    }
     if (n.length === 11 && n.startsWith("0")) n = n.slice(1);
     return n;
   }
