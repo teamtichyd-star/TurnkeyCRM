@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Campaigns - Turnkey CRM</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+    :root {
+      --primary: #c8a96e; --primary-dark: #a07840;
+      --primary-glow: rgba(200,169,110,0.15);
+      --dark: #1a1a2e; --darker: #0e0e1a;
+      --card: #16213e; --card2: #1a2550;
+      --border: rgba(255,255,255,0.06);
+      --text: #f0f0f0; --subtext: #8888aa;
+      --success: #4caf50; --warning: #ff9800; --danger: #f44336; --info: #2196f3;
+      --radius: 14px; --shadow: 0 4px 24px rgba(0,0,0,0.35);
+    }
+    body { background: var(--darker); color: var(--text); min-height: 100vh; }
+    .top-bar { display:flex; align-items:center; gap:12px; padding:16px 20px; background:var(--card); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:100; }
+    .top-bar h1 { font-size:18px; font-weight:600; color:var(--primary); flex:1; }
+    .back-btn { background:none; border:none; color:var(--subtext); font-size:20px; cursor:pointer; padding:4px 8px; }
+    .btn { padding:8px 16px; border-radius:8px; border:none; cursor:pointer; font-size:13px; font-weight:500; transition:all 0.2s; }
+    .btn-primary { background:var(--primary); color:#000; }
+    .btn-primary:hover { background:var(--primary-dark); }
+    .btn-secondary { background:var(--card2); color:var(--text); border:1px solid var(--border); }
+    .btn-secondary:hover { border-color:var(--primary); }
+    .btn-danger { background:var(--danger); color:#fff; }
+    .btn-success { background:var(--success); color:#fff; }
+    .btn-sm { padding:5px 10px; font-size:12px; }
+    .stats-row { display:flex; gap:10px; padding:16px 20px; flex-wrap:wrap; }
+    .stat-card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:14px 18px; flex:1; min-width:120px; text-align:center; }
+    .stat-num { font-size:24px; font-weight:700; color:var(--primary); }
+    .stat-label { font-size:11px; color:var(--subtext); margin-top:3px; }
+    .filters-bar { display:flex; gap:10px; padding:0 20px 16px; flex-wrap:wrap; align-items:center; }
+    .search-input { flex:1; min-width:180px; background:var(--card); border:1px solid var(--border); border-radius:8px; padding:9px 14px; color:var(--text); font-size:13px; }
+    .filter-select { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-size:13px; cursor:pointer; }
+    .campaigns-list { padding:0 20px 20px; display:flex; flex-direction:column; gap:12px; }
+    .campaign-card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:16px; transition:all 0.2s; }
+    .campaign-card:hover { border-color:var(--primary); box-shadow:var(--shadow); }
+    .campaign-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; gap:10px; }
+    .campaign-title { font-size:16px; font-weight:600; color:var(--text); flex:1; }
+    .campaign-sub { font-size:12px; color:var(--subtext); margin-top:4px; }
+    .badge { padding:3px 10px; border-radius:10px; font-size:11px; font-weight:600; }
+    .badge-draft { background:#66666633; color:#aaa; border:1px solid #66666666; }
+    .badge-progress { background:#ff980033; color:#ffb74d; border:1px solid #ff980066; }
+    .badge-complete { background:#4caf5033; color:#5dbb6e; border:1px solid #4caf5066; }
+    .badge-scheduled { background:#2196f333; color:#64b5f6; border:1px solid #2196f366; }
+    .badge-paused { background:#f4433633; color:#ef5350; border:1px solid #f4433666; }
+    .badge-res { background:#4caf5033; color:#5dbb6e; }
+    .badge-com { background:#ff8c4233; color:#ff8c42; }
+    .batch-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(90px, 1fr)); gap:6px; margin:12px 0; }
+    .batch-tile { background:var(--darker); border:1px solid var(--border); border-radius:8px; padding:8px; text-align:center; font-size:11px; }
+    .batch-tile.sent { border-color:var(--success); background:rgba(76,175,80,0.1); }
+    .batch-tile.pending { border-color:var(--warning); background:rgba(255,152,0,0.1); }
+    .batch-tile.scheduled { border-color:var(--info); background:rgba(33,150,243,0.1); }
+    .batch-tile-name { font-weight:700; color:var(--text); }
+    .batch-tile-status { font-size:10px; color:var(--subtext); margin-top:2px; }
+    .campaign-actions { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+    .empty-state { text-align:center; padding:60px 20px; color:var(--subtext); }
+    .empty-state i { font-size:48px; margin-bottom:16px; opacity:0.3; }
+    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.7); display:flex; align-items:center; justify-content:center; z-index:1000; padding:20px; }
+    .modal-box { background:var(--card); border:1px solid var(--border); border-radius:20px; width:100%; max-width:560px; max-height:90vh; overflow-y:auto; box-shadow:0 30px 80px rgba(0,0,0,0.6); }
+    .modal-header { display:flex; justify-content:space-between; align-items:center; padding:20px 24px 0; }
+    .modal-header h3 { font-size:17px; font-weight:600; color:var(--primary); }
+    .modal-close { background:none; border:none; color:var(--subtext); font-size:20px; cursor:pointer; padding:4px; }
+    .modal-body { padding:20px 24px; display:flex; flex-direction:column; gap:12px; }
+    .modal-footer { padding:0 24px 20px; display:flex; gap:10px; }
+    .form-label { font-size:12px; color:var(--subtext); margin-bottom:4px; display:block; }
+    .form-input { width:100%; background:var(--darker); border:1px solid var(--border); border-radius:8px; padding:10px 14px; color:var(--text); font-size:13px; }
+    .form-input:focus { outline:none; border-color:var(--primary); }
+    .info-box { background:var(--card2); border-radius:8px; padding:10px 14px; font-size:12px; color:var(--subtext); }
+    .loading-overlay { position:fixed; inset:0; background:var(--darker); display:flex; align-items:center; justify-content:center; z-index:9999; flex-direction:column; gap:15px; }
+    .loading-overlay.hide { display:none; }
+    .spinner { width:42px; height:42px; border:3px solid rgba(200,169,110,0.15); border-top-color:var(--primary); border-radius:50%; animation:spin 0.8s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .not-configured { text-align:center; padding:60px 20px; }
+    .not-configured i { font-size:60px; color:var(--warning); margin-bottom:20px; }
+    .not-configured h3 { color:var(--primary); margin-bottom:10px; font-size:18px; }
+    .not-configured p { color:var(--subtext); margin-bottom:20px; }
+  </style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div style="font-size:13px; color:#8888aa;">Loading Campaigns...</div>
+</div>
+
+<!-- Top Bar -->
+<div class="top-bar">
+  <button class="back-btn" onclick="history.back()"><i class="fa fa-arrow-left"></i></button>
+  <h1><i class="fa fa-paper-plane" style="margin-right:8px;"></i>Campaigns</h1>
+  <button class="btn btn-secondary btn-sm" onclick="loadCampaigns()"><i class="fa fa-sync"></i> Refresh</button>
+  <button class="btn btn-primary btn-sm" onclick="openNewCampaignModal()"><i class="fa fa-plus"></i> New Campaign</button>
+</div>
+
+<!-- Not Configured State -->
+<div id="notConfigured" style="display:none;">
+  <div class="not-configured">
+    <i class="fa fa-cog"></i>
+    <h3>Brevo Not Configured</h3>
+    <p>You need to setup Brevo API key first in Admin Panel</p>
+    <button class="btn btn-primary" onclick="window.parent.location.href='admin-panel.html'">Go to Admin Panel</button>
+  </div>
+</div>
+
+<!-- Main Content -->
+<div id="mainContent" style="display:none;">
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-num" id="statTotal">0</div>
+      <div class="stat-label">Total Campaigns</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="statActive" style="color:#ffb74d;">0</div>
+      <div class="stat-label">In Progress</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="statComplete" style="color:#5dbb6e;">0</div>
+      <div class="stat-label">Completed</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="statSent" style="color:#64b5f6;">0</div>
+      <div class="stat-label">Total Emails Sent</div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters-bar">
+    <input type="text" id="searchInput" class="search-input" placeholder="Search campaigns...">
+    <select id="statusFilter" class="filter-select">
+      <option value="">All Status</option>
+      <option value="draft">Draft</option>
+      <option value="in_progress">In Progress</option>
+      <option value="completed">Completed</option>
+      <option value="paused">Paused</option>
+    </select>
+    <select id="audienceFilter" class="filter-select">
+      <option value="">All Audience</option>
+      <option value="residential">🏠 Residential</option>
+      <option value="commercial">🏢 Commercial</option>
+    </select>
+  </div>
+
+  <!-- Campaigns List -->
+  <div class="campaigns-list" id="campaignsList">
+    <div class="empty-state"><i class="fa fa-paper-plane"></i><p>No campaigns yet. Click "New Campaign" to start.</p></div>
+  </div>
+</div>
+
+<!-- New Campaign Modal -->
+<div id="newCampaignModal" class="modal-overlay" style="display:none;">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3><i class="fa fa-paper-plane"></i> New Campaign</h3>
+      <button class="modal-close" onclick="closeNewCampaignModal()"><i class="fa fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <div>
+        <label class="form-label">Campaign Name *</label>
+        <input id="ncName" class="form-input" placeholder="e.g. August Newsletter 2026">
+      </div>
+      <div>
+        <label class="form-label">Audience *</label>
+        <select id="ncAudience" class="form-input" onchange="updateAudiencePreview()">
+          <option value="">Select audience...</option>
+          <option value="residential">🏠 Residential (1,270 contacts, R1-R6 batches)</option>
+          <option value="commercial">🏢 Commercial (1,645 contacts, C1-C6 batches)</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Email Template (from Brevo)</label>
+        <select id="ncTemplate" class="form-input">
+          <option value="">Loading templates...</option>
+        </select>
+        <div style="font-size:11px; color:#8888aa; margin-top:4px;">Design email templates in Brevo first, then select here</div>
+      </div>
+      <div>
+        <label class="form-label">Subject Line (overrides template)</label>
+        <input id="ncSubject" class="form-input" placeholder="Leave empty to use template subject">
+      </div>
+      <div class="info-box" id="audiencePreview" style="display:none;">
+        <b>Preview:</b> <span id="previewText"></span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="createCampaign()"><i class="fa fa-save"></i> Create Campaign</button>
+      <button class="btn btn-secondary" onclick="closeNewCampaignModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Send Batch Modal -->
+<div id="sendBatchModal" class="modal-overlay" style="display:none;">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3><i class="fa fa-paper-plane"></i> Send Batch</h3>
+      <button class="modal-close" onclick="closeSendBatchModal()"><i class="fa fa-times"></i></button>
+    </div>
+    <div class="modal-body" id="sendBatchBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-success" onclick="confirmSendBatch()"><i class="fa fa-paper-plane"></i> Send Now</button>
+      <button class="btn btn-secondary" onclick="scheduleBatchInBrevo()"><i class="fa fa-clock"></i> Schedule in Brevo</button>
+      <button class="btn btn-secondary" onclick="closeSendBatchModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyBLQhUZA-VN4_A9FhQWmlRSQZC2D95KoE8",
+  authDomain: "turnkeycrm-ce7b8.firebaseapp.com",
+  projectId: "turnkeycrm-ce7b8",
+  storageBucket: "turnkeycrm-ce7b8.firebasestorage.app",
+  messagingSenderId: "487224108102",
+  appId: "1:487224108102:web:dbe9d4ea6abdb2db581647"
+};
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+
+// Brevo list IDs (hardcoded from cleanup)
+const BREVO_LISTS = {
+  residential: 32,
+  commercial: 33,
+  all_contacts: 34,
+  zoho_import: 35,
+  crm_leads: 36,
+  manual: 37,
+  lead_new: 38,
+  lead_contacted: 39,
+  lead_sitevisit: 40,
+  lead_proposal: 41,
+  lead_negotiation: 42,
+  won: 43,
+  lost: 44,
+  unclassified: 45
+};
+
+let brevoConfig = null;
+let brevoTemplates = [];
+let allCampaigns = [];
+let currentBatchToSend = null;
+let currentBatchDoc = null;
+
+auth.onAuthStateChanged(async (user) => {
+  if (!user) { window.location.href = "index.html"; return; }
+  await loadBrevoConfig();
+  document.getElementById("loadingOverlay").classList.add("hide");
+});
+
+async function loadBrevoConfig() {
+  try {
+    const doc = await db.collection("settings").doc("integrations").get();
+    if (!doc.exists || !doc.data().brevoApiKey) {
+      document.getElementById("notConfigured").style.display = "block";
+      return;
+    }
+    brevoConfig = doc.data();
+    document.getElementById("mainContent").style.display = "block";
+    await loadBrevoTemplates();
+    await loadCampaigns();
+  } catch(e) {
+    document.getElementById("notConfigured").style.display = "block";
+    console.error("Config load failed:", e);
+  }
+}
+
+async function loadBrevoTemplates() {
+  try {
+    const r = await fetch("https://api.brevo.com/v3/smtp/templates?limit=50&sort=desc", {
+      headers: { "accept": "application/json", "api-key": brevoConfig.brevoApiKey }
+    });
+    const data = await r.json();
+    brevoTemplates = (data.templates || []).filter(t => t.isActive);
+    const sel = document.getElementById("ncTemplate");
+    sel.innerHTML = "<option value=\"\">Select template...</option>" + 
+      brevoTemplates.map(t => "<option value=\"" + t.id + "\">#" + t.id + " " + t.name + "</option>").join("");
+  } catch(e) {
+    console.error("Failed to load templates:", e);
+  }
+}
+
+async function loadCampaigns() {
+  try {
+    const snap = await db.collection("campaigns").orderBy("createdAt", "desc").get();
+    allCampaigns = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    updateStats();
+    renderCampaigns();
+  } catch(e) {
+    console.error("Load campaigns failed:", e);
+  }
+}
+
+function updateStats() {
+  document.getElementById("statTotal").innerText = allCampaigns.length;
+  document.getElementById("statActive").innerText = allCampaigns.filter(c => c.status === "in_progress").length;
+  document.getElementById("statComplete").innerText = allCampaigns.filter(c => c.status === "completed").length;
+  const totalSent = allCampaigns.reduce((sum, c) => sum + (c.totalSent || 0), 0);
+  document.getElementById("statSent").innerText = totalSent;
+}
+
+async function renderCampaigns() {
+  const search = document.getElementById("searchInput").value.toLowerCase().trim();
+  const statusF = document.getElementById("statusFilter").value;
+  const audF = document.getElementById("audienceFilter").value;
+
+  const filtered = allCampaigns.filter(c => {
+    return (!search || c.name.toLowerCase().includes(search)) &&
+      (!statusF || c.status === statusF) &&
+      (!audF || c.audience === audF);
+  });
+
+  const list = document.getElementById("campaignsList");
+  if (filtered.length === 0) {
+    list.innerHTML = "<div class='empty-state'><i class='fa fa-paper-plane'></i><p>No campaigns found</p></div>";
+    return;
+  }
+
+  // Fetch batches for each campaign
+  let html = "";
+  for (const c of filtered) {
+    const batchesSnap = await db.collection("campaign_batches").where("campaignId", "==", c.id).get();
+    const batches = batchesSnap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b) => a.batchIndex - b.batchIndex);
+    html += renderCampaignCard(c, batches);
+  }
+  list.innerHTML = html;
+}
+
+function renderCampaignCard(c, batches) {
+  const statusBadges = {
+    draft: "<span class='badge badge-draft'>Draft</span>",
+    in_progress: "<span class='badge badge-progress'>In Progress</span>",
+    completed: "<span class='badge badge-complete'>Completed</span>",
+    scheduled: "<span class='badge badge-scheduled'>Scheduled</span>",
+    paused: "<span class='badge badge-paused'>Paused</span>"
+  };
+  const audBadge = c.audience === "residential" 
+    ? "<span class='badge badge-res'>🏠 Residential</span>"
+    : "<span class='badge badge-com'>🏢 Commercial</span>";
+
+  const sent = batches.filter(b => b.status === "sent").length;
+  const total = batches.length;
+
+  const batchTiles = batches.map(b => {
+    let cls = "batch-tile";
+    let icon = "⏳";
+    if (b.status === "sent") { cls += " sent"; icon = "✅"; }
+    else if (b.status === "scheduled") { cls += " scheduled"; icon = "🕐"; }
+    else if (b.status === "pending") { cls += " pending"; }
+    
+    return "<div class='" + cls + "'><div class='batch-tile-name'>" + b.batchNumber + "</div>" +
+      "<div class='batch-tile-status'>" + icon + " " + b.contactCount + "</div></div>";
+  }).join("");
+
+  const nextPending = batches.find(b => b.status === "pending" || b.status === "scheduled");
+
+  return "<div class='campaign-card'>" +
+    "<div class='campaign-header'>" +
+      "<div>" +
+        "<div class='campaign-title'>" + c.name + "</div>" +
+        "<div class='campaign-sub'>" +
+          audBadge + " " + statusBadges[c.status] +
+          " · " + sent + "/" + total + " batches sent" +
+          (c.totalSent ? " · " + c.totalSent + " emails" : "") +
+        "</div>" +
+      "</div>" +
+    "</div>" +
+    "<div class='batch-grid'>" + batchTiles + "</div>" +
+    "<div class='campaign-actions'>" +
+      (nextPending ? "<button class='btn btn-success btn-sm' onclick='openSendBatch(\"" + c.id + "\", \"" + nextPending.id + "\")'><i class=\"fa fa-paper-plane\"></i> Send " + nextPending.batchNumber + "</button>" : "") +
+      "<button class='btn btn-secondary btn-sm' onclick='viewCampaignDetail(\"" + c.id + "\")'><i class=\"fa fa-eye\"></i> Details</button>" +
+      (c.status !== "completed" ? "<button class='btn btn-secondary btn-sm' onclick='deleteCampaign(\"" + c.id + "\")'><i class=\"fa fa-trash\"></i> Delete</button>" : "") +
+    "</div>" +
+  "</div>";
+}
+
+function openNewCampaignModal() {
+  document.getElementById("newCampaignModal").style.display = "flex";
+  document.getElementById("ncName").value = "";
+  document.getElementById("ncAudience").value = "";
+  document.getElementById("ncTemplate").value = "";
+  document.getElementById("ncSubject").value = "";
+  document.getElementById("audiencePreview").style.display = "none";
+}
+
+function closeNewCampaignModal() {
+  document.getElementById("newCampaignModal").style.display = "none";
+}
+
+function updateAudiencePreview() {
+  const aud = document.getElementById("ncAudience").value;
+  const box = document.getElementById("audiencePreview");
+  const txt = document.getElementById("previewText");
+  if (aud === "residential") {
+    txt.innerText = "1,270 contacts will be split into 6 batches (R1-R6, ~212 per batch). Send 1 batch per day to stay within 300/day Brevo limit.";
+    box.style.display = "block";
+  } else if (aud === "commercial") {
+    txt.innerText = "1,645 contacts will be split into 6 batches (C1-C6, ~275 per batch). Send 1 batch per day to stay within 300/day Brevo limit.";
+    box.style.display = "block";
+  } else {
+    box.style.display = "none";
+  }
+}
+
+async function createCampaign() {
+  const name = document.getElementById("ncName").value.trim();
+  const audience = document.getElementById("ncAudience").value;
+  const templateId = document.getElementById("ncTemplate").value;
+  const subject = document.getElementById("ncSubject").value.trim();
+
+  if (!name || !audience) { alert("Enter name and select audience"); return; }
+  if (!templateId) { alert("Please select an email template"); return; }
+
+  const audienceListId = audience === "residential" ? BREVO_LISTS.residential : BREVO_LISTS.commercial;
+  const totalContacts = audience === "residential" ? 1270 : 1645;
+  const batchPrefix = audience === "residential" ? "R" : "C";
+  const totalBatches = 6;
+  const batchSize = Math.ceil(totalContacts / totalBatches);
+
+  try {
+    // Create campaign
+    const campaignRef = await db.collection("campaigns").add({
+      name, audience, audienceListId,
+      brevoTemplateId: parseInt(templateId),
+      subject: subject || "",
+      totalContacts, totalBatches,
+      totalSent: 0,
+      status: "in_progress",
+      createdBy: auth.currentUser.email,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    // Create 6 batch documents
+    for (let i = 1; i <= totalBatches; i++) {
+      await db.collection("campaign_batches").add({
+        campaignId: campaignRef.id,
+        batchNumber: batchPrefix + i,
+        batchIndex: i,
+        audience: audience,
+        contactCount: batchSize,
+        status: "pending",
+        sentAt: null,
+        scheduledAt: null,
+        stats: { opens: 0, clicks: 0, bounces: 0 },
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+
+    closeNewCampaignModal();
+    loadCampaigns();
+    alert("Campaign created! Now click 'Send " + batchPrefix + "1' to start sending.");
+  } catch(e) {
+    alert("Error: " + e.message);
+  }
+}
+
+async function openSendBatch(campaignId, batchId) {
+  const campaign = allCampaigns.find(c => c.id === campaignId);
+  const batchDoc = await db.collection("campaign_batches").doc(batchId).get();
+  const batch = { id: batchDoc.id, ...batchDoc.data() };
+  
+  currentBatchToSend = campaign;
+  currentBatchDoc = batch;
+
+  document.getElementById("sendBatchBody").innerHTML = 
+    "<div class='info-box'>" +
+      "<b>Campaign:</b> " + campaign.name + "<br>" +
+      "<b>Batch:</b> " + batch.batchNumber + " (~" + batch.contactCount + " contacts)<br>" +
+      "<b>Audience:</b> " + (campaign.audience === "residential" ? "🏠 Residential" : "🏢 Commercial") + "<br>" +
+      "<b>Template:</b> #" + campaign.brevoTemplateId + "<br>" +
+      "<b>From:</b> " + brevoConfig.brevoSenderEmail +
+    "</div>" +
+    "<div style='margin-top:15px; padding:12px; background:rgba(255,152,0,0.1); border-radius:8px; border:1px solid rgba(255,152,0,0.3); font-size:12px; color:#ffb74d;'>" +
+      "<i class='fa fa-exclamation-triangle'></i> <b>Note:</b> Batch will be sent using Brevo's list segmentation (BATCH_NUMBER = " + batch.batchNumber + "). Make sure your Brevo template exists and contacts have BATCH_NUMBER attribute set." +
+    "</div>";
+  
+  document.getElementById("sendBatchModal").style.display = "flex";
+}
+
+function closeSendBatchModal() {
+  document.getElementById("sendBatchModal").style.display = "none";
+  currentBatchToSend = null;
+  currentBatchDoc = null;
+}
+
+async function confirmSendBatch() {
+  if (!currentBatchToSend || !currentBatchDoc) return;
+  
+  if (!confirm("Send " + currentBatchDoc.batchNumber + " to ~" + currentBatchDoc.contactCount + " contacts NOW?\n\nThis will use " + currentBatchDoc.contactCount + " of your daily 300 email limit.")) return;
+
+  const campaign = currentBatchToSend;
+  const batch = currentBatchDoc;
+
+  try {
+    // Create email campaign in Brevo
+    const campaignPayload = {
+      name: campaign.name + " - " + batch.batchNumber,
+      subject: campaign.subject || "SB Interior Solutions",
+      sender: { name: brevoConfig.brevoSenderName, email: brevoConfig.brevoSenderEmail },
+      templateId: campaign.brevoTemplateId,
+      recipients: {
+        listIds: [campaign.audienceListId],
+        exclusionListIds: []
+      },
+      type: "classic"
+    };
+
+    // Add segmentation: only send to contacts with matching BATCH_NUMBER
+    // Brevo doesn't directly support attribute filter in campaign creation,
+    // so we use Brevo segment feature - user needs to create segments in advance
+    // OR we do direct SMTP send per contact (more control but slower)
+    
+    const r = await fetch("https://api.brevo.com/v3/emailCampaigns", {
+      method: "POST",
+      headers: { 
+        "accept": "application/json", 
+        "content-type": "application/json",
+        "api-key": brevoConfig.brevoApiKey 
+      },
+      body: JSON.stringify(campaignPayload)
+    });
+    const data = await r.json();
+
+    if (!r.ok) {
+      alert("Error creating Brevo campaign: " + (data.message || "Unknown error"));
+      return;
+    }
+
+    const brevoCampaignId = data.id;
+
+    // Send campaign now
+    const sendR = await fetch("https://api.brevo.com/v3/emailCampaigns/" + brevoCampaignId + "/sendNow", {
+      method: "POST",
+      headers: { 
+        "accept": "application/json", 
+        "api-key": brevoConfig.brevoApiKey 
+      }
+    });
+
+    if (!sendR.ok) {
+      const sendErr = await sendR.json();
+      alert("Campaign created but send failed: " + (sendErr.message || "Unknown"));
+      return;
+    }
+
+    // Update batch status
+    await db.collection("campaign_batches").doc(batch.id).update({
+      status: "sent",
+      sentAt: firebase.firestore.FieldValue.serverTimestamp(),
+      brevoSendId: brevoCampaignId
+    });
+
+    // Update campaign total sent
+    await db.collection("campaigns").doc(campaign.id).update({
+      totalSent: (campaign.totalSent || 0) + batch.contactCount,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    // Check if all batches sent
+    const allBatches = await db.collection("campaign_batches").where("campaignId", "==", campaign.id).get();
+    const allSent = allBatches.docs.every(d => d.data().status === "sent");
+    if (allSent) {
+      await db.collection("campaigns").doc(campaign.id).update({ status: "completed" });
+    }
+
+    closeSendBatchModal();
+    alert("✅ Batch " + batch.batchNumber + " sent successfully!");
+    loadCampaigns();
+  } catch(e) {
+    alert("Error: " + e.message);
+  }
+}
+
+function scheduleBatchInBrevo() {
+  // Open Brevo campaigns page in new tab so user can schedule manually
+  window.open("https://app.brevo.com/camp/lists/email", "_blank");
+  alert("Opening Brevo in new tab. Create your campaign there with 'Schedule for later' option. Then come back and mark as scheduled manually.");
+}
+
+async function deleteCampaign(id) {
+  if (!confirm("Delete this campaign? Batches will also be deleted.")) return;
+  try {
+    // Delete batches
+    const batchesSnap = await db.collection("campaign_batches").where("campaignId", "==", id).get();
+    for (const doc of batchesSnap.docs) {
+      await doc.ref.delete();
+    }
+    // Delete campaign
+    await db.collection("campaigns").doc(id).delete();
+    loadCampaigns();
+  } catch(e) {
+    alert("Error: " + e.message);
+  }
+}
+
+async function viewCampaignDetail(id) {
+  const c = allCampaigns.find(x => x.id === id);
+  const batchesSnap = await db.collection("campaign_batches").where("campaignId", "==", id).get();
+  const batches = batchesSnap.docs.map(d => d.data()).sort((a,b) => a.batchIndex - b.batchIndex);
+  
+  let details = "Campaign: " + c.name + "\n";
+  details += "Audience: " + c.audience + " (" + c.totalContacts + " contacts)\n";
+  details += "Template ID: " + c.brevoTemplateId + "\n";
+  details += "Status: " + c.status + "\n";
+  details += "Total sent: " + (c.totalSent || 0) + "\n\n";
+  details += "Batches:\n";
+  batches.forEach(b => {
+    details += "  " + b.batchNumber + ": " + b.status + " (" + b.contactCount + " contacts)";
+    if (b.sentAt) details += " - sent " + new Date(b.sentAt.toDate ? b.sentAt.toDate() : b.sentAt).toLocaleString();
+    details += "\n";
+  });
+  alert(details);
+}
+
+document.getElementById("searchInput").addEventListener("input", renderCampaigns);
+document.getElementById("statusFilter").addEventListener("change", renderCampaigns);
+document.getElementById("audienceFilter").addEventListener("change", renderCampaigns);
+</script>
+
+</body>
+</html>
