@@ -205,8 +205,9 @@
     </div>
     <div class="modal-body" id="sendBatchBody"></div>
     <div class="modal-footer">
-      <button class="btn btn-success" onclick="confirmSendBatch()"><i class="fa fa-paper-plane"></i> Send Now</button>
-      <button class="btn btn-secondary" onclick="scheduleBatchInBrevo()"><i class="fa fa-clock"></i> Schedule in Brevo</button>
+      <button class="btn" style="background:#2196f3;color:#fff;" onclick="sendTestEmail()"><i class="fa fa-vial"></i> Send Test to Me</button>
+      <button class="btn btn-success" onclick="confirmSendBatch()"><i class="fa fa-paper-plane"></i> Send to Batch</button>
+      <button class="btn btn-secondary" onclick="scheduleBatchInBrevo()"><i class="fa fa-clock"></i> Schedule</button>
       <button class="btn btn-secondary" onclick="closeSendBatchModal()">Cancel</button>
     </div>
   </div>
@@ -227,20 +228,27 @@ const auth = firebase.auth();
 
 // Brevo list IDs (hardcoded from cleanup)
 const BREVO_LISTS = {
-  residential: 32,
-  commercial: 33,
-  all_contacts: 34,
-  zoho_import: 35,
-  crm_leads: 36,
-  manual: 37,
-  lead_new: 38,
-  lead_contacted: 39,
-  lead_sitevisit: 40,
-  lead_proposal: 41,
-  lead_negotiation: 42,
-  won: 43,
-  lost: 44,
-  unclassified: 45
+  residential: 32, commercial: 33, all_contacts: 34,
+  zoho_import: 35, crm_leads: 36, manual: 37,
+  lead_new: 38, lead_contacted: 39, lead_sitevisit: 40,
+  lead_proposal: 41, lead_negotiation: 42,
+  won: 43, lost: 44, unclassified: 45
+};
+
+// Batch list IDs (each is a separate list with only that batch's contacts)
+const BATCH_LISTS = {
+  R1: {id: 46, count: 212, master: 32},
+  R2: {id: 47, count: 212, master: 32},
+  R3: {id: 48, count: 212, master: 32},
+  R4: {id: 49, count: 212, master: 32},
+  R5: {id: 50, count: 212, master: 32},
+  R6: {id: 51, count: 210, master: 32},
+  C1: {id: 52, count: 275, master: 33},
+  C2: {id: 53, count: 275, master: 33},
+  C3: {id: 54, count: 275, master: 33},
+  C4: {id: 55, count: 275, master: 33},
+  C5: {id: 56, count: 275, master: 33},
+  C6: {id: 57, count: 270, master: 33}
 };
 
 let brevoConfig = null;
@@ -422,10 +430,8 @@ async function createCampaign() {
   const totalContacts = audience === "residential" ? 1270 : 1645;
   const batchPrefix = audience === "residential" ? "R" : "C";
   const totalBatches = 6;
-  const batchSize = Math.ceil(totalContacts / totalBatches);
 
   try {
-    // Create campaign
     const campaignRef = await db.collection("campaigns").add({
       name, audience, audienceListId,
       brevoTemplateId: parseInt(templateId),
@@ -438,14 +444,17 @@ async function createCampaign() {
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
 
-    // Create 6 batch documents
+    // Create 6 batch documents with correct list IDs and counts
     for (let i = 1; i <= totalBatches; i++) {
+      const batchKey = batchPrefix + i;
+      const batchInfo = BATCH_LISTS[batchKey];
       await db.collection("campaign_batches").add({
         campaignId: campaignRef.id,
-        batchNumber: batchPrefix + i,
+        batchNumber: batchKey,
         batchIndex: i,
         audience: audience,
-        contactCount: batchSize,
+        contactCount: batchInfo.count,
+        brevoListId: batchInfo.id,
         status: "pending",
         sentAt: null,
         scheduledAt: null,
@@ -473,13 +482,18 @@ async function openSendBatch(campaignId, batchId) {
   document.getElementById("sendBatchBody").innerHTML = 
     "<div class='info-box'>" +
       "<b>Campaign:</b> " + campaign.name + "<br>" +
-      "<b>Batch:</b> " + batch.batchNumber + " (~" + batch.contactCount + " contacts)<br>" +
+      "<b>Batch:</b> " + batch.batchNumber + " (" + batch.contactCount + " contacts)<br>" +
+      "<b>Brevo List ID:</b> " + batch.brevoListId + "<br>" +
       "<b>Audience:</b> " + (campaign.audience === "residential" ? "🏠 Residential" : "🏢 Commercial") + "<br>" +
       "<b>Template:</b> #" + campaign.brevoTemplateId + "<br>" +
       "<b>From:</b> " + brevoConfig.brevoSenderEmail +
     "</div>" +
-    "<div style='margin-top:15px; padding:12px; background:rgba(255,152,0,0.1); border-radius:8px; border:1px solid rgba(255,152,0,0.3); font-size:12px; color:#ffb74d;'>" +
-      "<i class='fa fa-exclamation-triangle'></i> <b>Note:</b> Batch will be sent using Brevo's list segmentation (BATCH_NUMBER = " + batch.batchNumber + "). Make sure your Brevo template exists and contacts have BATCH_NUMBER attribute set." +
+    "<div style='margin-top:15px;'>" +
+      "<label class='form-label'>Test Email (optional - send to yourself first)</label>" +
+      "<input id='testEmail' class='form-input' placeholder='your@email.com' value='" + (auth.currentUser?.email || "") + "'>" +
+    "</div>" +
+    "<div style='margin-top:15px; padding:12px; background:rgba(76,175,80,0.1); border-radius:8px; border:1px solid rgba(76,175,80,0.3); font-size:12px; color:#5dbb6e;'>" +
+      "<i class='fa fa-check-circle'></i> <b>Safe:</b> Contacts in this batch already isolated (only " + batch.contactCount + " will receive email)." +
     "</div>";
   
   document.getElementById("sendBatchModal").style.display = "flex";
@@ -494,7 +508,8 @@ function closeSendBatchModal() {
 async function confirmSendBatch() {
   if (!currentBatchToSend || !currentBatchDoc) return;
   
-  if (!confirm("Send " + currentBatchDoc.batchNumber + " to ~" + currentBatchDoc.contactCount + " contacts NOW?\n\nThis will use " + currentBatchDoc.contactCount + " of your daily 300 email limit.")) return;
+  if (!confirm("⚠️ FINAL CONFIRMATION\n\nSend batch " + currentBatchDoc.batchNumber + " to " + currentBatchDoc.contactCount + " REAL contacts?\n\nThis cannot be undone.")) return;
+  if (!confirm("Are you 100% sure? " + currentBatchDoc.contactCount + " emails will be sent from " + brevoConfig.brevoSenderEmail)) return;
 
   const campaign = currentBatchToSend;
   const batch = currentBatchDoc;
@@ -507,7 +522,7 @@ async function confirmSendBatch() {
       sender: { name: brevoConfig.brevoSenderName, email: brevoConfig.brevoSenderEmail },
       templateId: campaign.brevoTemplateId,
       recipients: {
-        listIds: [campaign.audienceListId],
+        listIds: [batch.brevoListId || campaign.audienceListId],
         exclusionListIds: []
       },
       type: "classic"
@@ -574,6 +589,42 @@ async function confirmSendBatch() {
     closeSendBatchModal();
     alert("✅ Batch " + batch.batchNumber + " sent successfully!");
     loadCampaigns();
+  } catch(e) {
+    alert("Error: " + e.message);
+  }
+}
+
+async function sendTestEmail() {
+  const email = document.getElementById("testEmail").value.trim();
+  if (!email) { alert("Enter test email"); return; }
+  if (!currentBatchToSend || !currentBatchDoc) return;
+  
+  const campaign = currentBatchToSend;
+  
+  try {
+    const payload = {
+      sender: { name: brevoConfig.brevoSenderName, email: brevoConfig.brevoSenderEmail },
+      to: [{ email: email }],
+      templateId: campaign.brevoTemplateId,
+      subject: (campaign.subject || "TEST: SB Interior Solutions") + " [TEST]"
+    };
+    
+    const r = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "accept": "application/json",
+        "content-type": "application/json",
+        "api-key": brevoConfig.brevoApiKey
+      },
+      body: JSON.stringify(payload)
+    });
+    const data = await r.json();
+    
+    if (r.ok) {
+      alert("✅ Test email sent to " + email + "! Check inbox in a minute.");
+    } else {
+      alert("❌ Error: " + (data.message || "Unknown"));
+    }
   } catch(e) {
     alert("Error: " + e.message);
   }

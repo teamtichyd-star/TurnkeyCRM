@@ -49,6 +49,7 @@
   <p style="color:#888; font-size:13px;">Your API key is used only in browser memory. Never saved to disk or transmitted anywhere except Brevo.</p>
   <input type="password" id="apiKey" placeholder="Paste your Brevo API key (xkeysib-...)" style="margin-top:10px;">
   <button onclick="testConnection()">Test Connection</button>
+  <button onclick="createBatchSegments()" style="background:#4caf50; color:#fff;">🎯 Create Batch Lists (R1-R6, C1-C6)</button>
   <div id="testResult"></div>
 </div>
 
@@ -219,6 +220,100 @@ function addStep(msg, status="working") {
 function updateProgress(percent, text) {
   document.getElementById("progressFill").style.width = percent + "%";
   document.getElementById("progressText").innerText = text;
+}
+
+async function createBatchSegments() {
+  if (!API_KEY) { alert("Enter and test API key first"); return; }
+  const status = document.getElementById("testResult");
+  status.innerHTML = "<div class=info>Creating 12 batch LISTS and populating them...</div>";
+  
+  // Get folder ID for MASTER LISTS
+  const foldersR = await callBrevo("/contacts/folders?limit=20");
+  const masterFolder = (foldersR.data?.folders || []).find(f => f.name === "01. MASTER LISTS");
+  const folderId = masterFolder ? masterFolder.id : null;
+  
+  const batches = [
+    {name: "🏠 Residential - Batch R1", batch: "R1"},
+    {name: "🏠 Residential - Batch R2", batch: "R2"},
+    {name: "🏠 Residential - Batch R3", batch: "R3"},
+    {name: "🏠 Residential - Batch R4", batch: "R4"},
+    {name: "🏠 Residential - Batch R5", batch: "R5"},
+    {name: "🏠 Residential - Batch R6", batch: "R6"},
+    {name: "🏢 Commercial - Batch C1", batch: "C1"},
+    {name: "🏢 Commercial - Batch C2", batch: "C2"},
+    {name: "🏢 Commercial - Batch C3", batch: "C3"},
+    {name: "🏢 Commercial - Batch C4", batch: "C4"},
+    {name: "🏢 Commercial - Batch C5", batch: "C5"},
+    {name: "🏢 Commercial - Batch C6", batch: "C6"}
+  ];
+  
+  // Check existing lists first
+  const existingR = await callBrevo("/contacts/lists?limit=50");
+  const existingLists = existingR.data?.lists || [];
+  
+  const results = [];
+  let created = 0, existing = 0, failed = 0;
+  
+  for (const b of batches) {
+    try {
+      let listId = null;
+      const exists = existingLists.find(l => l.name === b.name);
+      
+      if (exists) {
+        listId = exists.id;
+        existing++;
+        results.push({batch: b.batch, name: b.name, id: listId, action: "existed"});
+      } else {
+        const r = await callBrevo("/contacts/lists", "POST", { name: b.name, folderId: folderId });
+        if (r.ok) {
+          listId = r.data.id;
+          created++;
+          results.push({batch: b.batch, name: b.name, id: listId, action: "created"});
+        } else {
+          failed++;
+          console.error("Failed:", b.name, r.data);
+          continue;
+        }
+      }
+      
+      // Now fetch contacts with matching BATCH_NUMBER and add to this list
+      status.innerHTML = "<div class=info>Populating " + b.name + "...</div>";
+      let contactIds = [];
+      let offset = 0;
+      const limit = 500;
+      
+      while (true) {
+        const cR = await callBrevo("/contacts?limit=" + limit + "&offset=" + offset);
+        if (!cR.ok) break;
+        const contacts = cR.data.contacts || [];
+        contacts.forEach(c => {
+          if (c.attributes?.BATCH_NUMBER === b.batch) contactIds.push(c.id);
+        });
+        if (contacts.length < limit) break;
+        offset += limit;
+      }
+      
+      // Add matching contacts to batch list
+      if (contactIds.length > 0) {
+        for (let i = 0; i < contactIds.length; i += 150) {
+          const chunk = contactIds.slice(i, i + 150);
+          await callBrevo("/contacts/lists/" + listId + "/contacts/add", "POST", { ids: chunk });
+        }
+        results[results.length - 1].contactCount = contactIds.length;
+      }
+      
+    } catch(e) { failed++; console.error(e); }
+  }
+  
+  let html = "<div class=success><b>Batch Lists Created & Populated!</b><br>";
+  html += "Created: " + created + " | Already existed: " + existing + " | Failed: " + failed;
+  html += "</div>";
+  if (results.length > 0) {
+    html += "<div style=margin-top:10px><b>Batch List IDs (save these for TIC campaigns.html):</b><pre style=font-size:11px>";
+    results.forEach(r => { html += r.batch + ": ID " + r.id + " (" + (r.contactCount || 0) + " contacts) [" + r.action + "]\n"; });
+    html += "</pre></div>";
+  }
+  status.innerHTML = html;
 }
 
 async function testConnection() {
