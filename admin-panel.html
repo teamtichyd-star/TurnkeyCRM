@@ -348,6 +348,7 @@
         <option value="purchase">🛒 Purchase</option>
         <option value="designer">🎨 Designer</option>
         <option value="accounts">💰 Accounts</option>
+        <option value="marketing">📣 Marketing</option>
   <option value="supervisor">Supervisor (No Leads)</option>
 </select>
     </div>
@@ -449,6 +450,35 @@
   </div>
 
   <!-- QUICK ACTIONS -->
+  <!-- BREVO INTEGRATION -->
+  <div class="card" id="brevoCard">
+    <h2><i class="fa-solid fa-envelope-open-text"></i> Brevo Integration</h2>
+    <div style="background:rgba(200,169,110,0.05); border:1px solid rgba(200,169,110,0.15); border-radius:8px; padding:12px; margin-bottom:15px; font-size:12px; color:#8888aa;">
+      <i class="fa-solid fa-shield-halved" style="color:#c8a96e;"></i> API key is stored securely in Firestore. Only admins can view/edit.
+    </div>
+    <div class="form-group">
+      <label>Brevo API Key</label>
+      <input type="password" id="brevoApiKey" placeholder="xkeysib-..." style="font-family: monospace;">
+    </div>
+    <div class="form-group">
+      <label>Sender Email (verified in Brevo)</label>
+      <input type="email" id="brevoSenderEmail" placeholder="info@sbinteriorsolutions.com">
+    </div>
+    <div class="form-group">
+      <label>Sender Name</label>
+      <input type="text" id="brevoSenderName" placeholder="SB Interior Solutions">
+    </div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="btn btn-primary" onclick="saveBrevoSettings()">
+        <i class="fa-solid fa-save"></i> Save Settings
+      </button>
+      <button class="btn" style="background:#2196f3; color:#fff;" onclick="testBrevoConnection()">
+        <i class="fa-solid fa-plug"></i> Test Connection
+      </button>
+    </div>
+    <div class="status-msg" id="brevoStatus"></div>
+  </div>
+
   <div class="card">
     <h2><i class="fa-solid fa-bolt"></i> Quick Actions</h2>
     <div style="display:flex;flex-direction:column;gap:12px;">
@@ -864,6 +894,82 @@ function savePermissions() {
     })
     .catch(function(e) { alert('Error: ' + e.message); });
 }
+
+
+    // ══════════════════════════════════════════
+    // BREVO INTEGRATION SETTINGS
+    // ══════════════════════════════════════════
+    async function loadBrevoSettings() {
+      try {
+        const doc = await db.collection("settings").doc("integrations").get();
+        if (doc.exists) {
+          const d = doc.data();
+          if (d.brevoApiKey) document.getElementById("brevoApiKey").value = d.brevoApiKey;
+          if (d.brevoSenderEmail) document.getElementById("brevoSenderEmail").value = d.brevoSenderEmail;
+          if (d.brevoSenderName) document.getElementById("brevoSenderName").value = d.brevoSenderName;
+        }
+      } catch(e) {
+        console.log("No brevo settings yet or access denied", e.message);
+      }
+    }
+
+    async function saveBrevoSettings() {
+      const apiKey = document.getElementById("brevoApiKey").value.trim();
+      const senderEmail = document.getElementById("brevoSenderEmail").value.trim();
+      const senderName = document.getElementById("brevoSenderName").value.trim();
+      const status = document.getElementById("brevoStatus");
+
+      if (!apiKey) {
+        status.innerHTML = "<span style='color:#f44336'>API Key is required</span>";
+        return;
+      }
+      if (!apiKey.startsWith("xkeysib-")) {
+        status.innerHTML = "<span style='color:#f44336'>Invalid API key format (must start with xkeysib-)</span>";
+        return;
+      }
+
+      status.innerHTML = "<span style='color:#8888aa'>Saving...</span>";
+      try {
+        await db.collection("settings").doc("integrations").set({
+          brevoApiKey: apiKey,
+          brevoSenderEmail: senderEmail,
+          brevoSenderName: senderName,
+          updatedAt: new Date().toISOString(),
+          updatedBy: auth.currentUser?.email || "unknown"
+        }, { merge: true });
+        status.innerHTML = "<span style='color:#4caf50'>Settings saved successfully</span>";
+      } catch(e) {
+        status.innerHTML = "<span style='color:#f44336'>Error: " + e.message + "</span>";
+      }
+    }
+
+    async function testBrevoConnection() {
+      const apiKey = document.getElementById("brevoApiKey").value.trim();
+      const status = document.getElementById("brevoStatus");
+
+      if (!apiKey) {
+        status.innerHTML = "<span style='color:#f44336'>Enter API key first</span>";
+        return;
+      }
+
+      status.innerHTML = "<span style='color:#8888aa'>Testing connection...</span>";
+      try {
+        const r = await fetch("https://api.brevo.com/v3/account", {
+          headers: { "accept": "application/json", "api-key": apiKey }
+        });
+        const data = await r.json();
+        if (r.ok) {
+          status.innerHTML = "<span style='color:#4caf50'>Connected as " + data.email + " | Plan: " + (data.plan && data.plan[0] ? data.plan[0].type : "-") + "</span>";
+        } else {
+          status.innerHTML = "<span style='color:#f44336'>" + (data.message || "Connection failed") + "</span>";
+        }
+      } catch(e) {
+        status.innerHTML = "<span style='color:#f44336'>Network error: " + e.message + "</span>";
+      }
+    }
+
+    setTimeout(loadBrevoSettings, 1500);
+
 </script>
 
 </body>

@@ -4,6 +4,11 @@ service cloud.firestore {
     function isSignedIn() {
       return request.auth != null;
     }
+    function isAdmin() {
+      return request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.token.email)).data.role in ['admin', 'superadmin'];
+    }
+    
     match /leads/{docId} { allow read, write: if isSignedIn(); }
     match /users/{docId} { allow read, write: if isSignedIn(); }
     match /tasks/{docId} { allow read, write: if isSignedIn(); }
@@ -14,6 +19,14 @@ service cloud.firestore {
     match /attendance/{docId} { allow read, write: if isSignedIn(); }
     match /staffProfiles/{docId} { allow read, write: if isSignedIn(); }
     match /contacts/{docId} { allow read, write: if isSignedIn(); }
+    
+    // Campaign Sender
+    match /campaigns/{docId} { allow read, write: if isSignedIn(); }
+    match /campaign_batches/{docId} { allow read, write: if isSignedIn(); }
+    
+    // Sensitive settings (API keys) - admin only
+    match /settings/{docId} { allow read, write: if isAdmin(); }
+    
     match /{document=**} { allow read, write: if false; }
   }
 }
