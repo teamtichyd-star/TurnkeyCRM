@@ -1,9 +1,9 @@
 =======================================================
 TURNKEY CRM — AI CONTEXT FILE
 =======================================================
-Last Updated: 03 July 2026
-Current Session Working On: Marketing Module Planning (COMPLETE)
-Next Session Should Start With: Marketing Module Phase 1 - Contacts
+Last Updated: 21 July 2026 (Evening)
+Current Session Working On: Brevo Cleanup COMPLETE + Architecture Redesigned
+Next Session Should Start With: TIC Campaign Sender OR TIC Leads to Brevo Sync
 =======================================================
 
 PROJECT OVERVIEW:
@@ -267,3 +267,68 @@ UNDO UNSAVED CHANGES:
 
 ROLLBACK LAST COMMIT:
   git reset --hard HEAD~1 && git push origin main --force
+
+
+=======================================================
+ARCHITECTURE REDESIGN (21 July 2026 Evening)
+=======================================================
+
+DECISION: Contacts management moved to Brevo entirely.
+TIC CRM focuses on: Projects, Tasks, Vendors, Attendance, Staff, Payments, Leads (sales team)
+BREVO handles: All contacts (3068+), campaigns, marketing automation
+Marketing team uses Brevo. Sales team uses TIC leads.
+
+BREVO STRUCTURE CREATED:
+Folder 28: 01. MASTER LISTS
+Folder 29: 02. SOURCE LISTS
+Folder 30: 03. SALES PIPELINE
+Folder 31: 04. ARCHIVE
+
+BREVO LIST IDs (CRITICAL - SAVE):
+List 32: Residential (1,270 contacts)
+List 33: Commercial (1,645 contacts)
+List 34: All Contacts (3,068 contacts)
+List 35: Zoho Books Import
+List 36: CRM Leads
+List 37: Manual Import
+List 38: Lead - New
+List 39: Lead - Contacted
+List 40: Lead - Site Visit
+List 41: Lead - Proposal Sent
+List 42: Lead - Negotiation
+List 43: Won Customers
+List 44: Lost Leads
+List 45: Unclassified (153 contacts - review manually)
+
+BATCH NUMBERS ASSIGNED:
+Residential: R1-R6 (~212 contacts each)
+Commercial: C1-C6 (~275 contacts each)
+Strategy: Send 1 batch/day to stay under 300/day Brevo Free limit
+
+BREVO CUSTOM ATTRIBUTES:
+- BATCH_NUMBER (R1-R6, C1-C6)
+- TYPE_CLASSIFICATION (residential/commercial)
+- FIRSTNAME, LASTNAME, COMPANY, WHATSAPP, SMS, EMAIL
+
+FIRESTORE CONTACTS COLLECTION: DELETED (data now lives in Brevo)
+
+BREVO API KEY: Store in Firestore later. Never commit to git.
+Current key: [STORED SEPARATELY - Not in git for security]
+
+PENDING PHASES:
+1. TIC Campaign Sender (send campaigns via Brevo API from TIC UI)
+   - Track sent/pending batches
+   - History view
+   - Analytics (open/click rates)
+   - Prevent duplicate sends
+2. TIC Leads to Brevo Pipeline Sync
+   - New lead in TIC -> add to Lead-New Brevo list
+   - Status change -> move between pipeline lists
+   - Won -> Won Customers + create project
+   - Lost -> Lost Leads
+3. Zapier Setup (Zoho Books -> Brevo auto-sync)
+4. Meta WABA WhatsApp Integration
+
+GIT TAG: v21-brevo-cleanup-complete
+
+=======================================================

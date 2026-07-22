@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Brevo Cleanup Tool</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, system-ui, sans-serif; background: #0e0e1a; color: #f0f0f0; padding: 20px; max-width: 1200px; margin: auto; }
+  h1 { color: #c8a96e; }
+  h2 { color: #c8a96e; margin-top: 30px; border-bottom: 1px solid #333; padding-bottom: 8px; }
+  .section { background: #16213e; border-radius: 12px; padding: 20px; margin: 15px 0; border: 1px solid #333; }
+  .warn { background: #4a2020; border-color: #f44336; color: #ffcccc; padding: 15px; border-radius: 8px; margin: 15px 0; }
+  .success { background: #1e4620; border-color: #4caf50; color: #ccffcc; padding: 12px; border-radius: 8px; margin: 10px 0; }
+  .info { background: #1a2550; border-color: #4da6ff; color: #cce5ff; padding: 12px; border-radius: 8px; margin: 10px 0; }
+  button { background: #c8a96e; color: #000; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 14px; margin: 5px; }
+  button:hover { background: #a07840; }
+  button:disabled { background: #444; color: #888; cursor: not-allowed; }
+  .btn-danger { background: #f44336; color: #fff; }
+  .btn-danger:hover { background: #d32f2f; }
+  .btn-secondary { background: #444; color: #fff; }
+  input, select { background: #0e0e1a; border: 1px solid #333; color: #fff; padding: 10px; border-radius: 6px; width: 100%; font-size: 13px; }
+  input:focus { border-color: #c8a96e; outline: none; }
+  .step { padding: 10px 14px; margin: 8px 0; background: #0a0a15; border-left: 3px solid #333; font-size: 13px; }
+  .step.done { border-left-color: #4caf50; color: #a5d6a7; }
+  .step.error { border-left-color: #f44336; color: #ef9a9a; }
+  .step.working { border-left-color: #ff9800; color: #ffcc80; }
+  .progress-bar { height: 8px; background: #333; border-radius: 4px; overflow: hidden; margin: 10px 0; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, #c8a96e, #4caf50); transition: width 0.3s; }
+  pre { background: #0a0a15; padding: 10px; border-radius: 6px; font-size: 11px; overflow-x: auto; max-height: 300px; }
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 15px 0; }
+  .stat-card { background: #0a0a15; padding: 12px; border-radius: 8px; text-align: center; }
+  .stat-num { font-size: 24px; font-weight: 700; color: #c8a96e; }
+  .stat-label { font-size: 11px; color: #888; margin-top: 4px; }
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 700; margin: 2px; }
+  .badge-res { background: #4caf50; color: #fff; }
+  .badge-com { background: #ff8c42; color: #fff; }
+  .badge-unk { background: #666; color: #fff; }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #222; font-size: 12px; }
+  th { background: #1a2550; color: #c8a96e; }
+</style>
+</head>
+<body>
+
+<h1>🧹 Brevo Cleanup & Organization Tool</h1>
+<p style="color:#888;">One-click cleanup to organize your Brevo account with master lists, batch numbers, and smart classification.</p>
+
+<div class="section">
+  <h2>🔑 Step 1: Enter API Key</h2>
+  <p style="color:#888; font-size:13px;">Your API key is used only in browser memory. Never saved to disk or transmitted anywhere except Brevo.</p>
+  <input type="password" id="apiKey" placeholder="Paste your Brevo API key (xkeysib-...)" style="margin-top:10px;">
+  <button onclick="testConnection()">Test Connection</button>
+  <div id="testResult"></div>
+</div>
+
+<div class="section" id="planSection" style="display:none;">
+  <h2>📋 Step 2: Review Plan</h2>
+  
+  <div class="info">
+    <b>What this tool will do:</b>
+    <ul style="margin:10px 0 0 20px; line-height:1.8;">
+      <li>Create 4 new folders (Master / Source / Pipeline / Archive)</li>
+      <li>Create 3 master lists (Residential, Commercial, All Contacts)</li>
+      <li>Create 7 sales pipeline lists</li>
+      <li>Classify all 3,068 contacts using smart rules</li>
+      <li>Add contacts to correct master list</li>
+      <li>Add BATCH_NUMBER attribute (1-3 for Residential, 1-2 for Commercial)</li>
+      <li>Archive old messy lists (data preserved)</li>
+    </ul>
+  </div>
+
+  <div class="warn">
+    <b>⚠️ Important:</b>
+    <ul style="margin:10px 0 0 20px; line-height:1.8;">
+      <li>This takes 5-10 minutes for 3,068 contacts</li>
+      <li>Do NOT close this tab during execution</li>
+      <li>Run <b>DRY RUN</b> first to see what will happen</li>
+      <li>Contacts are added to new lists (not removed from old ones)</li>
+      <li>You can delete old lists later manually if satisfied</li>
+    </ul>
+  </div>
+
+  <div style="margin:15px 0;">
+    <label style="display:block; margin-bottom:6px; color:#c8a96e; font-size:13px;">📌 Default for UNCLASSIFIED contacts:</label>
+    <select id="defaultUnclassified" style="max-width:300px;">
+      <option value="residential">🏠 Residential (safer default)</option>
+      <option value="commercial">🏢 Commercial</option>
+      <option value="separate" selected>📋 Create separate "Unclassified" list</option>
+    </select>
+    <div style="font-size:11px; color:#888; margin-top:5px;">Most phone-only contacts are individual customers → default to Residential</div>
+  </div>
+  
+  <button onclick="runDryRun()">🧪 DRY RUN (Preview Only)</button>
+  <button class="btn-danger" onclick="runReal()">🚀 EXECUTE FOR REAL</button>
+</div>
+
+<div class="section" id="progressSection" style="display:none;">
+  <h2>⚡ Progress</h2>
+  <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+  <div id="progressText" style="color:#888; font-size:13px;">Ready to start...</div>
+  
+  <div class="stat-grid">
+    <div class="stat-card"><div class="stat-num" id="statTotal">0</div><div class="stat-label">Total Contacts</div></div>
+    <div class="stat-card"><div class="stat-num" id="statRes" style="color:#4caf50;">0</div><div class="stat-label">Residential</div></div>
+    <div class="stat-card"><div class="stat-num" id="statCom" style="color:#ff8c42;">0</div><div class="stat-label">Commercial</div></div>
+    <div class="stat-card"><div class="stat-num" id="statSkipped" style="color:#f44336;">0</div><div class="stat-label">Skipped</div></div>
+  </div>
+  
+  <div id="stepsList"></div>
+</div>
+
+<div class="section" id="resultSection" style="display:none;">
+  <h2>📊 Result Summary</h2>
+  <div id="resultBody"></div>
+</div>
+
+<script>
+let API_KEY = "";
+let isDryRun = true;
+
+const HEADERS = () => ({
+  "accept": "application/json",
+  "content-type": "application/json",
+  "api-key": API_KEY
+});
+
+// ── SMART CLASSIFIER ──
+const PERSONAL_EMAIL_DOMAINS = [
+  "gmail.com","yahoo.com","yahoo.co.in","yahoo.in","hotmail.com","outlook.com",
+  "rediffmail.com","icloud.com","live.com","aol.com","me.com","mac.com",
+  "msn.com","ymail.com","protonmail.com","gmx.com","mail.com"
+];
+const BUSINESS_EMAIL_PREFIXES = [
+  "info","sales","hr","support","admin","contact","accounts","enquiry",
+  "help","service","office","hello","team","careers","jobs",
+  "billing","finance","operations","marketing","business","reception"
+];
+const COMPANY_SUFFIXES = [
+  "pvt ltd","pvt. ltd","private limited","pvt.ltd","p ltd","llp","llc",
+  "inc","corp","corporation","ltd","limited","company","co.","enterprises",
+  "solutions","services","industries","technologies","systems","group",
+  "holdings","consultancy","consulting","associates","partners","international"
+];
+
+const BUSINESS_KEYWORDS = [
+  "academy","workspace","studio","store","shop","restaurant","hotel","cafe",
+  "clinic","hospital","school","college","institute","university","tech",
+  "digital","media","agency","builders","developers","construction",
+  "properties","realtors","estates","interiors","architects","designers",
+  "labs","research","factory","mills","exports","imports","traders",
+  "gallery","cinemas","theatre","electronics","appliances","logistics",
+  "cargo","transport","travels","tours","foods","bakery","pharma",
+  "pharmacy","medical","healthcare","fitness","gym","salon","spa"
+];
+
+function classifyContact(c) {
+  const attrs = c.attributes || {};
+  const name = ((attrs.FIRSTNAME || "") + " " + (attrs.LASTNAME || "")).toLowerCase();
+  const email = (c.email || "").toLowerCase();
+  const company = (attrs.COMPANY || "").toLowerCase();
+  const combined = (name + " " + company).toLowerCase();
+  
+  // Skip junk landline SMS emails
+  if (email.includes("landline.mailin-sms") || email.includes("@mailin-sms")) return "unknown";
+  
+  let score = 0;
+  
+  // Company field filled = strong commercial signal
+  if (company && company.length > 2) score += 3;
+  
+  // Company suffixes (Pvt Ltd, LLP, etc.)
+  for (const suf of COMPANY_SUFFIXES) {
+    if (combined.includes(suf)) { score += 3; break; }
+  }
+  
+  // Business keywords in name (Academy, Workspace, Studio, etc.)
+  for (const kw of BUSINESS_KEYWORDS) {
+    if (combined.includes(kw)) { score += 3; break; }
+  }
+  
+  // Email analysis
+  if (email) {
+    const domain = email.split("@")[1] || "";
+    const prefix = (email.split("@")[0] || "").split(".")[0].split("+")[0];
+    if (BUSINESS_EMAIL_PREFIXES.includes(prefix)) score += 3;
+    if (PERSONAL_EMAIL_DOMAINS.includes(domain)) score -= 2;
+    else if (domain && domain.includes(".") && !domain.includes("landline") && !domain.includes("mailin")) score += 3;
+  }
+  
+  // No email + no company + short name = likely residential
+  if (!email && !company && name.length < 30) score -= 1;
+  
+  if (score >= 3) return "commercial";
+  if (score <= -1) return "residential";
+  return "unknown";
+}
+
+async function callBrevo(endpoint, method="GET", body=null) {
+  const opts = { method, headers: HEADERS() };
+  if (body) opts.body = JSON.stringify(body);
+  try {
+    const r = await fetch("https://api.brevo.com/v3" + endpoint, opts);
+    const data = r.status === 204 ? {} : await r.json();
+    return { ok: r.ok, status: r.status, data };
+  } catch(e) {
+    return { ok: false, error: e.message };
+  }
+}
+
+function addStep(msg, status="working") {
+  const list = document.getElementById("stepsList");
+  const div = document.createElement("div");
+  div.className = "step " + status;
+  div.innerHTML = msg;
+  list.appendChild(div);
+  div.scrollIntoView({ behavior: "smooth", block: "end" });
+  return div;
+}
+
+function updateProgress(percent, text) {
+  document.getElementById("progressFill").style.width = percent + "%";
+  document.getElementById("progressText").innerText = text;
+}
+
+async function testConnection() {
+  API_KEY = document.getElementById("apiKey").value.trim();
+  if (!API_KEY) { alert("Enter API key"); return; }
+  
+  const r = await callBrevo("/account");
+  const result = document.getElementById("testResult");
+  if (r.ok) {
+    result.innerHTML = "<div class=success>✅ Connected: " + r.data.email + " | Plan: " + (r.data.plan?.[0]?.type || "-") + "</div>";
+    document.getElementById("planSection").style.display = "block";
+  } else {
+    result.innerHTML = "<div class=warn>❌ Failed: " + (r.data?.message || r.error) + "</div>";
+  }
+}
+
+async function runDryRun() {
+  isDryRun = true;
+  document.getElementById("progressSection").style.display = "block";
+  document.getElementById("stepsList").innerHTML = "";
+  await runCleanup();
+}
+
+async function runReal() {
+  if (!confirm("⚠️ FINAL WARNING: This will make REAL changes to your Brevo account.\n\nDid you run DRY RUN first?\n\nContinue?")) return;
+  if (!confirm("⚠️ Are you 100% sure? Once contacts are added to new lists, undoing is manual work.")) return;
+  isDryRun = false;
+  document.getElementById("progressSection").style.display = "block";
+  document.getElementById("stepsList").innerHTML = "";
+  await runCleanup();
+}
+
+async function runCleanup() {
+  const mode = isDryRun ? "🧪 DRY RUN" : "🚀 LIVE EXECUTION";
+  addStep("<b>" + mode + " started at " + new Date().toLocaleTimeString() + "</b>", "done");
+  
+  let stats = { total: 0, res: 0, com: 0, skipped: 0 };
+  
+  // Step 1: Fetch all existing lists
+  updateProgress(5, "Fetching current lists...");
+  const listsResp = await callBrevo("/contacts/lists?limit=50");
+  if (!listsResp.ok) { addStep("❌ Failed to fetch lists", "error"); return; }
+  const existingLists = listsResp.data.lists || [];
+  addStep("✅ Found " + existingLists.length + " existing lists", "done");
+  
+  // Step 2: Fetch all folders
+  const foldersResp = await callBrevo("/contacts/folders?limit=20");
+  const existingFolders = foldersResp.data?.folders || [];
+  addStep("✅ Found " + existingFolders.length + " existing folders", "done");
+  
+  // Step 3: Create new folders (or find existing)
+  updateProgress(10, "Creating folder structure...");
+  const foldersToCreate = ["01. MASTER LISTS", "02. SOURCE LISTS", "03. SALES PIPELINE", "04. ARCHIVE"];
+  const folderMap = {};
+  
+  for (const name of foldersToCreate) {
+    const existing = existingFolders.find(f => f.name === name);
+    if (existing) {
+      folderMap[name] = existing.id;
+      addStep("📂 Folder exists: <b>" + name + "</b> (ID: " + existing.id + ")", "done");
+    } else {
+      if (isDryRun) {
+        addStep("📂 [DRY] Would create folder: <b>" + name + "</b>", "working");
+        folderMap[name] = "DRY_" + name;
+      } else {
+        const r = await callBrevo("/contacts/folders", "POST", { name });
+        if (r.ok) {
+          folderMap[name] = r.data.id;
+          addStep("✅ Created folder: <b>" + name + "</b> (ID: " + r.data.id + ")", "done");
+        } else {
+          addStep("❌ Failed to create folder: " + name + " — " + JSON.stringify(r.data), "error");
+        }
+      }
+    }
+  }
+  
+  // Step 4: Create master lists
+  updateProgress(20, "Creating master lists...");
+  const listsToCreate = [
+    { name: "🏠 Residential", folder: "01. MASTER LISTS" },
+    { name: "🏢 Commercial", folder: "01. MASTER LISTS" },
+    { name: "📇 All Contacts", folder: "01. MASTER LISTS" },
+    { name: "📥 Zoho Books Import", folder: "02. SOURCE LISTS" },
+    { name: "📥 CRM Leads", folder: "02. SOURCE LISTS" },
+    { name: "📥 Manual Import", folder: "02. SOURCE LISTS" },
+    { name: "🎯 Lead - New", folder: "03. SALES PIPELINE" },
+    { name: "🎯 Lead - Contacted", folder: "03. SALES PIPELINE" },
+    { name: "🎯 Lead - Site Visit", folder: "03. SALES PIPELINE" },
+    { name: "🎯 Lead - Proposal Sent", folder: "03. SALES PIPELINE" },
+    { name: "🎯 Lead - Negotiation", folder: "03. SALES PIPELINE" },
+    { name: "✅ Won Customers", folder: "03. SALES PIPELINE" },
+    { name: "❌ Lost Leads", folder: "03. SALES PIPELINE" }
+  ];
+  
+  const listMap = {};
+  for (const l of listsToCreate) {
+    const existing = existingLists.find(x => x.name === l.name);
+    if (existing) {
+      listMap[l.name] = existing.id;
+      addStep("📋 List exists: <b>" + l.name + "</b> (ID: " + existing.id + ")", "done");
+    } else {
+      if (isDryRun) {
+        addStep("📋 [DRY] Would create list: <b>" + l.name + "</b> in folder " + l.folder, "working");
+        listMap[l.name] = "DRY_" + l.name;
+      } else {
+        const folderId = folderMap[l.folder];
+        const r = await callBrevo("/contacts/lists", "POST", { name: l.name, folderId });
+        if (r.ok) {
+          listMap[l.name] = r.data.id;
+          addStep("✅ Created list: <b>" + l.name + "</b> (ID: " + r.data.id + ")", "done");
+        } else {
+          addStep("❌ Failed to create list: " + l.name + " — " + JSON.stringify(r.data), "error");
+        }
+      }
+    }
+  }
+  
+  // Step 5: Ensure BATCH_NUMBER attribute exists
+  updateProgress(30, "Setting up BATCH_NUMBER attribute...");
+  const attrsResp = await callBrevo("/contacts/attributes");
+  const hasBatch = (attrsResp.data?.attributes || []).some(a => a.name === "BATCH_NUMBER");
+  if (!hasBatch) {
+    if (isDryRun) {
+      addStep("🏷️ [DRY] Would create BATCH_NUMBER attribute", "working");
+    } else {
+      await callBrevo("/contacts/attributes/normal/BATCH_NUMBER", "POST", { type: "text" });
+      addStep("✅ Created BATCH_NUMBER attribute", "done");
+    }
+  } else {
+    addStep("🏷️ BATCH_NUMBER attribute already exists", "done");
+  }
+  
+  // Step 6: Fetch all contacts and classify
+  updateProgress(40, "Fetching all contacts...");
+  let allContacts = [];
+  let offset = 0;
+  const limit = 500;
+  
+  while (true) {
+    const r = await callBrevo("/contacts?limit=" + limit + "&offset=" + offset);
+    if (!r.ok) { addStep("❌ Failed to fetch contacts", "error"); break; }
+    const batch = r.data.contacts || [];
+    allContacts = allContacts.concat(batch);
+    if (batch.length < limit) break;
+    offset += limit;
+    updateProgress(40 + (allContacts.length / 3068) * 20, "Fetched " + allContacts.length + " contacts...");
+  }
+  
+  stats.total = allContacts.length;
+  document.getElementById("statTotal").innerText = stats.total;
+  addStep("✅ Fetched " + allContacts.length + " total contacts", "done");
+  
+  // Step 7: Classify contacts
+  updateProgress(60, "Classifying contacts...");
+  const residential = [];
+  const commercial = [];
+  const skipped = [];
+  
+  for (const c of allContacts) {
+    const type = classifyContact(c);
+    if (type === "residential") residential.push(c.id);
+    else if (type === "commercial") commercial.push(c.id);
+    else skipped.push(c.id);
+  }
+  
+  stats.res = residential.length;
+  stats.com = commercial.length;
+  stats.skipped = skipped.length;
+  document.getElementById("statRes").innerText = stats.res;
+  document.getElementById("statCom").innerText = stats.com;
+  document.getElementById("statSkipped").innerText = stats.skipped;
+  
+  addStep("🏠 Residential: <b>" + residential.length + "</b>", "done");
+  addStep("🏢 Commercial: <b>" + commercial.length + "</b>", "done");
+  addStep("❓ Unclassified: <b>" + skipped.length + "</b>", "done");
+  
+  // Show samples of each category
+  const resSample = allContacts.filter(c => residential.includes(c.id)).slice(0, 5);
+  const comSample = allContacts.filter(c => commercial.includes(c.id)).slice(0, 5);
+  const unkSample = allContacts.filter(c => skipped.includes(c.id)).slice(0, 10);
+  
+  let sampleHtml = "<div style='margin-top:15px; background:#0a0a15; padding:12px; border-radius:6px; font-size:11px;'>";
+  sampleHtml += "<b style='color:#5dbb6e;'>Sample Residential (first 5):</b><br>";
+  resSample.forEach(c => {
+    sampleHtml += "• " + (c.email || "-") + " | Name: " + ((c.attributes?.FIRSTNAME || "") + " " + (c.attributes?.LASTNAME || "")).trim() + " | Company: " + (c.attributes?.COMPANY || "-") + "<br>";
+  });
+  sampleHtml += "<br><b style='color:#ff8c42;'>Sample Commercial (first 5):</b><br>";
+  comSample.forEach(c => {
+    sampleHtml += "• " + (c.email || "-") + " | Name: " + ((c.attributes?.FIRSTNAME || "") + " " + (c.attributes?.LASTNAME || "")).trim() + " | Company: " + (c.attributes?.COMPANY || "-") + "<br>";
+  });
+  sampleHtml += "<br><b style='color:#ff5252;'>Sample UNCLASSIFIED (first 10) - Review needed:</b><br>";
+  unkSample.forEach(c => {
+    sampleHtml += "• Email: " + (c.email || "NO EMAIL") + " | Name: " + ((c.attributes?.FIRSTNAME || "") + " " + (c.attributes?.LASTNAME || "")).trim() + " | Company: " + (c.attributes?.COMPANY || "NO COMPANY") + " | Phone: " + (c.attributes?.WHATSAPP || c.attributes?.SMS || "-") + "<br>";
+  });
+  sampleHtml += "</div>";
+  addStep(sampleHtml, "done");
+  
+  // Apply default for unclassified
+  const defaultChoice = document.getElementById("defaultUnclassified").value;
+  let finalResidential = residential;
+  let finalCommercial = commercial;
+  let finalUnclassified = [];
+  
+  if (defaultChoice === "residential") {
+    finalResidential = residential.concat(skipped);
+    addStep("📌 Adding " + skipped.length + " unclassified to <b>Residential</b> (default)", "done");
+  } else if (defaultChoice === "commercial") {
+    finalCommercial = commercial.concat(skipped);
+    addStep("📌 Adding " + skipped.length + " unclassified to <b>Commercial</b> (default)", "done");
+  } else {
+    finalUnclassified = skipped;
+    addStep("📌 Keeping " + skipped.length + " unclassified in separate list", "done");
+  }
+  
+  // Step 8: Add contacts to master lists (in batches of 150)
+  if (!isDryRun) {
+    updateProgress(70, "Adding contacts to Residential list...");
+    const resListId = listMap["🏠 Residential"];
+    for (let i = 0; i < finalResidential.length; i += 150) {
+      const chunk = finalResidential.slice(i, i + 150);
+      await callBrevo("/contacts/lists/" + resListId + "/contacts/add", "POST", { ids: chunk });
+      updateProgress(70 + (i / finalResidential.length) * 10, "Added " + Math.min(i+150, finalResidential.length) + "/" + finalResidential.length + " to Residential...");
+    }
+    addStep("✅ Added " + finalResidential.length + " contacts to Residential master list", "done");
+    
+    updateProgress(80, "Adding contacts to Commercial list...");
+    const comListId = listMap["🏢 Commercial"];
+    for (let i = 0; i < finalCommercial.length; i += 150) {
+      const chunk = finalCommercial.slice(i, i + 150);
+      await callBrevo("/contacts/lists/" + comListId + "/contacts/add", "POST", { ids: chunk });
+      updateProgress(80 + (i / finalCommercial.length) * 5, "Added " + Math.min(i+150, finalCommercial.length) + "/" + finalCommercial.length + " to Commercial...");
+    }
+    addStep("✅ Added " + finalCommercial.length + " contacts to Commercial master list", "done");
+    
+    // If separate unclassified list chosen
+    if (finalUnclassified.length > 0) {
+      // Create unclassified list if not exists
+      let unkListId = existingLists.find(l => l.name === "❓ Unclassified")?.id;
+      if (!unkListId) {
+        const r = await callBrevo("/contacts/lists", "POST", { name: "❓ Unclassified", folderId: folderMap["01. MASTER LISTS"] });
+        unkListId = r.data?.id;
+      }
+      for (let i = 0; i < finalUnclassified.length; i += 150) {
+        const chunk = finalUnclassified.slice(i, i + 150);
+        await callBrevo("/contacts/lists/" + unkListId + "/contacts/add", "POST", { ids: chunk });
+      }
+      addStep("✅ Added " + finalUnclassified.length + " contacts to Unclassified list", "done");
+    }
+    
+    updateProgress(85, "Adding all contacts to All Contacts list...");
+    const allListId = listMap["📇 All Contacts"];
+    const allIds = allContacts.map(c => c.id);
+    for (let i = 0; i < allIds.length; i += 150) {
+      const chunk = allIds.slice(i, i + 150);
+      await callBrevo("/contacts/lists/" + allListId + "/contacts/add", "POST", { ids: chunk });
+    }
+    addStep("✅ Added " + allIds.length + " contacts to All Contacts list", "done");
+  } else {
+    addStep("🧪 [DRY] Would add " + finalResidential.length + " to Residential", "working");
+    addStep("🧪 [DRY] Would add " + finalCommercial.length + " to Commercial", "working");
+    if (finalUnclassified.length > 0) addStep("🧪 [DRY] Would add " + finalUnclassified.length + " to Unclassified list", "working");
+    addStep("🧪 [DRY] Would add " + allContacts.length + " to All Contacts", "working");
+  }
+  
+  // Step 8.5: Auto-archive old lists
+  if (!isDryRun) {
+    updateProgress(88, "Archiving old lists...");
+    const archiveFolderId = folderMap["04. ARCHIVE"];
+    const oldListsToArchive = existingLists.filter(l => 
+      !l.name.startsWith("🏠") && 
+      !l.name.startsWith("🏢") && 
+      !l.name.startsWith("📇") && 
+      !l.name.startsWith("📥") && 
+      !l.name.startsWith("🎯") && 
+      !l.name.startsWith("✅") && 
+      !l.name.startsWith("❌") &&
+      !l.name.startsWith("❓") &&
+      l.folderId !== archiveFolderId
+    );
+    for (const oldList of oldListsToArchive) {
+      const r = await callBrevo("/contacts/lists/" + oldList.id, "PUT", { folderId: archiveFolderId });
+      if (r.ok) addStep("📦 Archived: <b>" + oldList.name + "</b> → 04. ARCHIVE", "done");
+      else addStep("⚠️ Failed to archive: " + oldList.name, "error");
+    }
+    addStep("✅ Auto-archived " + oldListsToArchive.length + " old lists", "done");
+  } else {
+    const archiveList = existingLists.filter(l => 
+      !l.name.startsWith("🏠") && !l.name.startsWith("🏢") && !l.name.startsWith("📇") && 
+      !l.name.startsWith("📥") && !l.name.startsWith("🎯") && !l.name.startsWith("✅") && 
+      !l.name.startsWith("❌") && !l.name.startsWith("❓")
+    );
+    addStep("🧪 [DRY] Would archive " + archiveList.length + " old lists to 04. ARCHIVE folder", "working");
+  }
+
+  // Step 9: Assign batch numbers
+  updateProgress(90, "Assigning batch numbers...");
+  if (!isDryRun) {
+    // Residential: 6 batches
+    const resBatchSize = Math.ceil(finalResidential.length / 6);
+    for (let i = 0; i < finalResidential.length; i++) {
+      const contactId = finalResidential[i];
+      const batchNum = Math.floor(i / resBatchSize) + 1;
+      const contact = allContacts.find(c => c.id === contactId);
+      if (contact) {
+        await callBrevo("/contacts/" + encodeURIComponent(contact.email || contact.id), "PUT", {
+          attributes: { BATCH_NUMBER: "R" + batchNum, TYPE_CLASSIFICATION: "residential" }
+        });
+      }
+      if (i % 50 === 0) updateProgress(90 + (i / finalResidential.length) * 5, "Batch numbering residential " + i + "/" + finalResidential.length);
+    }
+    addStep("✅ Assigned R1-R6 batches to residential contacts", "done");
+    
+    // Commercial: 6 batches
+    const comBatchSize = Math.ceil(finalCommercial.length / 6);
+    for (let i = 0; i < finalCommercial.length; i++) {
+      const contactId = finalCommercial[i];
+      const batchNum = Math.floor(i / comBatchSize) + 1;
+      const contact = allContacts.find(c => c.id === contactId);
+      if (contact) {
+        await callBrevo("/contacts/" + encodeURIComponent(contact.email || contact.id), "PUT", {
+          attributes: { BATCH_NUMBER: "C" + batchNum, TYPE_CLASSIFICATION: "commercial" }
+        });
+      }
+      if (i % 50 === 0) updateProgress(95 + (i / finalCommercial.length) * 5, "Batch numbering commercial " + i + "/" + finalCommercial.length);
+    }
+    addStep("✅ Assigned C1-C6 batches to commercial contacts", "done");
+  } else {
+    addStep("🧪 [DRY] Would assign R1-R6 to residential (6 batches)", "working");
+    addStep("🧪 [DRY] Would assign C1-C6 to commercial (6 batches)", "working");
+  }
+  
+  updateProgress(100, "Complete!");
+  addStep("<b>✅ " + (isDryRun ? "DRY RUN" : "LIVE EXECUTION") + " COMPLETE at " + new Date().toLocaleTimeString() + "</b>", "done");
+  
+  // Show summary
+  document.getElementById("resultSection").style.display = "block";
+  document.getElementById("resultBody").innerHTML = 
+    "<div class='success'><b>Cleanup " + (isDryRun ? "Preview" : "Execution") + " Complete!</b></div>" +
+    "<table>" +
+      "<tr><th>Metric</th><th>Value</th></tr>" +
+      "<tr><td>Total contacts processed</td><td>" + stats.total + "</td></tr>" +
+      "<tr><td>Classified as Residential</td><td>" + stats.res + "</td></tr>" +
+      "<tr><td>Classified as Commercial</td><td>" + stats.com + "</td></tr>" +
+      "<tr><td>Unclassified (defaulted to Residential)</td><td>" + stats.skipped + "</td></tr>" +
+      "<tr><td>Default choice for unclassified</td><td>" + document.getElementById("defaultUnclassified").value + "</td></tr>" +
+    "</table>" +
+    "<div class='info' style='margin-top:15px;'>" +
+      "<b>Next Steps:</b>" +
+      "<ol style='margin:10px 0 0 20px;'>" +
+        "<li>Verify lists in Brevo dashboard: https://app.brevo.com/contact/list-listing</li>" +
+        "<li>Check that master lists have correct counts</li>" +
+        "<li>Manually delete/archive old messy lists after verification</li>" +
+        "<li>Setup Zapier for Zoho Books → Brevo auto-sync</li>" +
+        "<li>Later: Delete Firestore contacts collection from TIC</li>" +
+      "</ol>" +
+    "</div>";
+}
+</script>
+
+</body>
+</html>
