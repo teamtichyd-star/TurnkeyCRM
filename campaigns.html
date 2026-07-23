@@ -622,14 +622,27 @@ async function sendTestEmail() {
   }
   
   try {
+    // First, fetch the Brevo campaign to get its HTML content
+    console.log("Fetching Brevo campaign #" + campaign.brevoTemplateId + "...");
+    const campR = await fetch("https://api.brevo.com/v3/emailCampaigns/" + campaign.brevoTemplateId, {
+      headers: { "accept": "application/json", "api-key": brevoConfig.brevoApiKey }
+    });
+    const campData = await campR.json();
+    console.log("Campaign data:", campData);
+    
+    if (!campR.ok) {
+      alert("❌ Failed to fetch Brevo campaign: " + (campData.message || "Unknown"));
+      return;
+    }
+    
     const payload = {
       sender: { name: brevoConfig.brevoSenderName || "SB Interiors", email: brevoConfig.brevoSenderEmail },
       to: [{ email: email }],
-      templateId: parseInt(campaign.brevoTemplateId),
-      subject: (campaign.subject || "SB Interior Solutions") + " [TEST]"
+      subject: (campaign.subject || campData.subject || "SB Interior Solutions") + " [TEST]",
+      htmlContent: campData.htmlContent || "<p>Campaign has no HTML content. Design your campaign in Brevo first.</p>"
     };
     
-    console.log("Payload:", JSON.stringify(payload, null, 2));
+    console.log("Payload:", JSON.stringify(payload, null, 2).substring(0, 500) + "...");
     
     const r = await fetch("https://api.brevo.com/v3/smtp/email", {
       method: "POST",
