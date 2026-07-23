@@ -524,18 +524,36 @@ async function confirmSendBatch() {
   const batch = currentBatchDoc;
 
   try {
-    // Create email campaign in Brevo
+    // First fetch source Brevo campaign to get HTML content
+    console.log("Fetching source campaign #" + campaign.brevoTemplateId + "...");
+    const srcR = await fetch("https://api.brevo.com/v3/emailCampaigns/" + campaign.brevoTemplateId, {
+      headers: { "accept": "application/json", "api-key": brevoConfig.brevoApiKey }
+    });
+    const srcData = await srcR.json();
+    if (!srcR.ok) {
+      alert("❌ Cannot fetch source Brevo campaign: " + (srcData.message || "Unknown"));
+      return;
+    }
+    console.log("Source campaign fetched:", srcData.name);
+    
+    // Create email campaign in Brevo with full HTML content (proper marketing send)
     const campaignPayload = {
-      name: campaign.name + " - " + batch.batchNumber,
-      subject: campaign.subject || "SB Interior Solutions",
+      name: campaign.name + " - " + batch.batchNumber + " (" + new Date().toISOString().split("T")[0] + ")",
+      subject: campaign.subject || srcData.subject || "SB Interior Solutions",
       sender: { name: brevoConfig.brevoSenderName, email: brevoConfig.brevoSenderEmail },
-      templateId: campaign.brevoTemplateId,
+      htmlContent: srcData.htmlContent,
       recipients: {
         listIds: [batch.brevoListId || campaign.audienceListId],
         exclusionListIds: []
       },
-      type: "classic"
+      type: "classic",
+      inlineImageActivation: false,
+      mirrorActive: true,
+      recurring: false,
+      footer: srcData.footer || "",
+      header: srcData.header || ""
     };
+    console.log("Creating batch campaign in Brevo...");
 
     // Add segmentation: only send to contacts with matching BATCH_NUMBER
     // Brevo doesn't directly support attribute filter in campaign creation,
