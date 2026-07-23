@@ -171,7 +171,7 @@
         <select id="ncAudience" class="form-input" onchange="updateAudiencePreview()">
           <option value="">Select audience...</option>
           <option value="residential">🏠 Residential (1,270 contacts, R1-R6 batches)</option>
-          <option value="commercial">🏢 Commercial (1,645 contacts, C1-C6 batches)</option>
+          <option value="commercial">🏢 Commercial (971 contacts, C1-C6 batches)</option>
         </select>
       </div>
       <div>
@@ -243,12 +243,12 @@ const BATCH_LISTS = {
   R4: {id: 49, count: 212, master: 32},
   R5: {id: 50, count: 212, master: 32},
   R6: {id: 51, count: 210, master: 32},
-  C1: {id: 52, count: 275, master: 33},
-  C2: {id: 53, count: 275, master: 33},
-  C3: {id: 54, count: 275, master: 33},
-  C4: {id: 55, count: 275, master: 33},
-  C5: {id: 56, count: 275, master: 33},
-  C6: {id: 57, count: 270, master: 33}
+  C1: {id: 52, count: 162, master: 33},
+  C2: {id: 53, count: 162, master: 33},
+  C3: {id: 54, count: 162, master: 33},
+  C4: {id: 55, count: 162, master: 33},
+  C5: {id: 56, count: 162, master: 33},
+  C6: {id: 57, count: 161, master: 33}
 };
 
 let brevoConfig = null;
@@ -416,10 +416,10 @@ function updateAudiencePreview() {
   const box = document.getElementById("audiencePreview");
   const txt = document.getElementById("previewText");
   if (aud === "residential") {
-    txt.innerText = "1,270 contacts will be split into 6 batches (R1-R6, ~212 per batch). Send 1 batch per day to stay within 300/day Brevo limit.";
+    txt.innerText = "1,270 residential contacts, split into 6 batches (R1-R6, ~212 each). Send 1 batch per day.";
     box.style.display = "block";
   } else if (aud === "commercial") {
-    txt.innerText = "1,645 contacts will be split into 6 batches (C1-C6, ~275 per batch). Send 1 batch per day to stay within 300/day Brevo limit.";
+    txt.innerText = "971 commercial contacts, split into 6 batches (C1-C6, ~162 each). Send 1 batch per day.";
     box.style.display = "block";
   } else {
     box.style.display = "none";
@@ -436,7 +436,7 @@ async function createCampaign() {
   if (!templateId) { alert("Please select an email template"); return; }
 
   const audienceListId = audience === "residential" ? BREVO_LISTS.residential : BREVO_LISTS.commercial;
-  const totalContacts = audience === "residential" ? 1270 : 1645;
+  const totalContacts = audience === "residential" ? 1270 : 971;
   const batchPrefix = audience === "residential" ? "R" : "C";
   const totalBatches = 6;
 

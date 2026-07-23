@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Brevo Junk Cleaner</title>
+<style>
+  body { font-family: -apple-system, system-ui, sans-serif; background: #0e0e1a; color: #f0f0f0; padding: 20px; max-width: 1200px; margin: auto; }
+  h1 { color: #c8a96e; }
+  h2 { color: #c8a96e; margin-top: 25px; border-bottom: 1px solid #333; padding-bottom: 8px; }
+  .section { background: #16213e; border-radius: 12px; padding: 20px; margin: 15px 0; border: 1px solid #333; }
+  .warn { background: #4a2020; border: 1px solid #f44336; color: #ffcccc; padding: 15px; border-radius: 8px; margin: 15px 0; }
+  .success { background: #1e4620; border: 1px solid #4caf50; color: #ccffcc; padding: 12px; border-radius: 8px; margin: 10px 0; }
+  .info { background: #1a2550; border: 1px solid #4da6ff; color: #cce5ff; padding: 12px; border-radius: 8px; margin: 10px 0; }
+  button { background: #c8a96e; color: #000; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 14px; margin: 5px; }
+  button:disabled { background: #444; color: #888; cursor: not-allowed; }
+  .btn-danger { background: #f44336; color: #fff; }
+  .btn-safe { background: #4caf50; color: #fff; }
+  input { background: #0e0e1a; border: 1px solid #333; color: #fff; padding: 10px; border-radius: 6px; width: 100%; font-size: 13px; }
+  .step { padding: 10px 14px; margin: 8px 0; background: #0a0a15; border-left: 3px solid #333; font-size: 13px; }
+  .step.done { border-left-color: #4caf50; }
+  .step.working { border-left-color: #ff9800; }
+  .step.error { border-left-color: #f44336; }
+  .progress-bar { height: 8px; background: #333; border-radius: 4px; overflow: hidden; margin: 10px 0; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, #c8a96e, #4caf50); transition: width 0.3s; }
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 15px 0; }
+  .stat-card { background: #0a0a15; padding: 15px; border-radius: 8px; text-align: center; }
+  .stat-num { font-size: 28px; font-weight: 700; color: #c8a96e; }
+  .stat-label { font-size: 11px; color: #888; margin-top: 4px; }
+  .junk-list { max-height: 400px; overflow-y: auto; background: #0a0a15; padding: 10px; border-radius: 6px; font-size: 11px; font-family: monospace; }
+  .junk-item { padding: 3px 0; border-bottom: 1px solid #222; }
+  .junk-item.keep { color: #5dbb6e; }
+  .junk-item.remove { color: #ef5350; }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #222; font-size: 12px; }
+  th { background: #1a2550; color: #c8a96e; }
+</style>
+</head>
+<body>
+
+<h1>🧹 Brevo Junk Contact Cleaner</h1>
+<p style="color:#888;">Identifies and removes junk contacts (noreply, notifications, spam) from Brevo.</p>
+
+<div class="section">
+  <h2>Step 1: API Key</h2>
+  <input type="password" id="apiKey" placeholder="Paste Brevo API key">
+  <button onclick="testConnection()">Test Connection</button>
+  <div id="testResult"></div>
+</div>
+
+<div class="section" id="planSection" style="display:none;">
+  <h2>Step 2: Junk Detection Rules</h2>
+  <div class="info">
+    <b>Will identify as JUNK if email matches any of these patterns:</b>
+    <ul style="margin:8px 0 0 20px; font-size:12px; line-height:1.7;">
+      <li>Starts with: noreply, no-reply, donotreply, do-not-reply</li>
+      <li>Starts with: notification, notifications, alerts, alert, ebill, ebills</li>
+      <li>Starts with: support (from other companies)</li>
+      <li>Starts with: mailer, mailers, campaigns, offers, offer, promo</li>
+      <li>Starts with: services, service, admin, root</li>
+      <li>Starts with: nse_alerts, bankalerts, retailproducts</li>
+      <li>Domain contains: indeedemail.com, campaigns., mailer., email., replies., reply-</li>
+      <li>Reply-style addresses: reply-, v1_, replies@</li>
+      <li>Auto-generated: firebaseapp.com, hostingersite.com</li>
+    </ul>
+    <br>
+    <b style="color:#5dbb6e;">✅ Will KEEP:</b> info@sbinteriorsolutions.net (your test email) and all other legitimate contacts.
+  </div>
+  <button onclick="analyzeJunk()">🔍 Analyze Contacts (Dry Run)</button>
+</div>
+
+<div class="section" id="resultSection" style="display:none;">
+  <h2>📊 Analysis Result</h2>
+  <div class="stat-grid">
+    <div class="stat-card"><div class="stat-num" id="statTotal">0</div><div class="stat-label">Total Contacts</div></div>
+    <div class="stat-card"><div class="stat-num" id="statJunk" style="color:#ef5350;">0</div><div class="stat-label">Junk (Remove)</div></div>
+    <div class="stat-card"><div class="stat-num" id="statKeep" style="color:#5dbb6e;">0</div><div class="stat-label">Keep (Real)</div></div>
+    <div class="stat-card"><div class="stat-num" id="statUnknown" style="color:#ffb74d;">0</div><div class="stat-label">Unknown</div></div>
+  </div>
+  <div id="samplesBox"></div>
+</div>
+
+<div class="section" id="rebuildBatchesSection">
+  <h2>⚖️ Rebuild Batch Lists (After Cleanup)</h2>
+  <div class="info">
+    After junk cleanup, batch lists become uneven. This rebalances them:<br>
+    <b>Commercial (971 contacts):</b> 6 batches of ~162 each<br>
+    <b>Residential (1,270 contacts):</b> 6 batches of ~212 each (already balanced)
+  </div>
+  <button onclick="rebuildBatches()" class="btn-safe">⚖️ Rebuild All Batch Lists</button>
+  <div id="rebuildResult"></div>
+</div>
+
+<div class="section" id="deleteListsSection">
+  <h2>🗑️ Delete Junk Lists</h2>
+  <div class="warn">
+    <b>⚠️ WARNING:</b> This deletes ENTIRE lists. Contacts stay if they're in other lists.
+  </div>
+  <button onclick="loadArchiveLists()">📋 Show All Archive Lists</button>
+  <div id="archiveListsBox"></div>
+</div>
+
+<div class="section" id="executeSection" style="display:none;">
+  <h2>Step 3: Execute Cleanup</h2>
+  <div class="warn">
+    <b>⚠️ Warning:</b> This will permanently DELETE junk contacts from Brevo. Cannot be undone!<br>
+    <b>Recommended:</b> Review the analysis above first. Only click "DELETE JUNK" when 100% sure.
+  </div>
+  <button class="btn-danger" onclick="executeDelete()">🗑️ DELETE ALL JUNK CONTACTS</button>
+</div>
+
+<div class="section" id="progressSection" style="display:none;">
+  <h2>⚡ Progress</h2>
+  <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+  <div id="progressText" style="color:#888;">Starting...</div>
+  <div id="stepsList"></div>
+</div>
+
+<script>
+let API_KEY = "";
+let allContacts = [];
+let junkContacts = [];
+let keepContacts = [];
+
+// Junk detection rules
+const JUNK_PREFIXES = [
+  "noreply", "no-reply", "donotreply", "do-not-reply", "no_reply",
+  "notification", "notifications", "notify",
+  "alerts", "alert", "ebill", "ebills",
+  "mailer", "mailers", "campaigns", "campaign",
+  "offers", "offer", "promo", "promotion",
+  "services", "service", "admin", "root", "webmaster",
+  "postmaster", "hostmaster", "abuse",
+  "nse_alerts", "bankalerts", "retailproducts",
+  "reply-", "replies",
+  "info", "contact", "hello", "team", "sales", "hr", "careers", "jobs",
+  "billing", "accounts", "finance", "operations", "reception",
+  "support"
+];
+
+const JUNK_DOMAINS_CONTAINS = [
+  "indeedemail.com",
+  "campaigns.",
+  "mailer.",
+  "mailin.",
+  "email.",
+  "replies.",
+  "reply.",
+  ".mailin-sms",
+  "firebaseapp.com",
+  "hostingersite.com",
+  "quora.com",
+  "vimeo.com",
+  "linkintime.co.in",
+  "cdslindia.com",
+  "cameoindia.com",
+  "kfintech.com",
+  "njindiaonline",
+  "myklaticrete",
+  "zerodha",
+  "upstox",
+  "kotak",
+  "jio.com",
+  "sonyliv.com",
+  "airtel.com",
+  "insightly.email",
+  "clutch.co",
+  "adobe.com",
+  "brevo.com",
+  "wix.com",
+  "kaspersky.com",
+  "google.com",
+  "discord.com",
+  "franklintempleton.com",
+  "hdfcfund.com",
+  "miraeassetmf.co.in",
+  "invescomf",
+  "npci.org.in",
+  "tatacapital.com",
+  "muthoot",
+  "redington",
+  "happiestminds.com",
+  "semrush.com",
+  "hypotenuse.ai",
+  "alura.io",
+  "improwth.com",
+  "freshworks.com",
+  "insightly.com",
+  "orai.com",
+  "heygoldie.com",
+  "everestwebdeals.co",
+  "addonforge.com",
+  "brainquest.org",
+  "email.fancode.com",
+  "zoom.us",
+  "adobe.com",
+  "123greetings.com",
+  "email.vimeo.com"
+];
+
+// Whitelist - always keep these exact emails
+const WHITELIST = [
+  "info@sbinteriorsolutions.net",
+  "info@sbinteriorsolutions.com",
+  "hari.sbis@gmail.com"
+];
+
+function isJunk(email, name) {
+  const e = (email || "").toLowerCase().trim();
+  if (!e) return false; // no email = don't mark as junk (probably phone contact)
+  
+  // Check whitelist first
+  if (WHITELIST.includes(e)) return false;
+  
+  // Check own domain - never junk our own emails
+  if (e.endsWith("@sbinteriorsolutions.net") || e.endsWith("@sbinteriorsolutions.com")) return false;
+  
+  const prefix = e.split("@")[0].split(".")[0].split("+")[0];
+  const domain = e.split("@")[1] || "";
+  
+  // Check prefix patterns
+  for (const p of JUNK_PREFIXES) {
+    if (prefix === p || prefix.startsWith(p + "_") || prefix.startsWith(p + "-")) return true;
+  }
+  
+  // Check reply-style prefixes (reply-fefd..., v1_gm..., etc)
+  if (prefix.startsWith("reply-") || prefix.startsWith("v1_") || prefix.startsWith("v2_")) return true;
+  
+  // Check domain patterns
+  for (const d of JUNK_DOMAINS_CONTAINS) {
+    if (domain.includes(d)) return true;
+  }
+  
+  return false;
+}
+
+async function callBrevo(endpoint, method="GET", body=null) {
+  const opts = { method, headers: {
+    "accept": "application/json", "content-type": "application/json", "api-key": API_KEY
+  }};
+  if (body) opts.body = JSON.stringify(body);
+  try {
+    const r = await fetch("https://api.brevo.com/v3" + endpoint, opts);
+    const data = r.status === 204 ? {} : await r.json();
+    return { ok: r.ok, status: r.status, data };
+  } catch(e) {
+    return { ok: false, error: e.message };
+  }
+}
+
+async function testConnection() {
+  API_KEY = document.getElementById("apiKey").value.trim();
+  if (!API_KEY) { alert("Enter API key"); return; }
+  const r = await callBrevo("/account");
+  const result = document.getElementById("testResult");
+  if (r.ok) {
+    result.innerHTML = "<div class=success>✅ Connected: " + r.data.email + "</div>";
+    document.getElementById("planSection").style.display = "block";
+  } else {
+    result.innerHTML = "<div class=warn>❌ " + (r.data?.message || "Failed") + "</div>";
+  }
+}
+
+function addStep(msg, status="working") {
+  const list = document.getElementById("stepsList");
+  const div = document.createElement("div");
+  div.className = "step " + status;
+  div.innerHTML = msg;
+  list.appendChild(div);
+  div.scrollIntoView({ behavior: "smooth", block: "end" });
+}
+
+function updateProgress(percent, text) {
+  document.getElementById("progressFill").style.width = percent + "%";
+  document.getElementById("progressText").innerText = text;
+}
+
+async function analyzeJunk() {
+  document.getElementById("progressSection").style.display = "block";
+  document.getElementById("stepsList").innerHTML = "";
+  
+  addStep("🔍 Starting analysis...", "done");
+  updateProgress(5, "Fetching all contacts...");
+  
+  // Fetch all contacts
+  allContacts = [];
+  let offset = 0;
+  const limit = 500;
+  
+  while (true) {
+    const r = await callBrevo("/contacts?limit=" + limit + "&offset=" + offset);
+    if (!r.ok) { addStep("❌ Fetch failed", "error"); break; }
+    const batch = r.data.contacts || [];
+    allContacts = allContacts.concat(batch);
+    if (batch.length < limit) break;
+    offset += limit;
+    updateProgress(5 + (allContacts.length / 3068) * 40, "Fetched " + allContacts.length + " contacts...");
+  }
+  
+  addStep("✅ Fetched " + allContacts.length + " total contacts", "done");
+  updateProgress(50, "Analyzing junk patterns...");
+  
+  // Classify each contact
+  junkContacts = [];
+  keepContacts = [];
+  
+  for (const c of allContacts) {
+    const name = ((c.attributes?.FIRSTNAME || "") + " " + (c.attributes?.LASTNAME || "")).trim();
+    if (isJunk(c.email, name)) {
+      junkContacts.push(c);
+    } else {
+      keepContacts.push(c);
+    }
+  }
+  
+  addStep("🗑️ Identified <b>" + junkContacts.length + "</b> junk contacts", "done");
+  addStep("✅ Will keep <b>" + keepContacts.length + "</b> real contacts", "done");
+  
+  updateProgress(100, "Analysis complete!");
+  
+  // Show results
+  document.getElementById("resultSection").style.display = "block";
+  document.getElementById("statTotal").innerText = allContacts.length;
+  document.getElementById("statJunk").innerText = junkContacts.length;
+  document.getElementById("statKeep").innerText = keepContacts.length;
+  document.getElementById("statUnknown").innerText = 0;
+  
+  // Show samples
+  const junkSample = junkContacts.slice(0, 30);
+  const keepSample = keepContacts.filter(c => c.email).slice(0, 15);
+  
+  let html = "<h3 style='color:#ef5350;margin-top:20px;'>🗑️ Sample JUNK (first 30) - Will be DELETED:</h3>";
+  html += "<div class='junk-list'>";
+  junkSample.forEach(c => {
+    const name = ((c.attributes?.FIRSTNAME || "") + " " + (c.attributes?.LASTNAME || "")).trim();
+    html += "<div class='junk-item remove'>❌ " + (c.email || "-") + " | " + (name || "-") + "</div>";
+  });
+  html += "</div>";
+  
+  html += "<h3 style='color:#5dbb6e;margin-top:20px;'>✅ Sample KEEP (first 15) - Will be preserved:</h3>";
+  html += "<div class='junk-list'>";
+  keepSample.forEach(c => {
+    const name = ((c.attributes?.FIRSTNAME || "") + " " + (c.attributes?.LASTNAME || "")).trim();
+    html += "<div class='junk-item keep'>✅ " + (c.email || "no email") + " | " + (name || "-") + "</div>";
+  });
+  html += "</div>";
+  
+  document.getElementById("samplesBox").innerHTML = html;
+  
+  // Show execute button
+  document.getElementById("executeSection").style.display = "block";
+}
+
+async function loadArchiveLists() {
+  const box = document.getElementById("archiveListsBox");
+  box.innerHTML = "<div class=info>Loading lists...</div>";
+  
+  const foldersR = await callBrevo("/contacts/folders?limit=20");
+  const archiveFolder = (foldersR.data?.folders || []).find(f => f.name === "04. ARCHIVE");
+  const archiveFolderId = archiveFolder ? archiveFolder.id : null;
+  
+  const listsR = await callBrevo("/contacts/lists?limit=50");
+  const allLists = listsR.data?.lists || [];
+  
+  let html = "<table><tr><th>Delete?</th><th>ID</th><th>Name</th><th>Contacts</th><th>Location</th></tr>";
+  allLists.forEach(l => {
+    const isArchive = l.folderId === archiveFolderId;
+    const shouldDelete = isArchive;
+    const rowStyle = isArchive ? "background:rgba(244,67,54,0.15);" : "background:rgba(76,175,80,0.05);";
+    html += "<tr style='" + rowStyle + "'>";
+    html += "<td><input type='checkbox' " + (shouldDelete ? "checked" : "") + " data-list-id='" + l.id + "' data-list-name='" + l.name + "'></td>";
+    html += "<td>" + l.id + "</td>";
+    html += "<td><b>" + l.name + "</b></td>";
+    html += "<td>" + (l.uniqueSubscribers || l.totalSubscribers || 0) + "</td>";
+    html += "<td>" + (isArchive ? "🗄️ Archive" : "❌ NOT ARCHIVE - DO NOT DELETE") + "</td>";
+    html += "</tr>";
+  });
+  html += "</table>";
+  html += "<br><button class=btn-danger onclick=deleteSelectedLists()>🗑️ DELETE SELECTED LISTS</button>";
+  html += "<div id='deleteListsResult' style='margin-top:10px;'></div>";
+  
+  box.innerHTML = html;
+}
+
+async function deleteSelectedLists() {
+  const checkboxes = document.querySelectorAll("[data-list-id]:checked");
+  if (checkboxes.length === 0) { alert("Select at least one list"); return; }
+  
+  const listsToDelete = [];
+  checkboxes.forEach(cb => listsToDelete.push({id: cb.dataset.listId, name: cb.dataset.listName}));
+  
+  if (!confirm("⚠️ DELETE " + listsToDelete.length + " lists?\n\nThis CANNOT be undone!")) return;
+  if (!confirm("Are you 100% sure? Click OK to proceed.")) return;
+  
+  const result = document.getElementById("deleteListsResult");
+  let deleted = 0, failed = 0;
+  
+  for (const l of listsToDelete) {
+    result.innerHTML = "Deleting " + l.name + "...";
+    const r = await callBrevo("/contacts/lists/" + l.id, "DELETE");
+    if (r.ok) deleted++;
+    else { failed++; console.error("Failed:", l.name, r); }
+  }
+  
+  result.innerHTML = "<div class=success>✅ Deleted: " + deleted + " | Failed: " + failed + "</div>";
+  setTimeout(loadArchiveLists, 1000);
+}
+
+async function rebuildBatches() {
+  if (!confirm("Rebuild batch lists?\n\n1. Clear R1-R6 and C1-C6 lists\n2. Redistribute contacts evenly\n3. Update BATCH_NUMBER attribute\n\nTakes ~5 min.")) return;
+  
+  const result = document.getElementById("rebuildResult");
+  result.innerHTML = "<div class=info>Starting rebuild...</div>";
+  
+  // Fetch contacts from Residential master (32) and Commercial master (33)
+  async function getListContacts(listId) {
+    let contacts = [];
+    let offset = 0;
+    while (true) {
+      const r = await callBrevo("/contacts/lists/" + listId + "/contacts?limit=500&offset=" + offset);
+      if (!r.ok) break;
+      const batch = r.data.contacts || [];
+      contacts = contacts.concat(batch);
+      if (batch.length < 500) break;
+      offset += 500;
+    }
+    return contacts;
+  }
+  
+  result.innerHTML = "<div class=info>Fetching Residential contacts...</div>";
+  const resContacts = await getListContacts(32);
+  result.innerHTML = "<div class=info>Fetching Commercial contacts (" + resContacts.length + " residential done)...</div>";
+  const comContacts = await getListContacts(33);
+  
+  result.innerHTML = "<div class=info>Found " + resContacts.length + " residential + " + comContacts.length + " commercial. Rebalancing...</div>";
+  
+  const batchListIds = {
+    R1: 46, R2: 47, R3: 48, R4: 49, R5: 50, R6: 51,
+    C1: 52, C2: 53, C3: 54, C4: 55, C5: 56, C6: 57
+  };
+  
+  // Clear all batch lists first (remove all contacts)
+  async function clearList(listId, contactIds) {
+    if (contactIds.length === 0) return;
+    for (let i = 0; i < contactIds.length; i += 100) {
+      const chunk = contactIds.slice(i, i + 100);
+      await callBrevo("/contacts/lists/" + listId + "/contacts/remove", "POST", { ids: chunk });
+    }
+  }
+  
+  // Get current contacts in each batch list and clear
+  for (const [key, listId] of Object.entries(batchListIds)) {
+    const current = await getListContacts(listId);
+    if (current.length > 0) {
+      await clearList(listId, current.map(c => c.id));
+    }
+    result.innerHTML = "<div class=info>Cleared " + key + " (" + current.length + " removed)...</div>";
+  }
+  
+  // Distribute residential into R1-R6
+  const resBatchSize = Math.ceil(resContacts.length / 6);
+  const resBatches = { R1: [], R2: [], R3: [], R4: [], R5: [], R6: [] };
+  resContacts.forEach((c, i) => {
+    const batch = Math.min(6, Math.floor(i / resBatchSize) + 1);
+    resBatches["R" + batch].push(c.id);
+  });
+  
+  // Distribute commercial into C1-C6
+  const comBatchSize = Math.ceil(comContacts.length / 6);
+  const comBatches = { C1: [], C2: [], C3: [], C4: [], C5: [], C6: [] };
+  comContacts.forEach((c, i) => {
+    const batch = Math.min(6, Math.floor(i / comBatchSize) + 1);
+    comBatches["C" + batch].push(c.id);
+  });
+  
+  // Add to lists + update BATCH_NUMBER
+  async function addToList(listId, ids) {
+    for (let i = 0; i < ids.length; i += 100) {
+      const chunk = ids.slice(i, i + 100);
+      await callBrevo("/contacts/lists/" + listId + "/contacts/add", "POST", { ids: chunk });
+    }
+  }
+  
+  let summary = [];
+  for (const [key, ids] of Object.entries(resBatches)) {
+    await addToList(batchListIds[key], ids);
+    summary.push(key + ": " + ids.length);
+    result.innerHTML = "<div class=info>Added " + ids.length + " to " + key + "...</div>";
+  }
+  for (const [key, ids] of Object.entries(comBatches)) {
+    await addToList(batchListIds[key], ids);
+    summary.push(key + ": " + ids.length);
+    result.innerHTML = "<div class=info>Added " + ids.length + " to " + key + "...</div>";
+  }
+  
+  // Update BATCH_NUMBER attribute for each contact
+  result.innerHTML = "<div class=info>Updating BATCH_NUMBER attributes...</div>";
+  let updated = 0;
+  for (const [key, ids] of [...Object.entries(resBatches), ...Object.entries(comBatches)]) {
+    for (const contactId of ids) {
+      const contact = [...resContacts, ...comContacts].find(c => c.id === contactId);
+      if (contact && contact.email) {
+        await callBrevo("/contacts/" + encodeURIComponent(contact.email), "PUT", {
+          attributes: { BATCH_NUMBER: key }
+        });
+        updated++;
+      }
+    }
+    result.innerHTML = "<div class=info>Updated BATCH_NUMBER: " + updated + " contacts...</div>";
+  }
+  
+  result.innerHTML = "<div class=success>✅ Rebuild Complete!<br>" + summary.join(" | ") + "<br>BATCH_NUMBER updated on " + updated + " contacts.</div>";
+  alert("✅ Batch lists rebuilt!\n\n" + summary.join("\n"));
+}
+
+async function executeDelete() {
+  if (junkContacts.length === 0) { alert("Run analysis first"); return; }
+  if (!confirm("⚠️ FINAL CONFIRMATION\n\nDELETE " + junkContacts.length + " junk contacts from Brevo?\n\nThis CANNOT be undone!")) return;
+  if (!confirm("Are you 100% sure? Type YES to confirm.")) return;
+  
+  document.getElementById("stepsList").innerHTML = "";
+  addStep("🗑️ Starting deletion of " + junkContacts.length + " junk contacts...", "done");
+  
+  let deleted = 0, failed = 0;
+  
+  for (let i = 0; i < junkContacts.length; i++) {
+    const c = junkContacts[i];
+    try {
+      const identifier = encodeURIComponent(c.email || c.id);
+      const r = await callBrevo("/contacts/" + identifier, "DELETE");
+      if (r.ok) deleted++;
+      else failed++;
+    } catch(e) { failed++; }
+    
+    if (i % 10 === 0) {
+      updateProgress((i / junkContacts.length) * 100, "Deleted " + deleted + "/" + junkContacts.length);
+    }
+  }
+  
+  addStep("✅ Deleted <b>" + deleted + "</b> junk contacts", "done");
+  if (failed > 0) addStep("⚠️ Failed to delete: " + failed, "error");
+  updateProgress(100, "Cleanup complete!");
+  
+  alert("✅ Cleanup Complete!\n\nDeleted: " + deleted + "\nFailed: " + failed + "\n\nNext: Verify in Brevo dashboard, then check batch lists still have real contacts.");
+}
+</script>
+
+</body>
+</html>
