@@ -610,13 +610,26 @@ async function sendTestEmail() {
   
   const campaign = currentBatchToSend;
   
+  console.log("=== SEND TEST EMAIL DEBUG ===");
+  console.log("To:", email);
+  console.log("Campaign:", campaign);
+  console.log("Brevo Config:", brevoConfig);
+  console.log("Template/Brevo Campaign ID:", campaign.brevoTemplateId);
+  
+  if (!brevoConfig.brevoSenderEmail) {
+    alert("❌ Sender email is missing! Go to Admin Panel > Brevo Integration and set Sender Email.");
+    return;
+  }
+  
   try {
     const payload = {
-      sender: { name: brevoConfig.brevoSenderName, email: brevoConfig.brevoSenderEmail },
+      sender: { name: brevoConfig.brevoSenderName || "SB Interiors", email: brevoConfig.brevoSenderEmail },
       to: [{ email: email }],
-      templateId: campaign.brevoTemplateId,
-      subject: (campaign.subject || "TEST: SB Interior Solutions") + " [TEST]"
+      templateId: parseInt(campaign.brevoTemplateId),
+      subject: (campaign.subject || "SB Interior Solutions") + " [TEST]"
     };
+    
+    console.log("Payload:", JSON.stringify(payload, null, 2));
     
     const r = await fetch("https://api.brevo.com/v3/smtp/email", {
       method: "POST",
@@ -627,15 +640,20 @@ async function sendTestEmail() {
       },
       body: JSON.stringify(payload)
     });
+    
     const data = await r.json();
+    console.log("Response status:", r.status);
+    console.log("Response data:", data);
     
     if (r.ok) {
-      alert("✅ Test email sent to " + email + "! Check inbox in a minute.");
+      alert("✅ Test email sent to " + email + "!\n\nMessage ID: " + (data.messageId || "-") + "\n\nCheck inbox + spam in 1-2 minutes.");
     } else {
-      alert("❌ Error: " + (data.message || "Unknown"));
+      const errMsg = data.message || data.code || "Unknown error";
+      alert("❌ Brevo API Error:\n\n" + errMsg + "\n\nStatus: " + r.status + "\n\nCheck console (F12) for full details.");
     }
   } catch(e) {
-    alert("Error: " + e.message);
+    console.error("Send test error:", e);
+    alert("❌ Network/Code Error: " + e.message + "\n\nCheck console for details.");
   }
 }
 
