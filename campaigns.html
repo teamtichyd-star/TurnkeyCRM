@@ -175,11 +175,11 @@
         </select>
       </div>
       <div>
-        <label class="form-label">Email Template (from Brevo)</label>
+        <label class="form-label">Brevo Campaign (source content)</label>
         <select id="ncTemplate" class="form-input">
-          <option value="">Loading templates...</option>
+          <option value="">Loading campaigns...</option>
         </select>
-        <div style="font-size:11px; color:#8888aa; margin-top:4px;">Design email templates in Brevo first, then select here</div>
+        <div style="font-size:11px; color:#8888aa; margin-top:4px;">Design campaign in Brevo first (with content, subject, images). We'll duplicate & send it to your batch.</div>
       </div>
       <div>
         <label class="form-label">Subject Line (overrides template)</label>
@@ -272,7 +272,7 @@ async function loadBrevoConfig() {
     }
     brevoConfig = doc.data();
     document.getElementById("mainContent").style.display = "block";
-    await loadBrevoTemplates();
+    await loadBrevoCampaigns();
     await loadCampaigns();
   } catch(e) {
     document.getElementById("notConfigured").style.display = "block";
@@ -280,23 +280,27 @@ async function loadBrevoConfig() {
   }
 }
 
-async function loadBrevoTemplates() {
+async function loadBrevoCampaigns() {
   try {
-    const r = await fetch("https://api.brevo.com/v3/smtp/templates?limit=50&sort=desc", {
+    // Fetch email campaigns from Brevo (drafts + sent)
+    const r = await fetch("https://api.brevo.com/v3/emailCampaigns?limit=50&sort=desc", {
       headers: { "accept": "application/json", "api-key": brevoConfig.brevoApiKey }
     });
     const data = await r.json();
-    brevoTemplates = data.templates || [];
+    brevoTemplates = data.campaigns || [];
     const sel = document.getElementById("ncTemplate");
     if (brevoTemplates.length === 0) {
-      sel.innerHTML = "<option value=\"\">No templates found - create one in Brevo first</option>";
+      sel.innerHTML = "<option value=\"\">No campaigns found - create one in Brevo first</option>";
     } else {
-      sel.innerHTML = "<option value=\"\">Select template...</option>" + 
-        brevoTemplates.map(t => "<option value=\"" + t.id + "\">#" + t.id + " " + t.name + (t.isActive ? " ✅" : " ⚠️ Inactive") + "</option>").join("");
+      sel.innerHTML = "<option value=\"\">Select Brevo campaign to duplicate...</option>" + 
+        brevoTemplates.map(t => {
+          const statusIcon = t.status === "draft" ? "📝" : t.status === "sent" ? "✅" : "⏳";
+          return "<option value=\"" + t.id + "\">" + statusIcon + " #" + t.id + " " + t.name + " (" + t.status + ")</option>";
+        }).join("");
     }
-    console.log("Templates loaded:", brevoTemplates.length);
+    console.log("Brevo campaigns loaded:", brevoTemplates.length);
   } catch(e) {
-    console.error("Failed to load templates:", e);
+    console.error("Failed to load campaigns:", e);
   }
 }
 
