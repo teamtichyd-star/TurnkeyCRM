@@ -286,10 +286,15 @@ async function loadBrevoTemplates() {
       headers: { "accept": "application/json", "api-key": brevoConfig.brevoApiKey }
     });
     const data = await r.json();
-    brevoTemplates = (data.templates || []).filter(t => t.isActive);
+    brevoTemplates = data.templates || [];
     const sel = document.getElementById("ncTemplate");
-    sel.innerHTML = "<option value=\"\">Select template...</option>" + 
-      brevoTemplates.map(t => "<option value=\"" + t.id + "\">#" + t.id + " " + t.name + "</option>").join("");
+    if (brevoTemplates.length === 0) {
+      sel.innerHTML = "<option value=\"\">No templates found - create one in Brevo first</option>";
+    } else {
+      sel.innerHTML = "<option value=\"\">Select template...</option>" + 
+        brevoTemplates.map(t => "<option value=\"" + t.id + "\">#" + t.id + " " + t.name + (t.isActive ? " ✅" : " ⚠️ Inactive") + "</option>").join("");
+    }
+    console.log("Templates loaded:", brevoTemplates.length);
   } catch(e) {
     console.error("Failed to load templates:", e);
   }
