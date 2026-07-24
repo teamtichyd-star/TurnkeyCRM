@@ -751,8 +751,13 @@ async function viewCampaignDetail(id) {
         });
         if (r.ok) {
           const data = await r.json();
-          console.log("Brevo stats raw for", b.batchNumber, ":", JSON.stringify(data.statistics));
-          brevoStats[b.brevoSendId] = data.statistics ? data.statistics.globalStats : null;
+          if (data.statistics && data.statistics.campaignStats && data.statistics.campaignStats.length > 0) {
+            brevoStats[b.brevoSendId] = data.statistics.campaignStats[0];
+          } else if (data.statistics && data.statistics.globalStats) {
+            brevoStats[b.brevoSendId] = data.statistics.globalStats;
+          } else {
+            brevoStats[b.brevoSendId] = null;
+          }
         }
       } catch(e) {
         console.log("Stats fetch failed for batch", b.batchNumber, e);
