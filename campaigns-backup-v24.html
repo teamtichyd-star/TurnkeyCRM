@@ -371,31 +371,12 @@ function renderCampaignCard(c, batches) {
     if (b.status === "sent") { cls += " sent"; icon = "✅"; }
     else if (b.status === "scheduled") { cls += " scheduled"; icon = "🕐"; }
     else if (b.status === "pending") { cls += " pending"; }
-    let dateStr = "";
-    if (b.status === "sent" && b.sentAt) {
-      const d = b.sentAt.toDate ? b.sentAt.toDate() : new Date(b.sentAt);
-      dateStr = "<div style='font-size:9px;color:#5dbb6e;margin-top:2px;'>" + d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'}) + "</div>";
-    }
+    
     return "<div class='" + cls + "'><div class='batch-tile-name'>" + b.batchNumber + "</div>" +
-      "<div class='batch-tile-status'>" + icon + " " + b.contactCount + "</div>" + dateStr + "</div>";
+      "<div class='batch-tile-status'>" + icon + " " + b.contactCount + "</div></div>";
   }).join("");
 
   const nextPending = batches.find(b => b.status === "pending" || b.status === "scheduled");
-  const lastSent = batches.filter(b => b.status === "sent").sort((a,b) => b.batchIndex - a.batchIndex)[0];
-  let nextBannerHtml = "";
-  if (nextPending && c.status !== "completed") {
-    let suggestion = "";
-    if (lastSent && lastSent.sentAt) {
-      const lastDate = lastSent.sentAt.toDate ? lastSent.sentAt.toDate() : new Date(lastSent.sentAt);
-      const nextDate = new Date(lastDate);
-      nextDate.setDate(nextDate.getDate() + 1);
-      const opts = {weekday:"short", day:"2-digit", month:"short"};
-      suggestion = " · Suggested: <b>" + nextDate.toLocaleDateString("en-GB", opts) + "</b>";
-    }
-    nextBannerHtml = "<div style='margin-top:10px;padding:8px 12px;background:rgba(33,150,243,0.1);border:1px solid rgba(33,150,243,0.3);border-radius:8px;font-size:12px;color:#64b5f6;'>" +
-      "<i class='fa fa-clock'></i> Next batch: <b>" + nextPending.batchNumber + "</b> (" + nextPending.contactCount + " contacts)" + suggestion +
-      "</div>";
-  }
 
   return "<div class='campaign-card'>" +
     "<div class='campaign-header'>" +
@@ -408,7 +389,7 @@ function renderCampaignCard(c, batches) {
         "</div>" +
       "</div>" +
     "</div>" +
-    "<div class='batch-grid'>" + batchTiles + "</div>" + nextBannerHtml +
+    "<div class='batch-grid'>" + batchTiles + "</div>" +
     "<div class='campaign-actions'>" +
       (nextPending ? "<button class='btn btn-success btn-sm' onclick='openSendBatch(\"" + c.id + "\", \"" + nextPending.id + "\")'><i class=\"fa fa-paper-plane\"></i> Send " + nextPending.batchNumber + "</button>" : "") +
       "<button class='btn btn-secondary btn-sm' onclick='viewCampaignDetail(\"" + c.id + "\")'><i class=\"fa fa-eye\"></i> Details</button>" +
@@ -731,85 +712,26 @@ async function deleteCampaign(id) {
 async function viewCampaignDetail(id) {
   const c = allCampaigns.find(x => x.id === id);
   const batchesSnap = await db.collection("campaign_batches").where("campaignId", "==", id).get();
-  const batches = batchesSnap.docs.map(d => ({id: d.id, ...d.data()})).sort((a,b) => a.batchIndex - b.batchIndex);
-
-  const audLabel = c.audience === "residential" ? "🏠 Residential" : "🏢 Commercial";
-  const sentBatches = batches.filter(b => b.status === "sent").length;
-
-  let batchRows = batches.map(b => {
-    let statusIcon = b.status === "sent" ? "✅" : b.status === "scheduled" ? "🕐" : "⏳";
-    let sentDateHtml = "";
-    if (b.sentAt) {
-      const d = b.sentAt.toDate ? b.sentAt.toDate() : new Date(b.sentAt);
-      sentDateHtml = "<span style='color:#5dbb6e;font-size:11px;'>" + d.toLocaleString() + "</span>";
-    }
-    let brevoIdHtml = b.brevoSendId
-      ? "<span style='color:#64b5f6;font-size:11px;'>Brevo ID: " + b.brevoSendId + "</span>"
-      : "";
-    return "<div style='display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);'>" +
-      "<div>" +
-        "<b>" + statusIcon + " " + b.batchNumber + "</b>" +
-        "<span style='color:#8888aa;font-size:12px;margin-left:8px;'>" + b.contactCount + " contacts</span>" +
-        "<div>" + sentDateHtml + "</div>" +
-        "<div>" + brevoIdHtml + "</div>" +
-      "</div>" +
-      "<span style='font-size:11px;padding:3px 8px;border-radius:8px;background:" +
-        (b.status === "sent" ? "rgba(76,175,80,0.2);color:#5dbb6e;" :
-         b.status === "scheduled" ? "rgba(33,150,243,0.2);color:#64b5f6;" :
-         "rgba(255,152,0,0.2);color:#ffb74d;") +
-      "'>" + b.status + "</span>" +
-    "</div>";
-  }).join("");
-
-  const html =
-    "<div style='margin-bottom:16px;'>" +
-      "<h3 style='color:#c8a96e;margin-bottom:6px;'>" + c.name + "</h3>" +
-      "<div style='font-size:13px;color:#8888aa;'>" + audLabel + " · " + c.totalContacts + " total contacts</div>" +
-    "</div>" +
-    "<div style='display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px;'>" +
-      "<div style='background:#0e0e1a;border-radius:8px;padding:12px;text-align:center;'>" +
-        "<div style='font-size:22px;font-weight:700;color:#c8a96e;'>" + sentBatches + "/" + batches.length + "</div>" +
-        "<div style='font-size:11px;color:#8888aa;'>Batches Sent</div>" +
-      "</div>" +
-      "<div style='background:#0e0e1a;border-radius:8px;padding:12px;text-align:center;'>" +
-        "<div style='font-size:22px;font-weight:700;color:#5dbb6e;'>" + (c.totalSent || 0) + "</div>" +
-        "<div style='font-size:11px;color:#8888aa;'>Emails Sent</div>" +
-      "</div>" +
-      "<div style='background:#0e0e1a;border-radius:8px;padding:12px;text-align:center;'>" +
-        "<div style='font-size:22px;font-weight:700;color:#64b5f6;'>" + c.brevoTemplateId + "</div>" +
-        "<div style='font-size:11px;color:#8888aa;'>Brevo Template</div>" +
-      "</div>" +
-    "</div>" +
-    "<div style='font-size:13px;font-weight:600;color:#f0f0f0;margin-bottom:8px;'>Batch History</div>" +
-    batchRows;
-
-  document.getElementById("detailModalBody").innerHTML = html;
-  document.getElementById("detailModal").style.display = "flex";
-}
-
-function closeDetailModal() {
-  document.getElementById("detailModal").style.display = "none";
+  const batches = batchesSnap.docs.map(d => d.data()).sort((a,b) => a.batchIndex - b.batchIndex);
+  
+  let details = "Campaign: " + c.name + "\n";
+  details += "Audience: " + c.audience + " (" + c.totalContacts + " contacts)\n";
+  details += "Template ID: " + c.brevoTemplateId + "\n";
+  details += "Status: " + c.status + "\n";
+  details += "Total sent: " + (c.totalSent || 0) + "\n\n";
+  details += "Batches:\n";
+  batches.forEach(b => {
+    details += "  " + b.batchNumber + ": " + b.status + " (" + b.contactCount + " contacts)";
+    if (b.sentAt) details += " - sent " + new Date(b.sentAt.toDate ? b.sentAt.toDate() : b.sentAt).toLocaleString();
+    details += "\n";
+  });
+  alert(details);
 }
 
 document.getElementById("searchInput").addEventListener("input", renderCampaigns);
 document.getElementById("statusFilter").addEventListener("change", renderCampaigns);
 document.getElementById("audienceFilter").addEventListener("change", renderCampaigns);
 </script>
-
-<!-- Campaign Detail Modal -->
-<div id="detailModal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeDetailModal()">
-  <div class="modal-box" style="max-width:580px;">
-    <div class="modal-header">
-      <h3><i class="fa fa-chart-bar"></i> Campaign Details</h3>
-      <button class="modal-close" onclick="closeDetailModal()"><i class="fa fa-times"></i></button>
-    </div>
-    <div class="modal-body" id="detailModalBody">
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeDetailModal()">Close</button>
-    </div>
-  </div>
-</div>
 
 </body>
 </html>
