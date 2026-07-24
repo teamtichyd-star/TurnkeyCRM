@@ -382,6 +382,10 @@ function renderCampaignCard(c, batches) {
 
   const nextPending = batches.find(b => b.status === "pending" || b.status === "scheduled");
   const lastSent = batches.filter(b => b.status === "sent").sort((a,b) => b.batchIndex - a.batchIndex)[0];
+  console.log("DEBUG batches:", batches.map(b => ({num:b.batchNumber, status:b.status, sentAt:b.sentAt})));
+  console.log("DEBUG nextPending:", nextPending);
+  console.log("DEBUG lastSent:", lastSent);
+  console.log("DEBUG campaign status:", c.status);
   let nextBannerHtml = "";
   if (nextPending && c.status !== "completed") {
     let suggestion = "";
