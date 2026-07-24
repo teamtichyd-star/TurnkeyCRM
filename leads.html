@@ -306,6 +306,9 @@
       <button class="btn btn-success" onclick="exportLeads()">
         <i class="fas fa-file-csv"></i> Export CSV
       </button>
+      <button id="bulkSyncBtn" class="btn" style="background:#4caf50;color:#fff;margin-right:8px;" onclick="syncAllLeadsToBrevo()">
+        <i class="fas fa-cloud-upload-alt"></i> Sync All to Brevo
+      </button>
       <button class="btn btn-primary" onclick="openAddModal()">
         <i class="fas fa-plus"></i> Add Lead
       </button>
@@ -888,6 +891,170 @@
   }
 
   // ─── SAVE LEAD ───
+  // ══════════════════════════════════════════════════════════
+  // BREVO PIPELINE SYNC MODULE
+  // ══════════════════════════════════════════════════════════
+  
+  const BREVO_PIPELINE_LISTS = {
+    "New":            38,
+    "Contacted":      39,
+    "Site Visit":     40,
+    "Proposal Sent":  41,
+    "Negotiation":    42,
+    "Won":            43,
+    "Lost":           44,
+    "Follow-up":      39,
+    "On Hold":        42,
+    "Waiting Docs":   41,
+    "Not Interested": 44
+  };
+  
+  const BREVO_ALL_PIPELINE_LIST_IDS = [38, 39, 40, 41, 42, 43, 44];
+  const BREVO_CRM_LEADS_LIST = 36;
+  
+  let brevoConfig = null;
+  
+  async function loadBrevoConfig() {
+    if (brevoConfig) return brevoConfig;
+    try {
+      const doc = await db.collection("settings").doc("integrations").get();
+      if (doc.exists && doc.data().brevoApiKey) {
+        brevoConfig = doc.data();
+        return brevoConfig;
+      }
+    } catch(e) { console.log("Brevo config not accessible:", e.message); }
+    return null;
+  }
+  
+  async function brevoCall(endpoint, method, body) {
+    const config = await loadBrevoConfig();
+    if (!config) return { ok: false, error: "no_config" };
+    const opts = { method: method || "GET", headers: {
+      "accept": "application/json", "content-type": "application/json", "api-key": config.brevoApiKey
+    }};
+    if (body) opts.body = JSON.stringify(body);
+    try {
+      const r = await fetch("https://api.brevo.com/v3" + endpoint, opts);
+      const data = r.status === 204 ? {} : await r.json();
+      return { ok: r.ok, status: r.status, data };
+    } catch(e) { return { ok: false, error: e.message }; }
+  }
+  
+  async function findOrCreateBrevoContact(lead) {
+    const config = await loadBrevoConfig();
+    if (!config) return null;
+    const email = (lead.email || "").toLowerCase().trim();
+    const phone = (lead.phone || "").replace(/\D/g, "");
+    if (email) {
+      const r = await brevoCall("/contacts/" + encodeURIComponent(email));
+      if (r.ok) return r.data.id;
+    }
+    if (phone) {
+      const r = await brevoCall("/contacts/" + encodeURIComponent("+91" + phone));
+      if (r.ok) return r.data.id;
+    }
+    const contactData = {
+      email: email || (phone + "@noemail.local"),
+      attributes: {
+        FIRSTNAME: (lead.name || "").split(" ")[0] || "",
+        LASTNAME: (lead.name || "").split(" ").slice(1).join(" ") || "",
+        SMS: phone ? ("+91" + phone) : "",
+        WHATSAPP: phone ? ("+91" + phone) : "",
+        COMPANY: lead.company || "",
+        LEAD_STATUS: lead.status || "New",
+        LEAD_SOURCE: lead.source || "TIC CRM"
+      },
+      listIds: [BREVO_CRM_LEADS_LIST],
+      updateEnabled: true
+    };
+    const createR = await brevoCall("/contacts", "POST", contactData);
+    if (createR.ok && createR.data.id) return createR.data.id;
+    if (createR.status === 400 && email) {
+      const updateR = await brevoCall("/contacts/" + encodeURIComponent(email), "PUT", { attributes: contactData.attributes });
+      if (updateR.ok) {
+        const getR = await brevoCall("/contacts/" + encodeURIComponent(email));
+        if (getR.ok) return getR.data.id;
+      }
+    }
+    return null;
+  }
+  
+  async function syncLeadToBrevo(leadId, leadData) {
+    const config = await loadBrevoConfig();
+    if (!config) return { ok: false, reason: "no_config" };
+    try {
+      const contactId = await findOrCreateBrevoContact(leadData);
+      if (!contactId) return { ok: false, reason: "contact_create_failed" };
+      const targetListId = BREVO_PIPELINE_LISTS[leadData.status] || BREVO_PIPELINE_LISTS["New"];
+      for (const listId of BREVO_ALL_PIPELINE_LIST_IDS) {
+        if (listId !== targetListId) {
+          await brevoCall("/contacts/lists/" + listId + "/contacts/remove", "POST", { ids: [contactId] });
+        }
+      }
+      await brevoCall("/contacts/lists/" + targetListId + "/contacts/add", "POST", { ids: [contactId] });
+      const email = (leadData.email || "").toLowerCase().trim();
+      if (email) {
+        await brevoCall("/contacts/" + encodeURIComponent(email), "PUT", { attributes: { LEAD_STATUS: leadData.status || "New" } });
+      }
+      await leadsRef.doc(leadId).update({
+        brevoContactId: contactId,
+        brevoSyncStatus: "success",
+        brevoSyncAt: new Date().toISOString(),
+        brevoListId: targetListId
+      });
+      return { ok: true, contactId, listId: targetListId };
+    } catch(e) {
+      console.error("Brevo sync error:", e);
+      try {
+        await leadsRef.doc(leadId).update({
+          brevoSyncStatus: "failed", brevoSyncError: e.message, brevoSyncAt: new Date().toISOString()
+        });
+      } catch(e2) {}
+      return { ok: false, reason: e.message };
+    }
+  }
+  
+  async function removeLeadFromBrevo(leadData) {
+    const config = await loadBrevoConfig();
+    if (!config || !leadData.brevoContactId) return;
+    try {
+      for (const listId of BREVO_ALL_PIPELINE_LIST_IDS) {
+        await brevoCall("/contacts/lists/" + listId + "/contacts/remove", "POST", { ids: [leadData.brevoContactId] });
+      }
+    } catch(e) { console.error("Brevo removal error:", e); }
+  }
+  
+  async function syncAllLeadsToBrevo() {
+    const config = await loadBrevoConfig();
+    if (!config) { alert("Brevo not configured. Go to Admin Panel > Brevo Integration first."); return; }
+    if (!confirm("Sync ALL leads to Brevo pipeline lists?\n\nThis will create/update Brevo contacts and add to correct pipeline list based on status.\n\nMay take 2-3 minutes.")) return;
+    const snap = await leadsRef.get();
+    const leads = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    let done = 0, failed = 0;
+    const btn = document.getElementById("bulkSyncBtn");
+    const originalText = btn ? btn.innerHTML : "";
+    for (const lead of leads) {
+      if (btn) btn.innerHTML = "⏳ Syncing " + (done + failed + 1) + "/" + leads.length + "...";
+      const r = await syncLeadToBrevo(lead.id, lead);
+      if (r.ok) done++;
+      else failed++;
+    }
+    if (btn) btn.innerHTML = originalText;
+    alert("Bulk sync complete!\n\nSynced: " + done + "\nFailed: " + failed);
+    loadLeads();
+  }
+  
+  async function retrySync(leadId) {
+    const doc = await leadsRef.doc(leadId).get();
+    if (!doc.exists) return;
+    const lead = doc.data();
+    const r = await syncLeadToBrevo(leadId, lead);
+    if (r.ok) { showToast("✅ Synced to Brevo!", "success"); loadLeads(); }
+    else { showToast("❌ Sync failed: " + r.reason, "danger"); }
+  }
+  
+  // END BREVO SYNC MODULE
+  
   async function saveLead() {
     const name  = document.getElementById('leadName').value.trim();
     const phone = document.getElementById('leadPhone').value.trim();
@@ -920,6 +1087,7 @@
     try {
       if (editingId) {
         await leadsRef.doc(editingId).update(leadData);
+        syncLeadToBrevo(editingId, leadData).catch(function(e){console.error("Brevo sync:", e);});
         if (leadData.assignedTo) await TIC_NOTIF.send(db, leadData.assignedTo, '👤 Lead updated: ' + (leadData.name || 'Lead'), 'lead', 'leads.html');
         showToast('✅ Lead updated!', 'success');
 
@@ -978,7 +1146,8 @@
       } else {
         leadData.date      = new Date().toISOString().split('T')[0];
         leadData.createdAt = new Date().toISOString();
-        await leadsRef.add(leadData);
+        const _newLeadRef = await leadsRef.add(leadData);
+        syncLeadToBrevo(_newLeadRef.id, leadData).catch(function(e){console.error("Brevo sync:", e);});
         if (leadData.assignedTo) await TIC_NOTIF.send(db, leadData.assignedTo, '👤 New lead assigned: ' + (leadData.name || 'Lead'), 'lead', 'leads.html');
         showToast('✅ Lead saved to Firebase!', 'success');
       }
@@ -1135,6 +1304,7 @@
     if (!deletingId) return;
     showSaving(true);
     try {
+      try { const _delDoc = await leadsRef.doc(deletingId).get(); if (_delDoc.exists) removeLeadFromBrevo(_delDoc.data()).catch(function(e){}); } catch(e){}
       await leadsRef.doc(deletingId).delete();
       closeDeleteModal();
       await loadLeads();
