@@ -485,17 +485,6 @@
         <i class="fas fa-hard-hat"></i> Projects
       </div>
 
-      <div class="menu-label">Tools</div>
-      <div class="menu-item" onclick="showPage('followups')" id="menu-followups" style="display:none">
-        <i class="fas fa-comments"></i> Follow-ups
-      </div>
-      <div class="menu-item" onclick="showPage('sheets')" id="menu-sheets">
-        <i class="fas fa-sync"></i> Sheets Sync
-      </div>
-      <div class="menu-item" onclick="showPage('export')" id="menu-export">
-        <i class="fas fa-download"></i> Export CSV
-      </div>
-
       <div class="menu-label">Marketing</div>
       <div class="menu-item" onclick="showPage('campaigns')" id="menu-campaigns">
         <i class="fas fa-paper-plane"></i>
@@ -914,14 +903,14 @@
 
   // ─── ROLE MODULES ───
   const roleModules = {
-    superadmin:  ['leads','tasks','projects','sheets','export','users','vendors','attendance','attendanceadmin','staffprofile','staffadmin','campaigns'],
-    admin:       ['leads','tasks','projects','sheets','export','users','vendors','attendance','attendanceadmin','staffprofile','staffadmin','campaigns'],
-    manager:     ['leads','tasks','projects','sheets','export','vendors','attendance','staffprofile','campaigns'],
+    superadmin:  ['leads','tasks','projects','users','vendors','attendance','attendanceadmin','staffprofile','staffadmin','campaigns'],
+    admin:       ['leads','tasks','projects','users','vendors','attendance','attendanceadmin','staffprofile','staffadmin','campaigns'],
+    manager:     ['leads','tasks','projects','vendors','attendance','staffprofile','campaigns'],
     supervisor:  ['tasks','projects','vendors','attendance','staffprofile'],
-    purchase:    ['tasks','projects','sheets','export','vendors','attendance','staffprofile'],
+    purchase:    ['tasks','projects','vendors','attendance','staffprofile'],
     designer:    ['tasks','projects','vendors','attendance','staffprofile'],
-    accounts:    ['leads','tasks','sheets','export','vendors','attendance','staffprofile'],
-    projectmanager:['leads','tasks','projects','sheets','export','vendors','attendance'],
+    accounts:    ['leads','tasks','vendors','attendance','staffprofile'],
+    projectmanager:['leads','tasks','projects','vendors','attendance'],
     marketing:   ['campaigns']
   };
 
@@ -1041,7 +1030,7 @@ if (role === "supervisor") {
   }
 }
     // Show/Hide menu items based on role + custom permissions (STAGE 2)
-    const allMenus = ['leads','tasks','projects','followups','sheets','export','vendors','attendance','attendanceadmin','staffprofile','staffadmin'];
+    const allMenus = ['leads','tasks','projects','vendors','attendance','attendanceadmin','staffprofile','staffadmin'];
     const customPerms = currentUserData?.permissions || null;
     const isAdminBypass = ['admin','superadmin'].includes(role);
     function canReadModule(m) {
@@ -1074,7 +1063,7 @@ if (role === "supervisor") {
     });
 
     // Show/Hide quick actions
-    ['leads','tasks','projects','followups','vendors','attendance'].forEach(m => {
+    ['leads','tasks','projects','vendors','attendance'].forEach(m => {
       const qa = document.getElementById('qa-' + m);
       if (qa) qa.classList.toggle('hidden', !modules.includes(m));
     });
@@ -1529,9 +1518,6 @@ async function listenNotifications(userEmail) {
     leads:      '👥 Leads Management',
     tasks:      '✅ Task Tracker',
     projects:   '🏗️ Projects',
-    followups:  '💬 Follow-ups',
-    sheets:     '🔄 Google Sheets Sync',
-    export:     '📤 Export CSV',
     vendors:    '🏪 Vendors',
     attendance: '📅 My Attendance',
     attendanceadmin: '📊 Attendance Admin',
