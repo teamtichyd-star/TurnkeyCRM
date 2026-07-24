@@ -751,6 +751,7 @@ async function viewCampaignDetail(id) {
         });
         if (r.ok) {
           const data = await r.json();
+          console.log("Brevo stats raw for", b.batchNumber, ":", JSON.stringify(data.statistics));
           brevoStats[b.brevoSendId] = data.statistics ? data.statistics.globalStats : null;
         }
       } catch(e) {
