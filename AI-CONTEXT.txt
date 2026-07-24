@@ -1,9 +1,9 @@
 =======================================================
 TURNKEY CRM — AI CONTEXT FILE
 =======================================================
-Last Updated: 21 July 2026 (Evening)
-Current Session Working On: Brevo Cleanup COMPLETE + Architecture Redesigned
-Next Session Should Start With: TIC Campaign Sender OR TIC Leads to Brevo Sync
+Last Updated: 24 July 2026 (Friday)
+Current Session Working On: Leads-Brevo Sync + Campaigns COMPLETE
+Next Session Should Start With: Choose - Zapier Zoho / WhatsApp WABA / Campaign Tracker
 =======================================================
 
 PROJECT OVERVIEW:
@@ -330,5 +330,101 @@ PENDING PHASES:
 4. Meta WABA WhatsApp Integration
 
 GIT TAG: v21-brevo-cleanup-complete
+
+=======================================================
+
+
+=======================================================
+SESSION UPDATE (24 July 2026 - Friday)
+=======================================================
+
+COMPLETED TODAY:
+
+MARKETING (BREVO):
+- Cleaned 685 junk contacts (noreply, notifications, spam)
+- Deleted 17 old archive lists (aggressive cleanup)
+- Rebuilt 12 batch lists with balanced distribution:
+  * Residential R1-R6: ~212 each (1,270 total)
+  * Commercial C1-C6: ~162 each (971 total)
+- Fixed Brevo API exclusionListIds error
+- SENT FIRST REAL CAMPAIGN: C1 to 162 commercial contacts
+- DNS authentication verified (SPF/DKIM/DMARC)
+- Test emails deliver to Gmail inbox (external recipients)
+- Note: Self-sending to .net triggers spam (expected behavior)
+
+SALES (TIC):
+- Built Leads to Brevo pipeline auto-sync
+- Real-time sync on create/update/delete
+- Bulk migration: 113 leads synced (9 failed - likely missing email/phone)
+- Pipeline distribution:
+  * Lead - New: 24
+  * Lead - Contacted: 38
+  * Lead - Site Visit: 11
+  * Lead - Proposal Sent: 11
+  * Won Customers: 2
+  * Lost Leads: 13
+- CRM Leads list: 92 unique contacts
+- Status mapping (7 main + 4 smart mappings)
+
+CLEANUP:
+- Removed Sheets Sync, Export CSV, Follow-ups from sidebar
+- Files moved to _backup_removed/ folder
+- Cleaner navigation
+
+BREVO STRUCTURE (26 total lists):
+- 4 Master Lists (Residential, Commercial, All Contacts, Unclassified)
+- 12 Batch Lists (R1-R6, C1-C6)
+- 3 Source Lists (Zoho Books Import, CRM Leads, Manual Import)
+- 7 Pipeline Lists (Lead-New through Won/Lost)
+
+KEY LIST IDs:
+- Residential Master: 32
+- Commercial Master: 33
+- All Contacts: 34
+- CRM Leads: 36
+- Pipeline: 38-44 (New, Contacted, SiteVisit, Proposal, Negotiation, Won, Lost)
+- Batch R1-R6: 46-51
+- Batch C1-C6: 52-57
+
+FILES CREATED/UPDATED:
+- brevo-cleanup.html (folder + list structure)
+- brevo-junk-cleaner.html (junk detection + rebalance)
+- campaigns.html (campaign sender + batch tracker)
+- leads.html (added Brevo sync module + bulk sync button)
+- admin-panel.html (Brevo settings section)
+
+PENDING (Next Sessions):
+
+Priority 1 - Fix 9 Failed Sync Leads:
+- Debug which leads failed
+- Likely missing email or phone
+- Fix in TIC then retry sync
+
+Priority 2 - Zapier Zoho Books Setup:
+- New Zoho customer -> Brevo auto-sync
+- Time: 30 min setup
+
+Priority 3 - Meta WABA WhatsApp Integration:
+- Direct WhatsApp API from TIC
+- Free 1000 conversations/month
+- Time: 3-4 hours
+
+Priority 4 - Campaign Tracker Enhancements:
+- Better history view
+- Analytics dashboard
+- Auto-schedule next batch
+- Time: 2 hours
+
+Priority 5 - Design More Campaigns:
+- Residential campaign in Brevo
+- Different segments (VIP, Recent, etc.)
+
+TESTING SCHEDULE:
+- Weekend: Monitor C1 open rates
+- Monday: Send C2 (162 commercial)
+- Tuesday-Friday: C3, C4, C5, C6
+- Following week: Design + send R1 (residential)
+
+TAG: v24-leads-brevo-sync-complete
 
 =======================================================
