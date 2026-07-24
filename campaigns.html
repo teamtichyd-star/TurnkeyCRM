@@ -737,55 +737,139 @@ async function viewCampaignDetail(id) {
   const audLabel = c.audience === "residential" ? "🏠 Residential" : "🏢 Commercial";
   const sentBatches = batches.filter(b => b.status === "sent").length;
 
-  let batchRows = batches.map(b => {
+  // Show modal immediately with loading state
+  document.getElementById("detailModalBody").innerHTML = "<div style='text-align:center;padding:30px;color:#8888aa;'><i class='fa fa-spinner fa-spin'></i> Loading stats from Brevo...</div>";
+  document.getElementById("detailModal").style.display = "flex";
+
+  // Fetch Brevo stats for all sent batches
+  const brevoStats = {};
+  for (const b of batches) {
+    if (b.status === "sent" && b.brevoSendId) {
+      try {
+        const r = await fetch("https://api.brevo.com/v3/emailCampaigns/" + b.brevoSendId, {
+          headers: { "accept": "application/json", "api-key": brevoConfig.brevoApiKey }
+        });
+        if (r.ok) {
+          const data = await r.json();
+          brevoStats[b.brevoSendId] = data.statistics ? data.statistics.globalStats : null;
+        }
+      } catch(e) {
+        console.log("Stats fetch failed for batch", b.batchNumber, e);
+      }
+    }
+  }
+
+  // Build batch rows with stats
+  let batchRows = "";
+  let totalDelivered = 0;
+  let totalOpens = 0;
+  let totalClicks = 0;
+  let totalBounces = 0;
+  let totalUnsubs = 0;
+
+  for (const b of batches) {
     let statusIcon = b.status === "sent" ? "✅" : b.status === "scheduled" ? "🕐" : "⏳";
     let sentDateHtml = "";
     if (b.sentAt) {
       const d = b.sentAt.toDate ? b.sentAt.toDate() : new Date(b.sentAt);
-      sentDateHtml = "<span style='color:#5dbb6e;font-size:11px;'>" + d.toLocaleString() + "</span>";
+      sentDateHtml = "<div style='color:#5dbb6e;font-size:11px;margin-top:2px;'>Sent " + d.toLocaleString() + "</div>";
     }
-    let brevoIdHtml = b.brevoSendId
-      ? "<span style='color:#64b5f6;font-size:11px;'>Brevo ID: " + b.brevoSendId + "</span>"
-      : "";
-    return "<div style='display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);'>" +
-      "<div>" +
-        "<b>" + statusIcon + " " + b.batchNumber + "</b>" +
-        "<span style='color:#8888aa;font-size:12px;margin-left:8px;'>" + b.contactCount + " contacts</span>" +
-        "<div>" + sentDateHtml + "</div>" +
-        "<div>" + brevoIdHtml + "</div>" +
-      "</div>" +
-      "<span style='font-size:11px;padding:3px 8px;border-radius:8px;background:" +
-        (b.status === "sent" ? "rgba(76,175,80,0.2);color:#5dbb6e;" :
-         b.status === "scheduled" ? "rgba(33,150,243,0.2);color:#64b5f6;" :
-         "rgba(255,152,0,0.2);color:#ffb74d;") +
-      "'>" + b.status + "</span>" +
-    "</div>";
-  }).join("");
+
+    let statsHtml = "";
+    if (b.brevoSendId && brevoStats[b.brevoSendId]) {
+      const s = brevoStats[b.brevoSendId];
+      const delivered = (s.sent || 0) - (s.hardBounces || 0) - (s.softBounces || 0);
+      const openRate = delivered > 0 ? Math.round((s.uniqueViews || 0) / delivered * 100) : 0;
+      const clickRate = delivered > 0 ? Math.round((s.uniqueClicks || 0) / delivered * 100) : 0;
+      totalDelivered += delivered;
+      totalOpens += (s.uniqueViews || 0);
+      totalClicks += (s.uniqueClicks || 0);
+      totalBounces += (s.hardBounces || 0) + (s.softBounces || 0);
+      totalUnsubs += (s.unsubscriptions || 0);
+      statsHtml =
+        "<div style='display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px;'>" +
+          "<div style='background:#0e0e1a;border-radius:6px;padding:6px;text-align:center;'>" +
+            "<div style='font-size:14px;font-weight:700;color:#5dbb6e;'>" + delivered + "</div>" +
+            "<div style='font-size:9px;color:#8888aa;'>Delivered</div>" +
+          "</div>" +
+          "<div style='background:#0e0e1a;border-radius:6px;padding:6px;text-align:center;'>" +
+            "<div style='font-size:14px;font-weight:700;color:#c8a96e;'>" + (s.uniqueViews||0) + " <span style='font-size:10px;'>(" + openRate + "%)</span></div>" +
+            "<div style='font-size:9px;color:#8888aa;'>Unique Opens</div>" +
+          "</div>" +
+          "<div style='background:#0e0e1a;border-radius:6px;padding:6px;text-align:center;'>" +
+            "<div style='font-size:14px;font-weight:700;color:#2196f3;'>" + (s.uniqueClicks||0) + " <span style='font-size:10px;'>(" + clickRate + "%)</span></div>" +
+            "<div style='font-size:9px;color:#8888aa;'>Clicks</div>" +
+          "</div>" +
+          "<div style='background:#0e0e1a;border-radius:6px;padding:6px;text-align:center;'>" +
+            "<div style='font-size:14px;font-weight:700;color:#f44336;'>" + ((s.hardBounces||0)+(s.softBounces||0)) + "</div>" +
+            "<div style='font-size:9px;color:#8888aa;'>Bounces</div>" +
+          "</div>" +
+        "</div>";
+    } else if (b.status === "sent") {
+      statsHtml = "<div style='font-size:11px;color:#8888aa;margin-top:4px;'>Stats not available</div>";
+    }
+
+    batchRows +=
+      "<div style='padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06);'>" +
+        "<div style='display:flex;justify-content:space-between;align-items:center;'>" +
+          "<div>" +
+            "<b>" + statusIcon + " " + b.batchNumber + "</b>" +
+            "<span style='color:#8888aa;font-size:12px;margin-left:8px;'>" + b.contactCount + " contacts</span>" +
+            sentDateHtml +
+          "</div>" +
+          "<span style='font-size:11px;padding:3px 8px;border-radius:8px;background:" +
+            (b.status === "sent" ? "rgba(76,175,80,0.2);color:#5dbb6e;" :
+             b.status === "scheduled" ? "rgba(33,150,243,0.2);color:#64b5f6;" :
+             "rgba(255,152,0,0.2);color:#ffb74d;") +
+          "'>" + b.status + "</span>" +
+        "</div>" +
+        statsHtml +
+      "</div>";
+  }
+
+  // Overall stats row (only if any batches sent)
+  let overallHtml = "";
+  if (sentBatches > 0 && totalDelivered > 0) {
+    const overallOpenRate = Math.round(totalOpens / totalDelivered * 100);
+    const overallClickRate = Math.round(totalClicks / totalDelivered * 100);
+    overallHtml =
+      "<div style='margin-bottom:16px;'>" +
+        "<div style='font-size:12px;font-weight:600;color:#8888aa;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;'>Overall Performance</div>" +
+        "<div style='display:grid;grid-template-columns:repeat(5,1fr);gap:8px;'>" +
+          "<div style='background:#0e0e1a;border-radius:8px;padding:10px;text-align:center;'>" +
+            "<div style='font-size:18px;font-weight:700;color:#c8a96e;'>" + (c.totalSent||0) + "</div>" +
+            "<div style='font-size:10px;color:#8888aa;'>Sent</div>" +
+          "</div>" +
+          "<div style='background:#0e0e1a;border-radius:8px;padding:10px;text-align:center;'>" +
+            "<div style='font-size:18px;font-weight:700;color:#5dbb6e;'>" + totalDelivered + "</div>" +
+            "<div style='font-size:10px;color:#8888aa;'>Delivered</div>" +
+          "</div>" +
+          "<div style='background:#0e0e1a;border-radius:8px;padding:10px;text-align:center;'>" +
+            "<div style='font-size:18px;font-weight:700;color:#ffb74d;'>" + totalOpens + " <span style='font-size:11px;'>(" + overallOpenRate + "%)</span></div>" +
+            "<div style='font-size:10px;color:#8888aa;'>Opens</div>" +
+          "</div>" +
+          "<div style='background:#0e0e1a;border-radius:8px;padding:10px;text-align:center;'>" +
+            "<div style='font-size:18px;font-weight:700;color:#2196f3;'>" + totalClicks + " <span style='font-size:11px;'>(" + overallClickRate + "%)</span></div>" +
+            "<div style='font-size:10px;color:#8888aa;'>Clicks</div>" +
+          "</div>" +
+          "<div style='background:#0e0e1a;border-radius:8px;padding:10px;text-align:center;'>" +
+            "<div style='font-size:18px;font-weight:700;color:#f44336;'>" + totalBounces + "</div>" +
+            "<div style='font-size:10px;color:#8888aa;'>Bounces</div>" +
+          "</div>" +
+        "</div>" +
+      "</div>";
+  }
 
   const html =
     "<div style='margin-bottom:16px;'>" +
       "<h3 style='color:#c8a96e;margin-bottom:6px;'>" + c.name + "</h3>" +
-      "<div style='font-size:13px;color:#8888aa;'>" + audLabel + " · " + c.totalContacts + " total contacts</div>" +
+      "<div style='font-size:13px;color:#8888aa;'>" + audLabel + " · " + c.totalContacts + " total contacts · " + sentBatches + "/" + batches.length + " batches sent</div>" +
     "</div>" +
-    "<div style='display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px;'>" +
-      "<div style='background:#0e0e1a;border-radius:8px;padding:12px;text-align:center;'>" +
-        "<div style='font-size:22px;font-weight:700;color:#c8a96e;'>" + sentBatches + "/" + batches.length + "</div>" +
-        "<div style='font-size:11px;color:#8888aa;'>Batches Sent</div>" +
-      "</div>" +
-      "<div style='background:#0e0e1a;border-radius:8px;padding:12px;text-align:center;'>" +
-        "<div style='font-size:22px;font-weight:700;color:#5dbb6e;'>" + (c.totalSent || 0) + "</div>" +
-        "<div style='font-size:11px;color:#8888aa;'>Emails Sent</div>" +
-      "</div>" +
-      "<div style='background:#0e0e1a;border-radius:8px;padding:12px;text-align:center;'>" +
-        "<div style='font-size:22px;font-weight:700;color:#64b5f6;'>" + c.brevoTemplateId + "</div>" +
-        "<div style='font-size:11px;color:#8888aa;'>Brevo Template</div>" +
-      "</div>" +
-    "</div>" +
-    "<div style='font-size:13px;font-weight:600;color:#f0f0f0;margin-bottom:8px;'>Batch History</div>" +
+    overallHtml +
+    "<div style='font-size:13px;font-weight:600;color:#f0f0f0;margin-bottom:8px;'>Batch Details</div>" +
     batchRows;
 
   document.getElementById("detailModalBody").innerHTML = html;
-  document.getElementById("detailModal").style.display = "flex";
 }
 
 function closeDetailModal() {
