@@ -543,8 +543,7 @@ async function confirmSendBatch() {
       sender: { name: brevoConfig.brevoSenderName, email: brevoConfig.brevoSenderEmail },
       htmlContent: srcData.htmlContent,
       recipients: {
-        listIds: [batch.brevoListId || campaign.audienceListId],
-        exclusionListIds: []
+        listIds: [batch.brevoListId || campaign.audienceListId]
       },
       type: "classic",
       inlineImageActivation: false,
