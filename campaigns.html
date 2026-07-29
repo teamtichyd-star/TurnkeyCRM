@@ -103,6 +103,7 @@
   <button class="btn btn-secondary btn-sm" onclick="loadCampaigns()"><i class="fa fa-sync"></i> Refresh</button>
   <button class="btn btn-primary btn-sm" onclick="openNewCampaignModal()"><i class="fa fa-plus"></i> New Campaign</button>
 </div>
+<script src="js/whatsapp.js"></script>
 <script>
 // WhatsApp Campaigns Tab Logic
 async function loadWATemplates() {
@@ -180,7 +181,16 @@ async function startWAIndividualSend() {
   if (!phone || !template) { alert('Enter phone and select template'); return; }
   document.getElementById('waProgress').innerText = 'Sending...';
   try {
-    await window.TIC_WA.sendText(phone, '[TEMPLATE] '+template);
+    // Prompt for template variables if needed
+    let vars = [];
+    let templateContent = document.getElementById('waTemplateContent').innerText;
+    const matches = templateContent.match(/\{\{\d+}}/g);
+    if (matches) {
+      vars = matches.map((m, i) => prompt(`Enter value for variable ${m} (e.g. recipient name):`, ''));
+      if (vars.some(v => !v)) { document.getElementById('waProgress').innerText = 'Cancelled.'; return; }
+      vars = vars.map(v => ({ type: 'text', text: v }));
+    }
+    await window.TIC_WA.sendTemplate(phone, template, 'en', vars);
     document.getElementById('waProgress').innerText = 'Message sent!';
   } catch(e) {
     document.getElementById('waProgress').innerText = 'Failed to send.';
