@@ -5,7 +5,7 @@
 window.TIC_WA = (function() {
   let waConfig = null;
   let lastSendTime = 0;
-  const RATE_LIMIT_MS = 3000; // Min 3 sec between sends
+  const RATE_LIMIT_MS = 3000;
 
   async function loadConfig() {
     if (waConfig) return waConfig;
@@ -24,7 +24,7 @@ window.TIC_WA = (function() {
   function normalizePhone(phone) {
     if (!phone) return null;
     let p = String(phone).replace(/[^0-9]/g, '');
-    if (p.length === 10) p = '91' + p; // Indian numbers
+    if (p.length === 10) p = '91' + p;
     if (p.startsWith('0')) p = '91' + p.substring(1);
     return p;
   }
@@ -46,15 +46,11 @@ window.TIC_WA = (function() {
     if (now - lastSendTime < RATE_LIMIT_MS) {
       throw new Error(`Please wait ${Math.ceil((RATE_LIMIT_MS - (now - lastSendTime))/1000)}s before next send`);
     }
-
     const config = await loadConfig();
     if (!config) throw new Error("WhatsApp not configured. Contact admin.");
-
     const to = normalizePhone(toPhone);
     if (!to) throw new Error("Invalid phone number");
-
     lastSendTime = now;
-
     const url = `https://graph.facebook.com/${config.apiVersion || 'v25.0'}/${config.phoneNumberId}/messages`;
     const response = await fetch(url, {
       method: 'POST',
@@ -69,9 +65,7 @@ window.TIC_WA = (function() {
         text: { body: messageText }
       })
     });
-
     const result = await response.json();
-
     await logMessage({
       leadId: leadId || null,
       leadName: leadName || null,
@@ -86,17 +80,69 @@ window.TIC_WA = (function() {
       sentBy: firebase.auth().currentUser ? firebase.auth().currentUser.email : 'unknown',
       apiResponse: result
     });
-
     if (result.error) {
       const err = result.error;
       let userMessage = err.message;
-      if (err.code === 131047) userMessage = "24-hour window expired. Recipient must message you first, or use a template.";
+      if (err.code === 131047) userMessage = "24-hour window expired. Use a template instead.";
       if (err.code === 131051) userMessage = "Unsupported message type.";
-      if (err.code === 131026) userMessage = "Message failed to send. Number may not be on WhatsApp.";
+      if (err.code === 131026) userMessage = "Number may not be on WhatsApp.";
       if (err.code === 190) userMessage = "Access token expired. Contact admin.";
       throw new Error(userMessage);
     }
+    return result;
+  }
 
+  async function sendTemplate(toPhone, templateName, lang = 'en', variables = []) {
+    const now = Date.now();
+    if (now - lastSendTime < RATE_LIMIT_MS) {
+      throw new Error(`Please wait ${Math.ceil((RATE_LIMIT_MS - (now - lastSendTime))/1000)}s before next send`);
+    }
+    const config = await loadConfig();
+    if (!config) throw new Error("WhatsApp not configured. Contact admin.");
+    const to = normalizePhone(toPhone);
+    if (!to) throw new Error("Invalid phone number");
+    lastSendTime = now;
+    const url = `https://graph.facebook.com/${config.apiVersion || 'v25.0'}/${config.phoneNumberId}/messages`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${config.accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        to: to,
+        type: 'template',
+        template: {
+          name: templateName,
+          language: { code: lang },
+          components: variables.length ? [{ type: 'body', parameters: variables.map(v => ({ type: 'text', text: v })) }] : []
+        }
+      })
+    });
+    const result = await response.json();
+    await logMessage({
+      to: to,
+      template: templateName,
+      variables,
+      type: 'template',
+      direction: 'outbound',
+      status: result.messages ? 'sent' : 'failed',
+      messageId: result.messages ? result.messages[0].id : null,
+      errorCode: result.error ? result.error.code : null,
+      errorMessage: result.error ? result.error.message : null,
+      sentBy: firebase.auth().currentUser ? firebase.auth().currentUser.email : 'unknown',
+      apiResponse: result
+    });
+    if (result.error) {
+      const err = result.error;
+      let userMessage = err.message;
+      if (err.code === 131047) userMessage = "24-hour window expired. Use a template instead.";
+      if (err.code === 131051) userMessage = "Unsupported message type.";
+      if (err.code === 131026) userMessage = "Number may not be on WhatsApp.";
+      if (err.code === 190) userMessage = "Access token expired. Contact admin.";
+      throw new Error(userMessage);
+    }
     return result;
   }
 
@@ -118,65 +164,7 @@ window.TIC_WA = (function() {
     loadConfig,
     normalizePhone,
     sendText,
-    // Send WhatsApp template message
-    async function sendTemplate(toPhone, templateName, lang = 'en', variables = []) {
-      const now = Date.now();
-      if (now - lastSendTime < RATE_LIMIT_MS) {
-        throw new Error(`Please wait ${Math.ceil((RATE_LIMIT_MS - (now - lastSendTime))/1000)}s before next send`);
-      }
-      const config = await loadConfig();
-      if (!config) throw new Error("WhatsApp not configured. Contact admin.");
-      const to = normalizePhone(toPhone);
-      if (!to) throw new Error("Invalid phone number");
-      lastSendTime = now;
-      const url = `https://graph.facebook.com/${config.apiVersion || 'v25.0'}/${config.phoneNumberId}/messages`;
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${config.accessToken}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          messaging_product: 'whatsapp',
-          to: to,
-          type: 'template',
-          template: {
-            name: templateName,
-            language: { code: lang },
-            components: variables.length ? [{ type: 'body', parameters: variables.map(v => ({ type: 'text', text: v })) }] : []
-          }
-        })
-      });
-      const result = await response.json();
-      await logMessage({
-        to: to,
-        template: templateName,
-        variables,
-        type: 'template',
-        direction: 'outbound',
-        status: result.messages ? 'sent' : 'failed',
-        messageId: result.messages ? result.messages[0].id : null,
-        errorCode: result.error ? result.error.code : null,
-        errorMessage: result.error ? result.error.message : null,
-        sentBy: firebase.auth().currentUser ? firebase.auth().currentUser.email : 'unknown',
-        apiResponse: result
-      });
-      if (result.error) {
-        const err = result.error;
-        let userMessage = err.message;
-        if (err.code === 131047) userMessage = "24-hour window expired. Recipient must message you first, or use a template.";
-        if (err.code === 131051) userMessage = "Unsupported message type.";
-        if (err.code === 131026) userMessage = "Message failed to send. Number may not be on WhatsApp.";
-        if (err.code === 190) userMessage = "Access token expired. Contact admin.";
-        throw new Error(userMessage);
-      }
-      return result;
-    }
-    return {
-      loadConfig,
-      normalizePhone,
-      sendText,
-      sendTemplate,
-      getMessagesForLead
-    };
+    sendTemplate,
+    getMessagesForLead
+  };
 })();
