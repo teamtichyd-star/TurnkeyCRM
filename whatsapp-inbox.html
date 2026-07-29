@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>WhatsApp Inbox - Turnkey CRM</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="js/whatsapp.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+    :root {
+      --primary: #c8a96e; --primary-dark: #a07840;
+      --primary-glow: rgba(200,169,110,0.15);
+      --dark: #1a1a2e; --darker: #0e0e1a;
+      --card: #16213e; --card2: #1a2550;
+      --border: rgba(255,255,255,0.06);
+      --text: #f0f0f0; --subtext: #8888aa;
+      --success: #4caf50; --warning: #ff9800; --danger: #f44336; --info: #2196f3;
+      --wa: #25d366;
+      --radius: 14px; --shadow: 0 4px 24px rgba(0,0,0,0.35);
+    }
+    body { background: var(--darker); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+    .loading-overlay { position: fixed; inset: 0; background: var(--darker); display: flex; align-items: center; justify-content: center; z-index: 9999; flex-direction: column; gap: 15px; }
+    .loading-overlay.hide { display: none; }
+    .spinner { width: 42px; height: 42px; border: 3px solid rgba(200,169,110,0.15); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { font-size: 13px; color: var(--subtext); letter-spacing: 1px; }
+
+    .sidebar { position: fixed; left: 0; top: 0; height: 100vh; width: 255px; background: linear-gradient(180deg, #1a2550 0%, #16213e 100%); border-right: 1px solid var(--border); z-index: 1000; transition: 0.3s; overflow-y: auto; display: flex; flex-direction: column; }
+    .sidebar::-webkit-scrollbar { width: 4px; }
+    .sidebar::-webkit-scrollbar-thumb { background: rgba(200,169,110,0.2); border-radius: 4px; }
+    .sidebar-header { padding: 22px 18px; border-bottom: 1px solid var(--border); }
+    .brand { display: flex; align-items: center; gap: 11px; }
+    .brand img { border-radius: 10px; background: #fff; padding: 3px; box-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+    .brand-name { font-size: 13px; font-weight: 700; color: var(--primary); }
+    .brand-sub { font-size: 10px; color: var(--subtext); margin-top: 2px; }
+    .sidebar-menu { padding: 12px 0; flex: 1; }
+    .menu-label { font-size: 10px; color: var(--subtext); text-transform: uppercase; letter-spacing: 1.2px; padding: 14px 20px 6px; opacity: 0.6; }
+    .menu-item { display: flex; align-items: center; gap: 11px; padding: 11px 18px; cursor: pointer; transition: 0.2s; font-size: 13.5px; color: var(--subtext); margin: 2px 8px; border-radius: 10px; border-left: 3px solid transparent; text-decoration:none; }
+    .menu-item:hover { background: rgba(200,169,110,0.07); color: var(--text); border-left-color: rgba(200,169,110,0.3); }
+    .menu-item.active { background: linear-gradient(90deg, rgba(200,169,110,0.15), rgba(200,169,110,0.05)); color: var(--primary); border-left-color: var(--primary); font-weight: 600; }
+    .menu-item i { width: 18px; text-align: center; font-size: 14px; }
+    
+    .main-content { margin-left: 255px; min-height: 100vh; background: var(--darker); }
+    .topbar { background: linear-gradient(90deg, #1a2550, #16213e); padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 20px rgba(0,0,0,0.3); }
+    .page-title { font-size: 17px; font-weight: 700; color: var(--text); display:flex; align-items:center; gap:10px; }
+    .page-title i { color: var(--wa); }
+    .refresh-btn { background: rgba(200,169,110,0.1); color: var(--primary); border: 1px solid rgba(200,169,110,0.2); padding: 8px 14px; border-radius: 8px; font-size: 12px; cursor: pointer; display:flex; align-items:center; gap:6px; }
+    .refresh-btn:hover { background: rgba(200,169,110,0.2); }
+
+    .inbox-container { display: grid; grid-template-columns: 380px 1fr; height: calc(100vh - 55px); }
+    
+    /* Left: Conversations List */
+    .conversations-panel { background: var(--card); border-right: 1px solid var(--border); overflow-y: auto; }
+    .conversations-panel::-webkit-scrollbar { width: 6px; }
+    .conversations-panel::-webkit-scrollbar-thumb { background: rgba(200,169,110,0.2); border-radius: 4px; }
+    .search-box { padding: 14px 16px; border-bottom: 1px solid var(--border); background: var(--card2); position: sticky; top: 0; z-index: 10; }
+    .search-input { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 14px 10px 38px; color: var(--text); font-size: 13px; outline: none; }
+    .search-input:focus { border-color: var(--primary); }
+    .search-wrap { position: relative; }
+    .search-wrap i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--subtext); font-size: 13px; }
+    .conv-count { font-size: 11px; color: var(--subtext); padding: 10px 16px 4px; text-transform: uppercase; letter-spacing: 0.8px; }
+    
+    .conv-item { padding: 14px 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: 0.2s; display: flex; gap: 12px; align-items: flex-start; }
+    .conv-item:hover { background: rgba(200,169,110,0.05); }
+    .conv-item.active { background: rgba(200,169,110,0.1); border-left: 3px solid var(--primary); padding-left: 13px; }
+    .conv-avatar { width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, var(--wa), #128c7e); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 600; font-size: 15px; flex-shrink: 0; }
+    .conv-info { flex: 1; min-width: 0; }
+    .conv-header-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
+    .conv-name { font-size: 14px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .conv-time { font-size: 11px; color: var(--subtext); flex-shrink: 0; margin-left: 8px; }
+    .conv-preview { font-size: 12px; color: var(--subtext); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .conv-badges { display: flex; gap: 6px; margin-top: 6px; align-items: center; }
+    .badge { font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+    .badge.unread { background: var(--wa); color: white; }
+    .badge.lead { background: rgba(200,169,110,0.15); color: var(--primary); }
+    .badge.window { background: rgba(76,175,80,0.15); color: var(--success); }
+    
+    .empty-list { padding: 40px 20px; text-align: center; color: var(--subtext); font-size: 13px; }
+    .empty-list i { font-size: 40px; margin-bottom: 12px; display: block; opacity: 0.3; }
+    
+    /* Right: Chat View */
+    .chat-panel { display: flex; flex-direction: column; background: var(--darker); }
+    .chat-header { padding: 14px 20px; background: var(--card); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .chat-header-info { display: flex; gap: 12px; align-items: center; }
+    .chat-header .avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, var(--wa), #128c7e); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; }
+    .chat-header .name { font-size: 15px; font-weight: 600; }
+    .chat-header .phone { font-size: 12px; color: var(--subtext); }
+    .chat-header .actions { display: flex; gap: 8px; }
+    .chat-btn { background: rgba(200,169,110,0.1); color: var(--primary); border: 1px solid rgba(200,169,110,0.2); padding: 7px 12px; border-radius: 8px; font-size: 12px; cursor: pointer; display:flex; align-items:center; gap:5px; text-decoration:none; }
+    .chat-btn:hover { background: rgba(200,169,110,0.2); }
+    
+    .chat-messages { flex: 1; overflow-y: auto; padding: 20px; background: linear-gradient(180deg, var(--darker) 0%, #131324 100%); }
+    .chat-messages::-webkit-scrollbar { width: 6px; }
+    .chat-messages::-webkit-scrollbar-thumb { background: rgba(200,169,110,0.2); border-radius: 4px; }
+    
+    .msg { max-width: 65%; margin-bottom: 12px; padding: 10px 14px; border-radius: 12px; font-size: 13.5px; line-height: 1.5; word-wrap: break-word; white-space: pre-wrap; position: relative; }
+    .msg.inbound { background: var(--card); color: var(--text); border-top-left-radius: 3px; margin-right: auto; }
+    .msg.outbound { background: linear-gradient(135deg, #128c7e, var(--wa)); color: white; border-top-right-radius: 3px; margin-left: auto; }
+    .msg .meta { font-size: 10px; opacity: 0.7; margin-top: 4px; text-align: right; display:flex; align-items:center; justify-content:flex-end; gap:4px; }
+    .msg.inbound .meta { text-align: left; justify-content:flex-start; }
+    .status-icon { font-size: 11px; }
+    
+    .chat-footer { padding: 14px 20px; background: var(--card); border-top: 1px solid var(--border); }
+    .compose-wrap { display: flex; gap: 10px; align-items: flex-end; }
+    .compose-input { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px 14px; color: var(--text); font-size: 13.5px; outline: none; resize: none; font-family: inherit; max-height: 120px; min-height: 44px; }
+    .compose-input:focus { border-color: var(--wa); }
+    .send-btn { background: var(--wa); color: white; border: none; border-radius: 50%; width: 44px; height: 44px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: 0.2s; flex-shrink: 0; }
+    .send-btn:hover:not(:disabled) { background: #128c7e; transform: scale(1.05); }
+    .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    
+    .window-warning { background: rgba(255,152,0,0.1); border: 1px solid rgba(255,152,0,0.3); padding: 10px 14px; border-radius: 8px; font-size: 12px; color: var(--warning); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+    
+    .no-chat-selected { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--subtext); text-align: center; padding: 40px; }
+    .no-chat-selected i { font-size: 80px; color: var(--wa); opacity: 0.3; margin-bottom: 20px; }
+    .no-chat-selected h3 { font-size: 18px; margin-bottom: 8px; color: var(--text); }
+    .no-chat-selected p { font-size: 13px; opacity: 0.7; max-width: 400px; }
+    
+    @media (max-width: 900px) {
+      .inbox-container { grid-template-columns: 1fr; }
+      .chat-panel.hidden-mobile { display: none; }
+      .conversations-panel.hidden-mobile { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div><div class="loading-text">Loading Inbox...</div></div>
+
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="brand">
+        <img src="https://sbinteriorsolutions.net/wp-content/uploads/2024/04/cropped-Untitled-1.jpg" width="42" alt="SBI"/>
+        <div>
+          <div class="brand-name">SB Interior Solutions</div>
+          <div class="brand-sub">Turnkey CRM</div>
+        </div>
+      </div>
+    </div>
+    <div class="sidebar-menu">
+      <div class="menu-label">Main</div>
+      <a href="index.html" class="menu-item"><i class="fas fa-home"></i>Dashboard</a>
+      <a href="leads.html" class="menu-item"><i class="fas fa-user-plus"></i>Leads</a>
+      <a href="projects.html" class="menu-item"><i class="fas fa-project-diagram"></i>Projects</a>
+      <a href="tasks.html" class="menu-item"><i class="fas fa-tasks"></i>Tasks</a>
+      <a href="vendors.html" class="menu-item"><i class="fas fa-truck"></i>Vendors</a>
+      <div class="menu-label">Marketing</div>
+      <a href="campaigns.html" class="menu-item"><i class="fas fa-bullhorn"></i>Campaigns</a>
+      <a href="whatsapp-inbox.html" class="menu-item active"><i class="fab fa-whatsapp"></i>WhatsApp Inbox</a>
+      <div class="menu-label">Team</div>
+      <a href="attendance.html" class="menu-item"><i class="fas fa-clock"></i>Attendance</a>
+      <a href="staff-profile.html" class="menu-item"><i class="fas fa-user"></i>My Profile</a>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="topbar">
+      <div class="page-title"><i class="fab fa-whatsapp"></i> WhatsApp Inbox</div>
+      <button class="refresh-btn" onclick="loadConversations()"><i class="fas fa-sync"></i> Refresh</button>
+    </div>
+
+    <div class="inbox-container">
+      <!-- Left: Conversations -->
+      <div class="conversations-panel" id="conversationsPanel">
+        <div class="search-box">
+          <div class="search-wrap">
+            <i class="fas fa-search"></i>
+            <input type="text" class="search-input" id="searchInput" placeholder="Search conversations..." oninput="filterConversations()">
+          </div>
+        </div>
+        <div class="conv-count" id="convCount">Loading...</div>
+        <div id="conversationsList"></div>
+      </div>
+
+      <!-- Right: Chat -->
+      <div class="chat-panel" id="chatPanel">
+        <div class="no-chat-selected" id="noChatSelected">
+          <i class="fab fa-whatsapp"></i>
+          <h3>WhatsApp Business Inbox</h3>
+          <p>Select a conversation from the left to view messages. All customer replies and outgoing messages appear here.</p>
+        </div>
+        <div id="chatContent" style="display:none; flex-direction:column; height:100%;"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyBLQhUZA-VN4_A9FhQWmlRSQZC2D95KoE8",
+    authDomain: "turnkeycrm-ce7b8.firebaseapp.com",
+    projectId: "turnkeycrm-ce7b8",
+    storageBucket: "turnkeycrm-ce7b8.firebasestorage.app",
+    messagingSenderId: "1041554515022",
+    appId: "1:1041554515022:web:8f9c9b8e3f4d1a2b7c8d9e"
+  };
+  if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  let allMessages = [];
+  let conversations = {};
+  let currentConvPhone = null;
+  let allLeads = [];
+  let filterText = '';
+
+  firebase.auth().onAuthStateChanged(async (user) => {
+    if (!user) { window.location.href = 'index.html'; return; }
+    await loadLeads();
+    await loadConversations();
+    document.getElementById('loadingOverlay').classList.add('hide');
+    setInterval(loadConversations, 30000); // auto-refresh every 30s
+  });
+
+  async function loadLeads() {
+    try {
+      const snap = await db.collection('leads').get();
+      allLeads = [];
+      snap.forEach(d => allLeads.push({ id: d.id, ...d.data() }));
+    } catch(e) { console.error('leads load failed', e); }
+  }
+
+  function normalizePhone(p) {
+    if (!p) return null;
+    let n = String(p).replace(/[^0-9]/g, '');
+    if (n.length === 10) n = '91' + n;
+    if (n.startsWith('0')) n = '91' + n.substring(1);
+    return n;
+  }
+
+  function findLeadByPhone(phone) {
+    const normalized = normalizePhone(phone);
+    return allLeads.find(l => normalizePhone(l.phone) === normalized);
+  }
+
+  async function loadConversations() {
+    try {
+      const snap = await db.collection('whatsapp_messages').orderBy('createdAt', 'desc').limit(500).get();
+      allMessages = [];
+      snap.forEach(d => allMessages.push({ id: d.id, ...d.data() }));
+
+      // Group by phone number
+      conversations = {};
+      allMessages.forEach(m => {
+        const phone = m.direction === 'inbound' ? m.from : m.to;
+        if (!phone) return;
+        if (!conversations[phone]) {
+          conversations[phone] = {
+            phone: phone,
+            messages: [],
+            contactName: m.contactName || m.leadName || null,
+            lastMessage: null,
+            lastMessageTime: null,
+            unreadCount: 0
+          };
+        }
+        conversations[phone].messages.push(m);
+        if (m.contactName && !conversations[phone].contactName) conversations[phone].contactName = m.contactName;
+        if (m.leadName && !conversations[phone].contactName) conversations[phone].contactName = m.leadName;
+      });
+
+      // Sort messages within each conversation & pick last message
+      Object.values(conversations).forEach(c => {
+        c.messages.sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
+        const last = c.messages[c.messages.length - 1];
+        c.lastMessage = last;
+        c.lastMessageTime = last.createdAt;
+        c.unreadCount = c.messages.filter(m => m.direction === 'inbound' && !m.readByAgent).length;
+        // check 24hr window
+        const lastInbound = [...c.messages].reverse().find(m => m.direction === 'inbound');
+        if (lastInbound) {
+          const hoursAgo = (Date.now() - new Date(lastInbound.createdAt).getTime()) / (1000 * 60 * 60);
+          c.windowOpen = hoursAgo < 24;
+        } else {
+          c.windowOpen = false;
+        }
+      });
+
+      renderConversations();
+    } catch(e) {
+      console.error('Load conversations failed', e);
+      document.getElementById('conversationsList').innerHTML = '<div class="empty-list"><i class="fas fa-exclamation-triangle"></i>Error loading messages<br><small style="opacity:0.6">' + e.message + '</small></div>';
+    }
+  }
+
+  function renderConversations() {
+    const list = Object.values(conversations)
+      .filter(c => {
+        if (!filterText) return true;
+        const t = filterText.toLowerCase();
+        return (c.contactName || '').toLowerCase().includes(t) || c.phone.includes(t);
+      })
+      .sort((a, b) => (b.lastMessageTime || '').localeCompare(a.lastMessageTime || ''));
+
+    document.getElementById('convCount').textContent = list.length + ' conversation' + (list.length !== 1 ? 's' : '');
+
+    if (list.length === 0) {
+      document.getElementById('conversationsList').innerHTML = '<div class="empty-list"><i class="fab fa-whatsapp"></i>No conversations yet<br><small style="opacity:0.6">Messages will appear here</small></div>';
+      return;
+    }
+
+    const html = list.map(c => {
+      const lead = findLeadByPhone(c.phone);
+      const displayName = c.contactName || (lead && lead.name) || '+' + c.phone;
+      const initials = displayName.charAt(0).toUpperCase();
+      const preview = (c.lastMessage.messageText || '[media]').substring(0, 50);
+      const timeStr = c.lastMessageTime ? formatTime(c.lastMessageTime) : '';
+      const dirIcon = c.lastMessage.direction === 'outbound' ? '<i class="fas fa-arrow-right" style="font-size:9px;opacity:0.5;"></i> ' : '';
+      
+      return `
+        <div class="conv-item ${currentConvPhone === c.phone ? 'active' : ''}" onclick="openConversation('${c.phone}')">
+          <div class="conv-avatar">${initials}</div>
+          <div class="conv-info">
+            <div class="conv-header-row">
+              <div class="conv-name">${displayName}</div>
+              <div class="conv-time">${timeStr}</div>
+            </div>
+            <div class="conv-preview">${dirIcon}${preview}</div>
+            <div class="conv-badges">
+              ${c.unreadCount > 0 ? `<span class="badge unread">${c.unreadCount} new</span>` : ''}
+              ${lead ? `<span class="badge lead"><i class="fas fa-user"></i> Lead</span>` : ''}
+              ${c.windowOpen ? `<span class="badge window"><i class="fas fa-clock"></i> Window Open</span>` : ''}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    document.getElementById('conversationsList').innerHTML = html;
+  }
+
+  function filterConversations() {
+    filterText = document.getElementById('searchInput').value.trim();
+    renderConversations();
+  }
+
+  function formatTime(iso) {
+    const d = new Date(iso);
+    const now = new Date();
+    const isToday = d.toDateString() === now.toDateString();
+    if (isToday) return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+    const diff = (now - d) / (1000 * 60 * 60 * 24);
+    if (diff < 7) return d.toLocaleDateString('en-IN', { weekday: 'short' });
+    return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+  }
+
+  async function openConversation(phone) {
+    currentConvPhone = phone;
+    const conv = conversations[phone];
+    if (!conv) return;
+
+    const lead = findLeadByPhone(phone);
+    const displayName = conv.contactName || (lead && lead.name) || '+' + phone;
+    const initials = displayName.charAt(0).toUpperCase();
+
+    document.getElementById('noChatSelected').style.display = 'none';
+    document.getElementById('chatContent').style.display = 'flex';
+
+    const msgsHtml = conv.messages.map(m => {
+      const timeStr = m.createdAt ? new Date(m.createdAt).toLocaleString('en-IN', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'}) : '';
+      const statusIcon = m.direction === 'outbound' ? getStatusIcon(m.status) : '';
+      return `
+        <div class="msg ${m.direction}">
+          ${(m.messageText || '[media message]').replace(/</g, '&lt;')}
+          <div class="meta">${timeStr} ${statusIcon}</div>
+        </div>
+      `;
+    }).join('');
+
+    const windowWarning = !conv.windowOpen ? `
+      <div class="window-warning">
+        <i class="fas fa-exclamation-triangle"></i>
+        24-hour window closed. Free text won't send. Use a template from Campaigns page.
+      </div>
+    ` : '';
+
+    document.getElementById('chatContent').innerHTML = `
+      <div class="chat-header">
+        <div class="chat-header-info">
+          <div class="avatar">${initials}</div>
+          <div>
+            <div class="name">${displayName}</div>
+            <div class="phone">+${phone} ${lead ? '• Lead in CRM' : ''}</div>
+          </div>
+        </div>
+        <div class="actions">
+          ${lead ? `<a class="chat-btn" href="leads.html?highlight=${lead.id}" target="_blank"><i class="fas fa-external-link-alt"></i> View Lead</a>` : ''}
+          <a class="chat-btn" href="https://wa.me/${phone}" target="_blank"><i class="fab fa-whatsapp"></i> Open in WhatsApp</a>
+        </div>
+      </div>
+      <div class="chat-messages" id="chatMessages">${msgsHtml}</div>
+      <div class="chat-footer">
+        ${windowWarning}
+        <div class="compose-wrap">
+          <textarea class="compose-input" id="composeInput" placeholder="${conv.windowOpen ? 'Type a message...' : 'Free text disabled - use template'}" ${!conv.windowOpen ? 'disabled' : ''} onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendReply();}"></textarea>
+          <button class="send-btn" id="sendBtn" onclick="sendReply()" ${!conv.windowOpen ? 'disabled' : ''}><i class="fas fa-paper-plane"></i></button>
+        </div>
+      </div>
+    `;
+
+    // Scroll to bottom
+    setTimeout(() => {
+      const cm = document.getElementById('chatMessages');
+      if (cm) cm.scrollTop = cm.scrollHeight;
+    }, 100);
+
+    // Mark inbound messages as read
+    await markConvAsRead(phone);
+    renderConversations();
+  }
+
+  function getStatusIcon(status) {
+    if (status === 'read') return '<i class="fas fa-check-double" style="color:#4fc3f7;"></i>';
+    if (status === 'delivered') return '<i class="fas fa-check-double"></i>';
+    if (status === 'sent') return '<i class="fas fa-check"></i>';
+    if (status === 'failed') return '<i class="fas fa-exclamation-circle" style="color:#f44336;"></i>';
+    return '<i class="fas fa-clock" style="opacity:0.5;"></i>';
+  }
+
+  async function markConvAsRead(phone) {
+    const conv = conversations[phone];
+    if (!conv) return;
+    const unread = conv.messages.filter(m => m.direction === 'inbound' && !m.readByAgent);
+    for (const m of unread) {
+      try {
+        await db.collection('whatsapp_messages').doc(m.id).update({ readByAgent: true, readAt: new Date().toISOString() });
+        m.readByAgent = true;
+      } catch(e) { console.error('mark read failed', e); }
+    }
+    conv.unreadCount = 0;
+  }
+
+  async function sendReply() {
+    const input = document.getElementById('composeInput');
+    const btn = document.getElementById('sendBtn');
+    const text = input.value.trim();
+    if (!text) return;
+    if (!currentConvPhone) return;
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+    try {
+      const lead = findLeadByPhone(currentConvPhone);
+      await TIC_WA.sendText(currentConvPhone, text, lead ? lead.id : null, lead ? lead.name : null);
+      input.value = '';
+      await loadConversations();
+      openConversation(currentConvPhone);
+    } catch(e) {
+      alert('Send failed: ' + e.message);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+    }
+  }
+</script>
+</body>
+</html>
