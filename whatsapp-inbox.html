@@ -124,9 +124,20 @@
       .chat-panel.hidden-mobile { display: none; }
       .conversations-panel.hidden-mobile { display: none; }
     }
+    
+    /* When loaded inside iframe (from index.html), hide own sidebar */
+    body.in-iframe .sidebar { display: none; }
+    body.in-iframe .main-content { margin-left: 0; }
+    body.in-iframe .topbar { display: none; }
+    body.in-iframe .inbox-container { height: calc(100vh - 0px); }
   </style>
 </head>
 <body>
+<script>
+  if (window.self !== window.top) {
+    document.body.classList.add('in-iframe');
+  }
+</script>
   <div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div><div class="loading-text">Loading Inbox...</div></div>
 
   <div class="sidebar">
