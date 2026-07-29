@@ -95,9 +95,140 @@
 <div class="top-bar">
   <button class="back-btn" onclick="history.back()"><i class="fa fa-arrow-left"></i></button>
   <h1><i class="fa fa-paper-plane" style="margin-right:8px;"></i>Campaigns</h1>
+  <div style="flex:1"></div>
+  <div class="tab-switcher" style="display:flex;gap:2px;background:var(--card2);border-radius:8px;overflow:hidden;">
+    <button id="tabEmail" class="btn btn-secondary btn-sm" onclick="switchCampaignTab('email')">Email Campaigns</button>
+    <button id="tabWA" class="btn btn-secondary btn-sm" onclick="switchCampaignTab('wa')">WhatsApp Campaigns</button>
+  </div>
   <button class="btn btn-secondary btn-sm" onclick="loadCampaigns()"><i class="fa fa-sync"></i> Refresh</button>
   <button class="btn btn-primary btn-sm" onclick="openNewCampaignModal()"><i class="fa fa-plus"></i> New Campaign</button>
 </div>
+<script>
+// WhatsApp Campaigns Tab Logic
+async function loadWATemplates() {
+  const doc = await firebase.firestore().collection('settings').doc('integrations').get();
+  const wa = doc.data().whatsapp;
+  if (!wa || !wa.accessToken || !wa.wabaId) {
+    document.getElementById('waTemplate').innerHTML = '<option value="">Config missing</option>';
+    return;
+  }
+  try {
+    const res = await fetch(`https://graph.facebook.com/v19.0/${wa.wabaId}/message_templates`, {
+      headers: { Authorization: 'Bearer ' + wa.accessToken }
+    });
+    const data = await res.json();
+    if (!data.data) throw new Error('No templates');
+    document.getElementById('waTemplate').innerHTML = '<option value="">Select template...</option>' +
+      data.data.map(t => `<option value="${t.name}" data-category="${t.category}">${t.name} (${t.category})</option>`).join('');
+  } catch (e) {
+    document.getElementById('waTemplate').innerHTML = '<option value="">Failed to load</option>';
+  }
+}
+function updateWACostPreview() {
+  const sel = document.getElementById('waTemplate');
+  const opt = sel.options[sel.selectedIndex];
+  let cat = opt ? opt.getAttribute('data-category') : '';
+  let cost = cat==='UTILITY' ? 0.115 : 0.78;
+  if (!cat) document.getElementById('waCostPreview').innerText = 'Select template to see cost per message.';
+  else document.getElementById('waCostPreview').innerText = `Cost per message: Rs.${cost} (${cat})`;
+  // Show template content
+  showWATemplateContent(opt ? opt.value : '');
+}
+async function showWATemplateContent(templateName) {
+  const doc = await firebase.firestore().collection('settings').doc('integrations').get();
+  const wa = doc.data().whatsapp;
+  if (!wa || !wa.accessToken || !wa.wabaId || !templateName) {
+    document.getElementById('waTemplateContent').innerText = '';
+    return;
+  }
+  try {
+    const res = await fetch(`https://graph.facebook.com/v19.0/${wa.wabaId}/message_templates?name=${templateName}&fields=components`, {
+      headers: { Authorization: 'Bearer ' + wa.accessToken }
+    });
+    const data = await res.json();
+    let msg = '';
+    if (data.data && data.data[0] && data.data[0].components) {
+      const comps = data.data[0].components;
+      comps.forEach(c => {
+        if (c.type==='BODY') msg += c.text+'\n';
+        if (c.type==='HEADER' && c.format==='TEXT') msg = c.text+'\n'+msg;
+      });
+    }
+    document.getElementById('waTemplateContent').innerText = msg.trim();
+  } catch (e) {
+    document.getElementById('waTemplateContent').innerText = 'Failed to load template content.';
+  }
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  if(document.getElementById('waTemplate')){
+    loadWATemplates();
+    document.getElementById('waTemplate').addEventListener('change', updateWACostPreview);
+    // Add content preview area if not present
+    if(!document.getElementById('waTemplateContent')){
+      const el = document.createElement('div');
+      el.id = 'waTemplateContent';
+      el.className = 'info-box';
+      el.style.marginTop = '12px';
+      document.getElementById('waTemplate').parentNode.appendChild(el);
+    }
+  }
+});
+// Individual WhatsApp Send
+async function startWAIndividualSend() {
+  const phone = document.getElementById('waPhone').value.trim();
+  const template = document.getElementById('waTemplate').value;
+  if (!phone || !template) { alert('Enter phone and select template'); return; }
+  document.getElementById('waProgress').innerText = 'Sending...';
+  try {
+    await window.TIC_WA.sendText(phone, '[TEMPLATE] '+template);
+    document.getElementById('waProgress').innerText = 'Message sent!';
+  } catch(e) {
+    document.getElementById('waProgress').innerText = 'Failed to send.';
+  }
+}
+// Bulk WhatsApp Send
+async function startWABulkSend() {
+  const segment = document.getElementById('waSegment').value;
+  const template = document.getElementById('waTemplate').value;
+  if (!segment || !template) { alert('Select segment and template'); return; }
+  document.getElementById('waProgress').innerText = 'Loading contacts...';
+  let contacts = [];
+  if (segment==='crm_leads') {
+    // Example: fetch CRM leads from Firestore
+    const snap = await firebase.firestore().collection('leads').get();
+    contacts = snap.docs.map(d=>d.data().phone).filter(Boolean);
+  } else if (segment==='brevo_list') {
+    // Example: fetch Brevo contacts (stub)
+    contacts = ['+918142666451']; // Replace with real fetch
+  }
+  if (!contacts.length) { document.getElementById('waProgress').innerText = 'No contacts found.'; return; }
+  document.getElementById('waProgress').innerText = `Sending to ${contacts.length} contacts...`;
+  let sent=0, failed=0;
+  for (let i=0; i<contacts.length; ++i) {
+    try {
+      await window.TIC_WA.sendText(contacts[i], '[TEMPLATE] '+template);
+      sent++;
+    } catch(e) { failed++; }
+    document.getElementById('waProgress').innerText = `Sent: ${sent}, Failed: ${failed}, Remaining: ${contacts.length-i-1}`;
+    await new Promise(r=>setTimeout(r,5)); // Rate limit stub
+  }
+  document.getElementById('waProgress').innerText = `Done. Sent: ${sent}, Failed: ${failed}`;
+}
+// End WhatsApp Campaigns Tab Logic
+function switchCampaignTab(tab) {
+  document.getElementById('mainContent').style.display = (tab==='email') ? '' : 'none';
+  document.getElementById('waCampaigns').style.display = (tab==='wa') ? '' : 'none';
+  document.getElementById('tabEmail').classList.toggle('btn-primary', tab==='email');
+  document.getElementById('tabEmail').classList.toggle('btn-secondary', tab!=='email');
+  document.getElementById('tabWA').classList.toggle('btn-primary', tab==='wa');
+  document.getElementById('tabWA').classList.toggle('btn-secondary', tab!=='wa');
+}
+window.addEventListener('DOMContentLoaded',()=>{
+  if(!document.getElementById('waCampaigns'))return;
+  switchCampaignTab('email');
+});
+</script>
+<!-- End Tab Switcher -->
 
 <!-- Not Configured State -->
 <div id="notConfigured" style="display:none;">
@@ -110,7 +241,40 @@
 </div>
 
 <!-- Main Content -->
-<div id="mainContent" style="display:none;">
+<div id="mainContent" style="display:none;"></div>
+<div id="waCampaigns" style="display:none;padding:24px 20px 40px;">
+  <h2 style="color:var(--primary);font-size:18px;margin-bottom:18px;"><i class='fa fa-whatsapp' style='color:#25d366;margin-right:8px;'></i>WhatsApp Campaigns</h2>
+  <div class="wa-campaigns-ui" style="background:var(--card);border-radius:14px;padding:24px 20px 20px 20px;max-width:700px;margin-bottom:30px;">
+    <div style="margin-bottom:18px;">
+      <label class="form-label">Segment</label>
+      <select id="waSegment" class="form-input">
+        <option value="">Select segment...</option>
+        <option value="crm_leads">CRM Leads (by stage/sector)</option>
+        <option value="brevo_list">Brevo List</option>
+      </select>
+    </div>
+    <div style="margin-bottom:18px;">
+      <label class="form-label">Template</label>
+      <select id="waTemplate" class="form-input">
+        <option value="">Loading templates...</option>
+      </select>
+    </div>
+    <div style="margin-bottom:18px;">
+      <label class="form-label">Cost Preview</label>
+      <div id="waCostPreview" class="info-box">Select template to see cost per message.</div>
+    </div>
+    <div style="margin-bottom:18px;">
+      <input id="waPhone" class="form-input" placeholder="Enter WhatsApp number (e.g. +919876543210)" style="max-width:220px;display:inline-block;margin-right:10px;">
+      <button class="btn btn-success" style="min-width:140px;" onclick="startWAIndividualSend()"><i class="fa fa-paper-plane"></i> Send Message</button>
+      <span id="waProgress" style="margin-left:18px;color:var(--primary);"></span>
+    </div>
+    <div style="margin-bottom:0;">
+      <label class="form-label">Analytics</label>
+      <div id="waAnalytics" class="info-box">Analytics will appear here after sending.</div>
+    </div>
+  </div>
+</div>
+<!-- End WhatsApp Campaigns Tab -->
   <!-- Stats -->
   <div class="stats-row">
     <div class="stat-card">
