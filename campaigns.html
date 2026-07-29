@@ -193,7 +193,9 @@ async function startWAIndividualSend() {
     await window.TIC_WA.sendTemplate(phone, template, 'en', vars);
     document.getElementById('waProgress').innerText = 'Message sent!';
   } catch(e) {
-    document.getElementById('waProgress').innerText = 'Failed to send.';
+    document.getElementById('waProgress').innerText = 'Failed to send: ' + (e && e.message ? e.message : e);
+    console.error('WA send error:', e);
+    alert('WhatsApp send error: ' + (e && e.message ? e.message : e) + '\nFull error: ' + JSON.stringify(e));
   }
 }
 // Bulk WhatsApp Send
