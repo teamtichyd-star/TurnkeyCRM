@@ -116,7 +116,7 @@ window.TIC_WA = (function() {
         template: {
           name: templateName,
           language: { code: lang },
-          components: variables.length ? [{ type: 'body', parameters: variables.map(v => ({ type: 'text', text: v })) }] : []
+          components: variables.length ? [{ type: 'body', parameters: variables.map(v => ({ type: 'text', text: String(v) })) }] : []
         }
       })
     });
