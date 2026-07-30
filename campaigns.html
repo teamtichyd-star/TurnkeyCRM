@@ -188,7 +188,7 @@ async function startWAIndividualSend() {
     if (matches) {
       vars = matches.map((m, i) => prompt(`Enter value for variable ${m} (e.g. recipient name):`, ''));
       if (vars.some(v => !v)) { document.getElementById('waProgress').innerText = 'Cancelled.'; return; }
-      vars = vars.map(v => ({ type: 'text', text: v }));
+      // vars already plain strings, whatsapp.js handles wrapping
     }
     await window.TIC_WA.sendTemplate(phone, template, 'en', vars);
     document.getElementById('waProgress').innerText = 'Message sent!';
