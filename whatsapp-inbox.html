@@ -314,7 +314,7 @@
       const lead = findLeadByPhone(c.phone);
       const displayName = c.contactName || (lead && lead.name) || '+' + c.phone;
       const initials = displayName.charAt(0).toUpperCase();
-      const preview = (c.lastMessage.messageText || '[media]').substring(0, 50);
+      const preview = (c.lastMessage.messageText || (c.lastMessage.template ? '📋 ' + c.lastMessage.template : '[media]')).substring(0, 50);
       const timeStr = c.lastMessageTime ? formatTime(c.lastMessageTime) : '';
       const dirIcon = c.lastMessage.direction === 'outbound' ? '<i class="fas fa-arrow-right" style="font-size:9px;opacity:0.5;"></i> ' : '';
       
@@ -372,7 +372,7 @@
       const statusIcon = m.direction === 'outbound' ? getStatusIcon(m.status) : '';
       return `
         <div class="msg ${m.direction}">
-          ${(m.messageText || '[media message]').replace(/</g, '&lt;')}
+          ${(m.messageText || (m.template ? '📋 Template: ' + m.template : '[media message]')).replace(/</g, '&lt;')}
           <div class="meta">${timeStr} ${statusIcon}</div>
         </div>
       `;
