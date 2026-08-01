@@ -407,7 +407,8 @@ async function fetchBrevoContacts(listId) {
       }
       // Take only first word if name looks messy (has numbers or special chars)
       if (/[0-9+()]/.test(fullName)) fullName = firstName.split(' ')[0];
-      fullName = fullName || 'Customer';
+      // Fallback for empty, junk or client## names
+      if (!fullName || fullName.length < 2 || /^client\d/i.test(fullName) || /nomail|noemail|nophone/i.test(fullName)) fullName = 'there';
       if (phone) contacts.push({ phone: String(phone).trim(), name: fullName, email: c.email });
     }
     if (batch.length < limit) break;
