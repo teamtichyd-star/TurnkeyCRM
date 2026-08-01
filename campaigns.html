@@ -291,6 +291,25 @@ async function loadWACampaignContacts() {
   }
 }
 
+async function onBatchSelected() {
+  const segment = document.getElementById('waSegment').value;
+  const listId = document.getElementById('waBatchSelect').value;
+  const countEl = document.getElementById('waContactCount');
+  if (!listId || !segment) return;
+  countEl.innerText = 'Loading contacts...';
+  waCampaignContacts = [];
+  if (segment === 'crm_leads') {
+    const snap = await firebase.firestore().collection('leads').get();
+    snap.docs.forEach(d => {
+      const data = d.data();
+      if (data.phone) waCampaignContacts.push({ phone: String(data.phone), name: data.name || 'Customer' });
+    });
+  } else {
+    waCampaignContacts = await fetchBrevoContacts(parseInt(listId));
+  }
+  countEl.innerText = `✅ ${waCampaignContacts.length} contacts loaded with phone numbers · Ready to send`;
+}
+
 async function startWABulkSend() {
   if (waCampaignActive) { alert('Campaign already running!'); return; }
   const template = document.getElementById('waTemplate').value;
@@ -391,7 +410,7 @@ window.addEventListener('DOMContentLoaded',()=>{
             <div id="waContactCount" style="font-size:0.85rem; color:var(--primary); margin:8px 0;"></div>
       <div style="margin-bottom:12px;">
         <label style="display:block; font-size:0.8rem; margin-bottom:5px; color:#aaa;">Select Batch (200 contacts/batch):</label>
-        <select id="waBatchSelect" class="form-input"></select>
+        <select id="waBatchSelect" class="form-input" onchange="onBatchSelected()"></select>
         <div id="waBatchPreview" style="margin-top:10px; font-size:0.8rem; color:#aaa; max-height:100px; overflow-y:auto; background:#1a1a1a; padding:5px; border-radius:4px; border:1px solid #333;"></div>
       </div>
       <div id="waProgressWrap" style="display:none; margin-bottom:12px;">
