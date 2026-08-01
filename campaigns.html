@@ -199,32 +199,142 @@ async function startWAIndividualSend() {
   }
 }
 // Bulk WhatsApp Send
-async function startWABulkSend() {
-  const segment = document.getElementById('waSegment').value;
-  const template = document.getElementById('waTemplate').value;
-  if (!segment || !template) { alert('Select segment and template'); return; }
-  document.getElementById('waProgress').innerText = 'Loading contacts...';
+// WA Campaign state
+window.waCampaignContacts = [];
+window.waCampaignBatches = [];
+let waCampaignActive = false;
+
+async function fetchBrevoContacts(listId) {
   let contacts = [];
-  if (segment==='crm_leads') {
-    // Example: fetch CRM leads from Firestore
-    const snap = await firebase.firestore().collection('leads').get();
-    contacts = snap.docs.map(d=>d.data().phone).filter(Boolean);
-  } else if (segment==='brevo_list') {
-    // Example: fetch Brevo contacts (stub)
-    contacts = ['+918142666451']; // Replace with real fetch
+  let offset = 0;
+  const limit = 500;
+  while (true) {
+    const r = await fetch(`https://api.brevo.com/v3/contacts?limit=${limit}&offset=${offset}&listId=${listId}`, {
+      headers: { 'accept': 'application/json', 'api-key': brevoConfig.brevoApiKey }
+    });
+    const data = await r.json();
+    const batch = data.contacts || [];
+    for (const c of batch) {
+      const phone = c.attributes?.WHATSAPP || c.attributes?.SMS || c.attributes?.PHONE || null;
+      // Clean name - avoid duplicates like "Hari Hari" or "Mr. Hari Mr. Hari"
+      let firstName = (c.attributes?.FIRSTNAME || '').trim();
+      let lastName = (c.attributes?.LASTNAME || '').trim();
+      // Remove prefixes
+      const prefixes = ['Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Mr', 'Mrs', 'Ms', 'Dr'];
+      prefixes.forEach(p => {
+        firstName = firstName.replace(new RegExp('^' + p + '\\s*', 'i'), '').trim();
+        lastName = lastName.replace(new RegExp('^' + p + '\\s*', 'i'), '').trim();
+      });
+      // Avoid duplicate words in name
+      let fullName = firstName;
+      if (lastName && lastName.toLowerCase() !== firstName.toLowerCase()) {
+        fullName = (firstName + ' ' + lastName).trim();
+      }
+      // Take only first word if name looks messy (has numbers or special chars)
+      if (/[0-9+()]/.test(fullName)) fullName = firstName.split(' ')[0];
+      fullName = fullName || 'Customer';
+      if (phone) contacts.push({ phone: String(phone).trim(), name: fullName, email: c.email });
+    }
+    if (batch.length < limit) break;
+    offset += limit;
   }
-  if (!contacts.length) { document.getElementById('waProgress').innerText = 'No contacts found.'; return; }
-  document.getElementById('waProgress').innerText = `Sending to ${contacts.length} contacts...`;
-  let sent=0, failed=0;
-  for (let i=0; i<contacts.length; ++i) {
+  return contacts;
+}
+
+// Brevo batch lists mapping
+const WA_BATCH_LISTS = {
+  residential: [
+    { label: 'R1', listId: 46 },
+    { label: 'R2', listId: 47 },
+    { label: 'R3', listId: 48 },
+    { label: 'R4', listId: 49 },
+    { label: 'R5', listId: 50 },
+    { label: 'R6', listId: 51 }
+  ],
+  commercial: [
+    { label: 'C1', listId: 52 },
+    { label: 'C2', listId: 53 },
+    { label: 'C3', listId: 54 },
+    { label: 'C4', listId: 55 },
+    { label: 'C5', listId: 56 },
+    { label: 'C6', listId: 57 }
+  ]
+};
+
+async function loadWACampaignContacts() {
+  const segment = document.getElementById('waSegment').value;
+  if (!segment) return;
+
+  const batchSel = document.getElementById('waBatchSelect');
+  const countEl = document.getElementById('waContactCount');
+  const previewEl = document.getElementById('waBatchPreview');
+
+  batchSel.innerHTML = '<option value="">-- Select Batch --</option>';
+  countEl.innerText = '';
+  previewEl.innerHTML = '';
+
+  if (segment === 'residential' || segment === 'commercial') {
+    const batches = WA_BATCH_LISTS[segment];
+    batches.forEach(b => {
+      batchSel.innerHTML += `<option value="${b.listId}">${b.label} · Brevo List ${b.listId}</option>`;
+    });
+    countEl.innerText = `${batches.length} batches available · Select one to load contacts`;
+    previewEl.innerHTML = '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">' +
+      batches.map(b => `<div style="background:#0e0e1a;border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:12px;"><b>${b.label}</b><br><span style="color:#8888aa;">List ${b.listId}</span></div>`).join('') +
+      '</div>';
+  } else if (segment === 'all') {
+    batchSel.innerHTML = '<option value="34">All Contacts · List 34 (2383)</option>';
+    countEl.innerText = '1 batch · All 2383 contacts';
+  } else if (segment === 'crm_leads') {
+    batchSel.innerHTML = '<option value="crm">CRM Leads</option>';
+    countEl.innerText = 'CRM Leads selected';
+  }
+}
+
+async function startWABulkSend() {
+  if (waCampaignActive) { alert('Campaign already running!'); return; }
+  const template = document.getElementById('waTemplate').value;
+  const batchIndex = parseInt(document.getElementById('waBatchSelect').value);
+  if (!template) { alert('Select a template'); return; }
+  if (!waCampaignContacts.length) { alert('Load contacts first by selecting a segment'); return; }
+  if (isNaN(batchIndex)) { alert('Select which batch to send'); return; }
+
+  const batch = waCampaignBatches[batchIndex];
+  if (!batch) { alert('Invalid batch'); return; }
+
+  if (!confirm(`Send "${template}" to ${batch.length} contacts in Batch ${batchIndex+1}?\nEstimated cost: Rs.${(batch.length * 0.78).toFixed(2)}`)) return;
+
+  waCampaignActive = true;
+  let sent = 0, failed = 0, skipped = 0;
+  const progress = document.getElementById('waProgress');
+  const bar = document.getElementById('waProgressBar');
+
+  for (let i = 0; i < batch.length; i++) {
+    const contact = batch[i];
     try {
-      await window.TIC_WA.sendText(contacts[i], '[TEMPLATE] '+template);
+      await window.TIC_WA.sendTemplate(contact.phone, template, 'en', [contact.name]);
       sent++;
-    } catch(e) { failed++; }
-    document.getElementById('waProgress').innerText = `Sent: ${sent}, Failed: ${failed}, Remaining: ${contacts.length-i-1}`;
-    await new Promise(r=>setTimeout(r,5)); // Rate limit stub
+    } catch(e) {
+      failed++;
+    }
+    const pct = Math.round(((i+1)/batch.length)*100);
+    progress.innerText = `Sending... ${i+1}/${batch.length} | ✅ ${sent} sent | ❌ ${failed} failed`;
+    bar.style.width = pct + '%';
+    await new Promise(r => setTimeout(r, 3200)); // 3.2 sec between sends (rate limit)
   }
-  document.getElementById('waProgress').innerText = `Done. Sent: ${sent}, Failed: ${failed}`;
+
+  waCampaignActive = false;
+  progress.innerText = `✅ Done! Sent: ${sent} | Failed: ${failed} | Total: ${batch.length}`;
+  bar.style.width = '100%';
+
+  // Save campaign record to Firestore
+  await firebase.firestore().collection('wa_campaigns').add({
+    template, segment: document.getElementById('waSegment').value,
+    batchIndex, totalContacts: batch.length,
+    sent, failed,
+    sentBy: firebase.auth().currentUser?.email || 'unknown',
+    sentAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
 }
 // End WhatsApp Campaigns Tab Logic
 function switchCampaignTab(tab) {
@@ -259,10 +369,12 @@ window.addEventListener('DOMContentLoaded',()=>{
   <div class="wa-campaigns-ui" style="background:var(--card);border-radius:14px;padding:24px 20px 20px 20px;max-width:700px;margin-bottom:30px;">
     <div style="margin-bottom:18px;">
       <label class="form-label">Segment</label>
-      <select id="waSegment" class="form-input">
+      <select id="waSegment" class="form-input" onchange="loadWACampaignContacts()">
         <option value="">Select segment...</option>
-        <option value="crm_leads">CRM Leads (by stage/sector)</option>
-        <option value="brevo_list">Brevo List</option>
+        <option value="residential">Residential (Brevo List 32 · 1,270 contacts)</option>
+        <option value="commercial">Commercial (Brevo List 33 · 971 contacts)</option>
+        <option value="all">All Contacts (Brevo List 34)</option>
+        <option value="crm_leads">CRM Leads</option>
       </select>
     </div>
     <div style="margin-bottom:18px;">
@@ -276,6 +388,21 @@ window.addEventListener('DOMContentLoaded',()=>{
       <div id="waCostPreview" class="info-box">Select template to see cost per message.</div>
     </div>
     <div style="margin-bottom:18px;">
+            <div id="waContactCount" style="font-size:0.85rem; color:var(--primary); margin:8px 0;"></div>
+      <div style="margin-bottom:12px;">
+        <label style="display:block; font-size:0.8rem; margin-bottom:5px; color:#aaa;">Select Batch (200 contacts/batch):</label>
+        <select id="waBatchSelect" class="form-input"></select>
+        <div id="waBatchPreview" style="margin-top:10px; font-size:0.8rem; color:#aaa; max-height:100px; overflow-y:auto; background:#1a1a1a; padding:5px; border-radius:4px; border:1px solid #333;"></div>
+      </div>
+      <div id="waProgressWrap" style="display:none; margin-bottom:12px;">
+        <div style="height:10px; background:#222; border-radius:5px; overflow:hidden;">
+          <div id="waProgressBar" style="width:0%; height:100%; background:var(--primary); transition:width 0.3s;"></div>
+        </div>
+        <div id="waStatusText" style="font-size:0.75rem; text-align:center; margin-top:5px; color:#aaa;"></div>
+      </div>
+      <button class="btn btn-success" style="min-width:180px;" onclick="startWABulkSend()"><i class="fa fa-paper-plane"></i> Start Bulk Send</button>
+      <hr style="border-color:#333; margin:15px 0;">
+      <div style="font-size:0.8rem; color:#aaa; margin-bottom:6px;">Or send to single number:</div>
       <input id="waPhone" class="form-input" placeholder="Enter WhatsApp number (e.g. +919876543210)" style="max-width:220px;display:inline-block;margin-right:10px;">
       <button class="btn btn-success" style="min-width:140px;" onclick="startWAIndividualSend()"><i class="fa fa-paper-plane"></i> Send Message</button>
       <span id="waProgress" style="margin-left:18px;color:var(--primary);"></span>
