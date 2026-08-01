@@ -296,7 +296,7 @@ async function onBatchSelected() {
   const listId = document.getElementById('waBatchSelect').value;
   const countEl = document.getElementById('waContactCount');
   if (!listId || !segment) return;
-  countEl.innerText = 'Loading contacts...';
+  countEl.innerText = 'Loading contacts from batch list...';
   waCampaignContacts = [];
   if (segment === 'crm_leads') {
     const snap = await firebase.firestore().collection('leads').get();
@@ -305,9 +305,10 @@ async function onBatchSelected() {
       if (data.phone) waCampaignContacts.push({ phone: String(data.phone), name: data.name || 'Customer' });
     });
   } else {
+    // Fetch from specific batch list (not master list)
     waCampaignContacts = await fetchBrevoContacts(parseInt(listId));
   }
-  countEl.innerText = `✅ ${waCampaignContacts.length} contacts loaded with phone numbers · Ready to send`;
+  countEl.innerText = `✅ ${waCampaignContacts.length} contacts in this batch · Ready to send`;
 }
 
 async function startWABulkSend() {
