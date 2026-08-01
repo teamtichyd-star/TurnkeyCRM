@@ -101,7 +101,8 @@
     <button id="tabWA" class="btn btn-secondary btn-sm" onclick="switchCampaignTab('wa')">WhatsApp Campaigns</button>
   </div>
   <button class="btn btn-secondary btn-sm" onclick="loadCampaigns()"><i class="fa fa-sync"></i> Refresh</button>
-  <button class="btn btn-primary btn-sm" onclick="openNewCampaignModal()"><i class="fa fa-plus"></i> New Campaign</button>
+  <button id="btnNewEmail" class="btn btn-primary btn-sm" onclick="openNewCampaignModal()">📧 New Email Campaign</button>
+  <button id="btnNewWA" class="btn btn-success btn-sm" onclick="openNewWACampaignModal()" style="display:none;">💬 New WhatsApp Campaign</button>
 </div>
 <script src="js/whatsapp.js"></script>
 <script>
@@ -543,9 +544,14 @@ function switchCampaignTab(tab) {
   const statsRow = document.querySelector('.stats-row');
   const filtersBar = document.querySelector('.filters-bar');
   const campaignsList = document.getElementById('campaignsList');
+  const waAnalytics = document.getElementById('waAnalytics') ? document.getElementById('waAnalytics').closest('.wa-campaigns-ui') : null;
   if (statsRow) statsRow.style.display = (tab==='email') ? '' : 'none';
   if (filtersBar) filtersBar.style.display = (tab==='email') ? '' : 'none';
   if (campaignsList) campaignsList.style.display = (tab==='email') ? '' : 'none';
+  const btnEmail = document.getElementById('btnNewEmail');
+  const btnWA = document.getElementById('btnNewWA');
+  if (btnEmail) btnEmail.style.display = (tab==='email') ? '' : 'none';
+  if (btnWA) btnWA.style.display = (tab==='wa') ? '' : 'none';
 }
 window.addEventListener('DOMContentLoaded',()=>{
   if(!document.getElementById('waCampaigns'))return;
@@ -592,7 +598,6 @@ window.addEventListener('DOMContentLoaded',()=>{
   <!-- Top Bar -->
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
     <h2 style="color:var(--primary);font-size:17px;flex:1;margin:0;"><i class='fab fa-whatsapp' style='color:#25d366;margin-right:8px;'></i>WhatsApp Campaigns</h2>
-    <button class="btn btn-primary btn-sm" onclick="openNewWACampaignModal()"><i class="fa fa-plus"></i> New Campaign</button>
   </div>
 
   <!-- WA Stats Row -->
