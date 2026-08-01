@@ -203,6 +203,180 @@ async function startWAIndividualSend() {
 window.waCampaignContacts = [];
 window.waCampaignBatches = [];
 let waCampaignActive = false;
+let allWACampaigns = [];
+
+const WA_BATCH_INFO = {
+  residential: { label: '🏠 Residential', batches: [
+    {label:'R1',listId:46,count:212},{label:'R2',listId:47,count:212},
+    {label:'R3',listId:48,count:212},{label:'R4',listId:49,count:212},
+    {label:'R5',listId:50,count:212},{label:'R6',listId:51,count:210}
+  ]},
+  commercial: { label: '🏢 Commercial', batches: [
+    {label:'C1',listId:52,count:162},{label:'C2',listId:53,count:162},
+    {label:'C3',listId:54,count:162},{label:'C4',listId:55,count:162},
+    {label:'C5',listId:56,count:162},{label:'C6',listId:57,count:161}
+  ]}
+};
+
+async function loadWACampaigns() {
+  try {
+    const snap = await db.collection('wa_campaigns').orderBy('createdAt','desc').get();
+    allWACampaigns = snap.docs.map(d=>({id:d.id,...d.data()}));
+    updateWAStats();
+    renderWACampaigns();
+  } catch(e) { console.error('Load WA campaigns failed:',e); }
+}
+
+function updateWAStats() {
+  document.getElementById('waStatTotal').innerText = allWACampaigns.length;
+  document.getElementById('waStatActive').innerText = allWACampaigns.filter(c=>c.status==='in_progress').length;
+  document.getElementById('waStatDone').innerText = allWACampaigns.filter(c=>c.status==='completed').length;
+  document.getElementById('waStatSent').innerText = allWACampaigns.reduce((s,c)=>s+(c.totalSent||0),0);
+}
+
+async function renderWACampaigns() {
+  const list = document.getElementById('waCampaignList');
+  if (!allWACampaigns.length) {
+    list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--subtext);"><i class="fab fa-whatsapp" style="font-size:40px;opacity:0.3;"></i><p style="margin-top:10px;">No WhatsApp campaigns yet.</p></div>';
+    return;
+  }
+  let html = '';
+  for (const c of allWACampaigns) {
+    const info = WA_BATCH_INFO[c.audience];
+    if (!info) continue;
+    const batches = info.batches;
+    const sentCount = c.sentBatches ? c.sentBatches.length : 0;
+    const audLabel = info.label;
+    const statusColor = c.status==='completed' ? '#5dbb6e' : '#ffb74d';
+    const statusLabel = c.status==='completed' ? 'Completed' : 'In Progress';
+
+    let tiles = batches.map(b => {
+      const isSent = c.sentBatches && c.sentBatches.includes(b.label);
+      const sentDate = c.batchDates && c.batchDates[b.label] ? '<div style="font-size:9px;color:#5dbb6e;margin-top:2px;">'+new Date(c.batchDates[b.label]).toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+'</div>' : '';
+      return '<div style="background:'+(isSent?'rgba(76,175,80,0.15)':'var(--darker)')+';border:1px solid '+(isSent?'#4caf50':'var(--border)')+';border-radius:8px;padding:8px;text-align:center;font-size:11px;">'
+        +'<div style="font-weight:700;">'+(isSent?'✅ ':'')+b.label+'</div>'
+        +'<div style="color:var(--subtext);font-size:10px;">'+b.count+'</div>'
+        +sentDate+'</div>';
+    }).join('');
+
+    const nextBatch = batches.find(b => !c.sentBatches || !c.sentBatches.includes(b.label));
+    const nextBanner = nextBatch && c.status!=='completed'
+      ? '<div style="margin-top:10px;padding:8px 12px;background:rgba(37,211,102,0.1);border:1px solid rgba(37,211,102,0.3);border-radius:8px;font-size:12px;color:#25d366;"><i class="fa fa-clock"></i> Next: <b>'+nextBatch.label+'</b> ('+nextBatch.count+' contacts · Rs.'+(nextBatch.count*0.78).toFixed(0)+')</div>'
+      : '';
+
+    html += '<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:4px;">'
+      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;gap:8px;">'
+        +'<div>'
+          +'<div style="font-size:15px;font-weight:600;">'+c.name+'</div>'
+          +'<div style="font-size:12px;color:var(--subtext);margin-top:3px;">'+audLabel+' · <span style="color:'+statusColor+';">'+statusLabel+'</span> · '+sentCount+'/'+batches.length+' batches · '+(c.totalSent||0)+' sent</div>'
+          +'<div style="font-size:11px;color:var(--subtext);margin-top:2px;">Template: '+c.template+'</div>'
+        +'</div>'
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:6px;margin-bottom:8px;">'+tiles+'</div>'
+      +nextBanner
+      +'<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">'
+        +(nextBatch && c.status!=='completed' ? '<button class="btn btn-success btn-sm" onclick="openWASendBatch(''+c.id+'',''+nextBatch.label+'','+nextBatch.listId+','+nextBatch.count+')"><i class="fa fa-paper-plane"></i> Send '+nextBatch.label+'</button>' : '')
+        +'<button class="btn btn-secondary btn-sm" onclick="deleteWACampaign(''+c.id+'')"><i class="fa fa-trash"></i> Delete</button>'
+      +'</div>'
+    +'</div>';
+  }
+  list.innerHTML = html;
+}
+
+function openNewWACampaignModal() {
+  document.getElementById('newWACampaignModal').style.display = 'flex';
+  document.getElementById('wacName').value = '';
+  document.getElementById('wacAudience').value = '';
+  document.getElementById('wacTemplate').value = '';
+}
+function closeNewWACampaignModal() {
+  document.getElementById('newWACampaignModal').style.display = 'none';
+}
+
+async function createWACampaign() {
+  const name = document.getElementById('wacName').value.trim();
+  const audience = document.getElementById('wacAudience').value;
+  const template = document.getElementById('wacTemplate').value;
+  if (!name || !audience || !template) { alert('Fill all fields'); return; }
+  try {
+    await db.collection('wa_campaigns').add({
+      name, audience, template,
+      status: 'in_progress',
+      sentBatches: [],
+      batchDates: {},
+      totalSent: 0,
+      createdBy: auth.currentUser?.email || 'unknown',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    closeNewWACampaignModal();
+    loadWACampaigns();
+  } catch(e) { alert('Error: '+e.message); }
+}
+
+async function openWASendBatch(campaignId, batchLabel, listId, count) {
+  if (waCampaignActive) { alert('A send is already running!'); return; }
+  const c = allWACampaigns.find(x=>x.id===campaignId);
+  if (!c) return;
+  if (c.sentBatches && c.sentBatches.includes(batchLabel)) { alert(batchLabel+' already sent!'); return; }
+  if (!confirm('Send "'+c.template+'" to '+count+' contacts in '+batchLabel+'?\nEstimated cost: Rs.'+(count*0.78).toFixed(0))) return;
+
+  waCampaignActive = true;
+  const modal = document.getElementById('waSendProgressModal');
+  const bar = document.getElementById('waSendBar');
+  const status = document.getElementById('waSendStatus');
+  modal.style.display = 'flex';
+  bar.style.width = '0%';
+  status.innerText = 'Loading contacts from Brevo...';
+
+  try {
+    const contacts = await fetchBrevoContacts(listId);
+    if (!contacts.length) { status.innerText = 'No contacts with phone numbers found.'; waCampaignActive=false; return; }
+
+    let sent=0, failed=0;
+    status.innerText = 'Starting send to '+contacts.length+' contacts...';
+
+    for (let i=0; i<contacts.length; i++) {
+      const ct = contacts[i];
+      try {
+        await window.TIC_WA.sendTemplate(ct.phone, c.template, 'en', [ct.name]);
+        sent++;
+      } catch(e) { failed++; }
+      const pct = Math.round(((i+1)/contacts.length)*100);
+      bar.style.width = pct+'%';
+      status.innerText = sent+' sent · '+failed+' failed · '+(contacts.length-i-1)+' remaining';
+      await new Promise(r=>setTimeout(r,3200));
+    }
+
+    const newSentBatches = [...(c.sentBatches||[]), batchLabel];
+    const newDates = {...(c.batchDates||{}), [batchLabel]: new Date().toISOString()};
+    const allBatches = WA_BATCH_INFO[c.audience].batches;
+    const allDone = allBatches.every(b=>newSentBatches.includes(b.label));
+    await db.collection('wa_campaigns').doc(campaignId).update({
+      sentBatches: newSentBatches,
+      batchDates: newDates,
+      totalSent: (c.totalSent||0)+sent,
+      status: allDone ? 'completed' : 'in_progress'
+    });
+
+    status.innerText = '✅ Done! Sent: '+sent+' · Failed: '+failed;
+    bar.style.width = '100%';
+    loadWACampaigns();
+  } catch(e) {
+    status.innerText = 'Error: '+e.message;
+  }
+  waCampaignActive = false;
+}
+
+function closeWASendModal() {
+  if (waCampaignActive) { alert('Send in progress! Please wait.'); return; }
+  document.getElementById('waSendProgressModal').style.display = 'none';
+}
+
+async function deleteWACampaign(id) {
+  if (!confirm('Delete this WhatsApp campaign?')) return;
+  await db.collection('wa_campaigns').doc(id).delete();
+  loadWACampaigns();
+}
 
 async function fetchBrevoContacts(listId) {
   let contacts = [];
@@ -364,10 +538,32 @@ function switchCampaignTab(tab) {
   document.getElementById('tabEmail').classList.toggle('btn-secondary', tab!=='email');
   document.getElementById('tabWA').classList.toggle('btn-primary', tab==='wa');
   document.getElementById('tabWA').classList.toggle('btn-secondary', tab!=='wa');
+  if (tab==='wa') loadWACampaigns();
 }
 window.addEventListener('DOMContentLoaded',()=>{
   if(!document.getElementById('waCampaigns'))return;
   switchCampaignTab('email');
+  // Populate WA template dropdowns when brevo templates load
+  const origLoad = window.loadBrevoCampaigns;
+  window.loadBrevoCampaigns = async function() {
+    await origLoad.call(this);
+    // Populate WA template selects from loaded templates
+    const waTemplates = [
+      {name:'awareness_promo',cat:'MARKETING'},
+      {name:'festive_offer',cat:'MARKETING'},
+      {name:'proposal_sent',cat:'UTILITY'},
+      {name:'sales_followup',cat:'MARKETING'},
+      {name:'request_details_commercial',cat:'UTILITY'},
+      {name:'request_details_residential',cat:'UTILITY'},
+      {name:'residential_lead_welcome',cat:'MARKETING'},
+      {name:'commercial_lead_welcome',cat:'MARKETING'}
+    ];
+    const opts = waTemplates.map(t=>'<option value="'+t.name+'">'+t.name+' ('+t.cat+')</option>').join('');
+    ['wacTemplate','waTemplate'].forEach(id=>{
+      const el = document.getElementById(id);
+      if(el) el.innerHTML = '<option value="">Select template...</option>'+opts;
+    });
+  };
 });
 </script>
 <!-- End Tab Switcher -->
@@ -384,50 +580,58 @@ window.addEventListener('DOMContentLoaded',()=>{
 
 <!-- Main Content -->
 <div id="mainContent" style="display:none;"></div>
-<div id="waCampaigns" style="display:none;padding:24px 20px 40px;">
-  <h2 style="color:var(--primary);font-size:18px;margin-bottom:18px;"><i class='fa fa-whatsapp' style='color:#25d366;margin-right:8px;'></i>WhatsApp Campaigns</h2>
-  <div class="wa-campaigns-ui" style="background:var(--card);border-radius:14px;padding:24px 20px 20px 20px;max-width:700px;margin-bottom:30px;">
-    <div style="margin-bottom:18px;">
-      <label class="form-label">Segment</label>
-      <select id="waSegment" class="form-input" onchange="loadWACampaignContacts()">
-        <option value="">Select segment...</option>
-        <option value="residential">Residential (Brevo List 32 · 1,270 contacts)</option>
-        <option value="commercial">Commercial (Brevo List 33 · 971 contacts)</option>
-        <option value="all">All Contacts (Brevo List 34)</option>
-        <option value="crm_leads">CRM Leads</option>
+<div id="waCampaigns" style="display:none;padding:16px 12px 40px;">
+
+  <!-- Top Bar -->
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+    <h2 style="color:var(--primary);font-size:17px;flex:1;margin:0;"><i class='fab fa-whatsapp' style='color:#25d366;margin-right:8px;'></i>WhatsApp Campaigns</h2>
+    <button class="btn btn-primary btn-sm" onclick="openNewWACampaignModal()"><i class="fa fa-plus"></i> New Campaign</button>
+  </div>
+
+  <!-- WA Stats Row -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-bottom:16px;">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;">
+      <div style="font-size:22px;font-weight:700;color:var(--primary);" id="waStatTotal">0</div>
+      <div style="font-size:11px;color:var(--subtext);">Total Campaigns</div>
+    </div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;">
+      <div style="font-size:22px;font-weight:700;color:#ffb74d;" id="waStatActive">0</div>
+      <div style="font-size:11px;color:var(--subtext);">In Progress</div>
+    </div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;">
+      <div style="font-size:22px;font-weight:700;color:#5dbb6e;" id="waStatDone">0</div>
+      <div style="font-size:11px;color:var(--subtext);">Completed</div>
+    </div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;">
+      <div style="font-size:22px;font-weight:700;color:#25d366;" id="waStatSent">0</div>
+      <div style="font-size:11px;color:var(--subtext);">Messages Sent</div>
+    </div>
+  </div>
+
+  <!-- WA Campaign List -->
+  <div id="waCampaignList" style="display:flex;flex-direction:column;gap:12px;">
+    <div style="text-align:center;padding:40px;color:var(--subtext);">
+      <i class="fab fa-whatsapp" style="font-size:40px;opacity:0.3;"></i>
+      <p style="margin-top:10px;">No WhatsApp campaigns yet. Click "New Campaign" to start.</p>
+    </div>
+  </div>
+
+  <!-- Single Send (Quick) -->
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-top:20px;">
+    <div style="font-size:13px;font-weight:600;color:var(--primary);margin-bottom:12px;"><i class="fa fa-paper-plane"></i> Quick Send (Single Number)</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <input id="waPhone" class="form-input" placeholder="+919876543210" style="flex:1;min-width:160px;max-width:220px;">
+      <select id="waTemplate" class="form-input" style="flex:1;min-width:200px;" onchange="updateWACostPreview()">
+        <option value="">Select template...</option>
       </select>
+      <button class="btn btn-success" onclick="startWAIndividualSend()"><i class="fa fa-paper-plane"></i> Send</button>
     </div>
-    <div style="margin-bottom:18px;">
-      <label class="form-label">Template</label>
-      <select id="waTemplate" class="form-input">
-        <option value="">Loading templates...</option>
-      </select>
-    </div>
-    <div style="margin-bottom:18px;">
-      <label class="form-label">Cost Preview</label>
-      <div id="waCostPreview" class="info-box">Select template to see cost per message.</div>
-    </div>
-    <div style="margin-bottom:18px;">
-            <div id="waContactCount" style="font-size:0.85rem; color:var(--primary); margin:8px 0;"></div>
-      <div style="margin-bottom:12px;">
-        <label style="display:block; font-size:0.8rem; margin-bottom:5px; color:#aaa;">Select Batch (200 contacts/batch):</label>
-        <select id="waBatchSelect" class="form-input" onchange="onBatchSelected()"></select>
-        <div id="waBatchPreview" style="margin-top:10px; font-size:0.8rem; color:#aaa; max-height:100px; overflow-y:auto; background:#1a1a1a; padding:5px; border-radius:4px; border:1px solid #333;"></div>
-      </div>
-      <div id="waProgressWrap" style="display:none; margin-bottom:12px;">
-        <div style="height:10px; background:#222; border-radius:5px; overflow:hidden;">
-          <div id="waProgressBar" style="width:0%; height:100%; background:var(--primary); transition:width 0.3s;"></div>
-        </div>
-        <div id="waStatusText" style="font-size:0.75rem; text-align:center; margin-top:5px; color:#aaa;"></div>
-      </div>
-      <button class="btn btn-success" style="min-width:180px;" onclick="startWABulkSend()"><i class="fa fa-paper-plane"></i> Start Bulk Send</button>
-      <hr style="border-color:#333; margin:15px 0;">
-      <div style="font-size:0.8rem; color:#aaa; margin-bottom:6px;">Or send to single number:</div>
-      <input id="waPhone" class="form-input" placeholder="Enter WhatsApp number (e.g. +919876543210)" style="max-width:220px;display:inline-block;margin-right:10px;">
-      <button class="btn btn-success" style="min-width:140px;" onclick="startWAIndividualSend()"><i class="fa fa-paper-plane"></i> Send Message</button>
-      <span id="waProgress" style="margin-left:18px;color:var(--primary);"></span>
-    </div>
-    <div style="margin-bottom:0;">
+    <div id="waCostPreview" style="font-size:12px;color:var(--subtext);margin-top:8px;"></div>
+    <div id="waProgress" style="font-size:12px;color:var(--primary);margin-top:6px;"></div>
+    <div id="waTemplateContent" style="display:none;"></div>
+  </div>
+
+  <div style="margin-bottom:0;">
       <label class="form-label">Analytics</label>
       <div id="waAnalytics" class="info-box">Analytics will appear here after sending.</div>
     </div>
@@ -1221,6 +1425,67 @@ document.getElementById("audienceFilter").addEventListener("change", renderCampa
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeDetailModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- New WA Campaign Modal -->
+<div id="newWACampaignModal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeNewWACampaignModal()">
+  <div class="modal-box" style="max-width:480px;">
+    <div class="modal-header">
+      <h3><i class="fab fa-whatsapp" style="color:#25d366;"></i> New WhatsApp Campaign</h3>
+      <button class="modal-close" onclick="closeNewWACampaignModal()"><i class="fa fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <div>
+        <label class="form-label">Campaign Name *</label>
+        <input id="wacName" class="form-input" placeholder="e.g. August Residential WA 2026">
+      </div>
+      <div>
+        <label class="form-label">Audience *</label>
+        <select id="wacAudience" class="form-input">
+          <option value="">Select audience...</option>
+          <option value="residential">🏠 Residential (1,270 contacts · R1-R6)</option>
+          <option value="commercial">🏢 Commercial (971 contacts · C1-C6)</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">WhatsApp Template *</label>
+        <select id="wacTemplate" class="form-input">
+          <option value="">Select template...</option>
+        </select>
+      </div>
+      <div class="info-box" style="font-size:12px;">
+        <i class="fa fa-info-circle"></i> Campaign will be split into 6 batches. Send 1 batch per day for best results.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="createWACampaign()"><i class="fa fa-save"></i> Create Campaign</button>
+      <button class="btn btn-secondary" onclick="closeNewWACampaignModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- WA Send Progress Modal -->
+<div id="waSendProgressModal" class="modal-overlay" style="display:none;">
+  <div class="modal-box" style="max-width:440px;text-align:center;">
+    <div class="modal-header">
+      <h3><i class="fab fa-whatsapp" style="color:#25d366;"></i> Sending WhatsApp Messages</h3>
+      <button class="modal-close" onclick="closeWASendModal()"><i class="fa fa-times"></i></button>
+    </div>
+    <div class="modal-body" style="padding:24px;">
+      <div style="margin-bottom:16px;">
+        <div style="height:12px;background:var(--darker);border-radius:6px;overflow:hidden;margin-bottom:10px;">
+          <div id="waSendBar" style="width:0%;height:100%;background:#25d366;transition:width 0.5s;border-radius:6px;"></div>
+        </div>
+        <div id="waSendStatus" style="font-size:13px;color:var(--subtext);">Preparing...</div>
+      </div>
+      <div class="info-box" style="font-size:12px;text-align:left;">
+        <i class="fa fa-clock"></i> Sending with 3 second delay between messages to avoid spam detection. Do not close this window.
+      </div>
+    </div>
+    <div class="modal-footer" style="justify-content:center;">
+      <button class="btn btn-secondary" onclick="closeWASendModal()">Close (after send completes)</button>
     </div>
   </div>
 </div>
