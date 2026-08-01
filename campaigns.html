@@ -275,8 +275,8 @@ async function renderWACampaigns() {
       +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:6px;margin-bottom:8px;">'+tiles+'</div>'
       +nextBanner
       +'<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">'
-        +(nextBatch && c.status!=='completed' ? '<button class="btn btn-success btn-sm" onclick="openWASendBatch(''+c.id+'',''+nextBatch.label+'','+nextBatch.listId+','+nextBatch.count+')"><i class="fa fa-paper-plane"></i> Send '+nextBatch.label+'</button>' : '')
-        +'<button class="btn btn-secondary btn-sm" onclick="deleteWACampaign(''+c.id+'')"><i class="fa fa-trash"></i> Delete</button>'
+        +(nextBatch && c.status!=='completed' ? '<button class="btn btn-success btn-sm" onclick="openWASendBatch(\''+c.id+'\',\''+nextBatch.label+'\','+nextBatch.listId+','+nextBatch.count+')"><i class="fa fa-paper-plane"></i> Send '+nextBatch.label+'</button>' : '')
+        +'<button class="btn btn-secondary btn-sm" onclick="deleteWACampaign(\''+c.id+'\')"><i class="fa fa-trash"></i> Delete</button>'
       +'</div>'
     +'</div>';
   }
