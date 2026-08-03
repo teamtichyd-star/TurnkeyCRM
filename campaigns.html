@@ -272,7 +272,7 @@ async function renderWACampaigns() {
         ? 'background:rgba(76,175,80,0.2);color:#5dbb6e;border:1px solid #4caf50;'
         : 'background:var(--darker);color:var(--text);border:1px solid var(--border);';
       const icon = isSent ? '✅' : '📤';
-      return '<button class="btn btn-sm" style="'+btnStyle+'font-size:11px;" onclick="openWASendBatch('+JSON.stringify(c.id)+','+JSON.stringify(b.label)+','+b.listId+','+b.count+')">'+icon+' '+b.label+'</button>';
+      return '<button class="btn btn-sm" style="'+btnStyle+'font-size:11px;" data-cid="'+c.id+'" data-batch="'+b.label+'" data-lid="'+b.listId+'" data-cnt="'+b.count+'" onclick="openWASendBatch(this.dataset.cid,this.dataset.batch,this.dataset.lid,this.dataset.cnt)">'+icon+' '+b.label+'</button>';
     }).join('');
 
     html += '<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:4px;">'
