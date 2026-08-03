@@ -272,7 +272,7 @@ async function renderWACampaigns() {
         ? 'background:rgba(76,175,80,0.2);color:#5dbb6e;border:1px solid #4caf50;'
         : 'background:var(--darker);color:var(--text);border:1px solid var(--border);';
       const icon = isSent ? '✅' : '📤';
-      return '<button class="btn btn-sm" style="'+btnStyle+'font-size:11px;" onclick="openWASendBatch(\''+c.id+'\',\''+b.label+'\','+b.listId+','+b.count+'\')">'+icon+' '+b.label+'</button>';
+      return '<button class="btn btn-sm" style="'+btnStyle+'font-size:11px;" onclick="openWASendBatch(\''+c.id+'\',\''+b.label+'\','+b.listId+','+b.count+')">'+icon+' '+b.label+'</button>';
     }).join('');
 
     html += '<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:4px;">'
@@ -341,7 +341,8 @@ async function openWASendBatch(campaignId, batchLabel, listId, count) {
   status.innerText = 'Loading contacts from Brevo...';
 
   try {
-    const contacts = await fetchBrevoContacts(listId);
+    let contacts = await fetchBrevoContacts(listId);
+    if (window.WA_TEST_LIMIT) { contacts = contacts.slice(0, window.WA_TEST_LIMIT); }
     if (!contacts.length) { status.innerText = 'No contacts with phone numbers found.'; waCampaignActive=false; return; }
 
     let sent=0, failed=0;
@@ -357,6 +358,13 @@ async function openWASendBatch(campaignId, batchLabel, listId, count) {
       bar.style.width = pct+'%';
       status.innerText = sent+' sent · '+failed+' failed · '+(contacts.length-i-1)+' remaining';
       await new Promise(r=>setTimeout(r,3200));
+    }
+
+    if (window.WA_TEST_LIMIT) {
+      status.innerText = '✅ TEST done (batch NOT marked sent): Sent '+sent+' · Failed '+failed;
+      bar.style.width = '100%';
+      waCampaignActive = false;
+      return;
     }
 
     const newSentBatches = [...(c.sentBatches||[]), batchLabel];
@@ -379,6 +387,11 @@ async function openWASendBatch(campaignId, batchLabel, listId, count) {
   waCampaignActive = false;
 }
 
+function showAllBatches(id) {
+  const el = document.getElementById('allBatches_' + id);
+  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
 function closeWASendModal() {
   if (waCampaignActive) { alert('Send in progress! Please wait.'); return; }
   document.getElementById('waSendProgressModal').style.display = 'none';
@@ -395,7 +408,7 @@ async function fetchBrevoContacts(listId) {
   let offset = 0;
   const limit = 500;
   while (true) {
-    const r = await fetch(`https://api.brevo.com/v3/contacts?limit=${limit}&offset=${offset}&listId=${listId}`, {
+    const r = await fetch(`https://api.brevo.com/v3/contacts/lists/${listId}/contacts?limit=${limit}&offset=${offset}`, {
       headers: { 'accept': 'application/json', 'api-key': brevoConfig.brevoApiKey }
     });
     const data = await r.json();
