@@ -265,6 +265,16 @@ async function renderWACampaigns() {
       ? '<div style="margin-top:10px;padding:8px 12px;background:rgba(37,211,102,0.1);border:1px solid rgba(37,211,102,0.3);border-radius:8px;font-size:12px;color:#25d366;"><i class="fa fa-clock"></i> Next: <b>'+nextBatch.label+'</b> ('+nextBatch.count+' contacts · Rs.'+(nextBatch.count*0.78).toFixed(0)+')</div>'
       : '';
 
+    // All batch send buttons
+    const allBatchButtons = batches.map(b => {
+      const isSent = c.sentBatches && c.sentBatches.includes(b.label);
+      const btnStyle = isSent
+        ? 'background:rgba(76,175,80,0.2);color:#5dbb6e;border:1px solid #4caf50;'
+        : 'background:var(--darker);color:var(--text);border:1px solid var(--border);';
+      const icon = isSent ? '✅' : '📤';
+      return '<button class="btn btn-sm" style="'+btnStyle+'font-size:11px;" onclick="openWASendBatch(\''+c.id+'\',\''+b.label+'\','+b.listId+','+b.count+'\')">'+icon+' '+b.label+'</button>';
+    }).join('');
+
     html += '<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:4px;">'
       +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;gap:8px;">'
         +'<div>'
@@ -275,8 +285,9 @@ async function renderWACampaigns() {
       +'</div>'
       +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:6px;margin-bottom:8px;">'+tiles+'</div>'
       +nextBanner
-      +'<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">'
-        +(nextBatch && c.status!=='completed' ? '<button class="btn btn-success btn-sm" onclick="openWASendBatch(\''+c.id+'\',\''+nextBatch.label+'\','+nextBatch.listId+','+nextBatch.count+')"><i class="fa fa-paper-plane"></i> Send '+nextBatch.label+'</button>' : '')
+      +'<div style="font-size:11px;color:var(--subtext);margin-top:10px;margin-bottom:6px;">Send any batch:</div>'
+      +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">'+allBatchButtons+'</div>'
+      +'<div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;">'
         +'<button class="btn btn-secondary btn-sm" onclick="deleteWACampaign(\''+c.id+'\')"><i class="fa fa-trash"></i> Delete</button>'
       +'</div>'
     +'</div>';
