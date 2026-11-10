@@ -966,6 +966,8 @@
       listenNotifications(user.email);
       listenWaUnread();
       await loadUserData(user.email);
+      tagWaAlertsDevice();
+      if (location.hash === '#whatsapp-inbox') { try { showPage('whatsapp-inbox'); } catch (e) {} }
     } else {
       // User is NOT logged in
       showLoginPage();
@@ -2160,10 +2162,25 @@ async function listenNotifications(userEmail) {
 
 
 <script>
+// Devices of users who can see the WhatsApp Inbox get tag wa_alerts=1 so the
+// webhook worker can push every customer reply to them (see cf-worker sendWaReplyPush).
+function tagWaAlertsDevice() {
+  const role = (typeof currentUserData !== 'undefined' && currentUserData?.role) || '';
+  const allowed = ['superadmin','admin','manager','marketing'].includes(role);
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function(OneSignal) {
+    try {
+      if (allowed) await OneSignal.User.addTag('wa_alerts', '1');
+      else await OneSignal.User.removeTag('wa_alerts');
+    } catch (e) { console.log('wa_alerts tag failed:', e.message); }
+  });
+}
+
 async function saveOneSignalPlayerId(playerId) {
   if (!playerId || !currentUser?.email) return;
   try {
     await db.collection('users').doc(currentUser.email).update({ osPlayerId: playerId });
+    tagWaAlertsDevice();
     console.log('OneSignal Player ID saved:', playerId);
   } catch(e) { console.log('Could not save OneSignal player ID:', e.message); }
 }
