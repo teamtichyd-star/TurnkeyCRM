@@ -62,6 +62,10 @@
     .history-item.present { border-left:3px solid var(--success); }
     .history-item.weekly_off { border-left:3px solid var(--info); }
     .history-item.holiday { border-left:3px solid var(--warning); }
+    .history-item.leave { border-left:3px solid #ce93d8; }
+    .history-item.absent { border-left:3px solid var(--danger); }
+    .type-leave { background:rgba(156,39,176,0.15); color:#ce93d8; }
+    .type-absent { background:rgba(244,67,54,0.15); color:var(--danger); }
     .history-date { font-size:13px; font-weight:700; }
     .history-type { font-size:11px; padding:3px 10px; border-radius:10px; font-weight:600; text-transform:uppercase; }
     .type-present { background:rgba(76,175,80,0.15); color:var(--success); }
@@ -195,6 +199,7 @@ const attRef = db.collection('attendance');
 
 let currentUser = null;
 let currentUserName = '';
+let currentRole = '';
 let todayDoc = null;
 let gpsData = null;
 let allProjects = [];
@@ -216,7 +221,7 @@ async function loadProjects() {
   try {
     const snap = await db.collection('projects').get();
     allProjects = [{id:'office', name:'Office'}];
-    snap.forEach(d => { allProjects.push({id:d.id, name:d.data().name||'Unnamed'}); });
+    snap.forEach(d => { const x=d.data(); allProjects.push({id:d.id, name:x.name||'Unnamed', updateDates:(x.updates||[]).map(u => u.date)}); });
   } catch(e) { console.error(e); allProjects = [{id:'office', name:'Office'}]; }
 }
 
@@ -260,6 +265,10 @@ function renderTodayCard() {
       val.className = 'today-value holiday';
       val.innerHTML = '🏖️ Holiday';
       meta.innerHTML = '';
+    } else {
+      val.className = 'today-value off';
+      val.innerHTML = todayDoc.type === 'leave' ? '🌴 Leave' : '❌ Absent';
+      meta.innerHTML = todayDoc.notes ? '<div class="today-detail">📝 '+todayDoc.notes+'</div>' : '';
     }
   } else {
     val.className = 'today-value pending';
@@ -269,7 +278,51 @@ function renderTodayCard() {
   }
 }
 
-function openMarkModal(type) {
+// Compulsory daily report: the last site this person marked present at (within 3 days)
+// must have a Daily Update filed for that date before they can mark attendance again.
+async function findPendingReport() {
+  if (currentRole === 'accounts') return null; // no Projects access
+  const t = todayStr();
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-3);
+  const cut = cutoff.toISOString().split('T')[0];
+  const snap = await attRef.where('userEmail','==',currentUser.email).get();
+  let prev = null;
+  snap.forEach(d => {
+    const r = d.data();
+    if (r.type==='present' && r.date<t && r.date>=cut && r.projectId && r.projectId!=='office' && (!prev || r.date>prev.date)) prev = r;
+  });
+  if (!prev) return null;
+  const proj = allProjects.find(p => p.id===prev.projectId);
+  if (!proj) return null;
+  return (proj.updateDates||[]).includes(prev.date) ? null : { date: prev.date, project: proj.name };
+}
+
+// Attendance is locked until the employee's Staff Profile is submitted (superadmin exempt).
+async function ensureProfileSubmitted() {
+  if (currentRole === 'superadmin') return true;
+  try {
+    const cfg = await db.collection('settings').doc('staffProfile').get();
+    if (!(cfg.exists && cfg.data().enforceAttendanceLock === true)) return true; // lock is off until admin turns it on
+    const snap = await db.collection('staffProfiles').doc(currentUser.uid).get();
+    const st = snap.exists ? (snap.data().profileStatus || 'draft') : 'notstarted';
+    if (st === 'submitted' || st === 'verified') return true;
+    const note = snap.exists && snap.data().correctionNote ? '\n\nAdmin note: ' + snap.data().correctionNote : '';
+    const go = confirm('Staff Profile pending!\n\nYou must complete and submit your Staff Profile (correct phone numbers, Aadhar, bank details, documents) before you can mark attendance.' + note + '\n\nOpen My Profile now?');
+    if (go) { try { window.parent.showPage('staffprofile'); } catch(e) { window.location.href = 'staff-profile.html'; } }
+    return false;
+  } catch(e) { console.error('profile check skipped:', e); return true; }
+}
+
+async function openMarkModal(type) {
+  if (!(await ensureProfileSubmitted())) return;
+  try {
+    const pending = await findPendingReport();
+    if (pending) {
+      const go = confirm('Daily report pending!\n\nYou must fill the Daily Update for "'+pending.project+'" dated '+pending.date+' before marking today\'s attendance.\n\nOpen Projects now?');
+      if (go) { try { window.parent.showPage('projects'); } catch(e) { window.location.href='projects.html'; } }
+      return;
+    }
+  } catch(e) { console.error('report check skipped:', e); }
   document.getElementById('markNotes').value = '';
   fillProjectDropdown();
   document.getElementById('submitBtn').disabled = true;
@@ -341,6 +394,7 @@ async function submitPresent() {
 }
 
 async function markQuick(type) {
+  if (!(await ensureProfileSubmitted())) return;
   if (!confirm('Mark today as '+(type==='weekly_off'?'Weekly Off':'Holiday')+'?')) return;
   const data = {
     userEmail: currentUser.email,
@@ -394,7 +448,7 @@ async function loadHistory() {
 function renderStats(y, m) {
   const present = historyData.filter(h => h.type==='present').length;
   const off = historyData.filter(h => h.type==='weekly_off').length;
-  const hol = historyData.filter(h => h.type==='holiday').length;
+  const hol = historyData.filter(h => h.type==='holiday').length + historyData.filter(h => h.type==='leave').length;
   const daysInMonth = new Date(y, m, 0).getDate();
   const today = new Date();
   const isCurrentMonth = (today.getFullYear()===y && (today.getMonth()+1)===m);
@@ -425,9 +479,9 @@ function renderHistory() {
   }
   c.innerHTML = historyData.map(h => {
     const dateLabel = new Date(h.date).toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'});
-    const typeLabel = h.type==='present'?'PRESENT':h.type==='weekly_off'?'WEEKLY OFF':'HOLIDAY';
+    const typeLabel = ({present:'PRESENT',weekly_off:'WEEKLY OFF',holiday:'HOLIDAY',leave:'LEAVE',absent:'ABSENT'})[h.type]||h.type.toUpperCase();
     const gpsLink = (h.gpsLat && h.gpsLng) ? '<a href="https://maps.google.com/?q='+h.gpsLat+','+h.gpsLng+'" target="_blank">📍 View on Map</a>' : '';
-    const meta = h.type==='present' ? ('⏰ '+h.time+' • '+(h.projectName||'')+(gpsLink?' • '+gpsLink:'')) : '';
+    const meta = h.type==='present' ? ('⏰ '+(h.time||'')+' • '+(h.projectName||'')+(gpsLink?' • '+gpsLink:'')) : (h.notes ? '📝 '+h.notes : '');
     return '<div class="history-item '+h.type+'">'+
       '<div><div class="history-date">'+dateLabel+'</div><div class="history-meta">'+meta+'</div></div>'+
       '<div class="history-type type-'+h.type+'">'+typeLabel+'</div>'+
@@ -440,7 +494,7 @@ firebase.auth().onAuthStateChanged(async function(user) {
   currentUser = user;
   try {
     const userDoc = await db.collection('users').doc(user.email).get();
-    if (userDoc.exists) currentUserName = userDoc.data().name || user.email;
+    if (userDoc.exists) { currentUserName = userDoc.data().name || user.email; currentRole = userDoc.data().role || ''; }
     else currentUserName = user.email;
   } catch(e) { currentUserName = user.email; }
   await loadProjects();

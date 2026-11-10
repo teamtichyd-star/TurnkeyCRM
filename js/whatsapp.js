@@ -92,7 +92,49 @@ window.TIC_WA = (function() {
     return result;
   }
 
-  async function sendTemplate(toPhone, templateName, lang = 'en', variables = []) {
+  // Meta rejects a template send if the language code doesn't exactly match
+  // what the template was created with (error 132001) — templates made via
+  // the "New Template" form can be en_US, en, hi, te, etc, so a hardcoded
+  // guess at the call site breaks as soon as someone picks a different one.
+  // This looks the real language up from Meta once and caches it.
+  let templateLangCachePromise = null;
+  async function getTemplateLanguageMap(config) {
+    if (!templateLangCachePromise) {
+      templateLangCachePromise = fetch(
+        `https://graph.facebook.com/v19.0/${config.wabaId}/message_templates?fields=name,language&limit=200`,
+        { headers: { Authorization: `Bearer ${config.accessToken}` } }
+      )
+        .then(r => r.json())
+        .then(data => {
+          const map = {};
+          (data.data || []).forEach(t => { map[t.name] = t.language; });
+          return map;
+        })
+        .catch(e => { console.error('WA template language lookup failed:', e); return {}; });
+    }
+    return templateLangCachePromise;
+  }
+
+  // A template with an IMAGE header must include a matching header
+  // parameter in the send request (error 132012 otherwise) — the handle
+  // used at template-creation time is one-time-use, so this looks up the
+  // reusable media id registered when the template was created (see
+  // submitNewTemplate() in campaigns.html) via wa_template_headers.
+  let templateHeaderCachePromise = null;
+  async function getTemplateHeaderMap() {
+    if (!templateHeaderCachePromise) {
+      templateHeaderCachePromise = firebase.firestore().collection('wa_template_headers').get()
+        .then(snap => {
+          const map = {};
+          snap.forEach(doc => { map[doc.id] = doc.data().mediaId; });
+          return map;
+        })
+        .catch(e => { console.error('WA template header lookup failed:', e); return {}; });
+    }
+    return templateHeaderCachePromise;
+  }
+
+  async function sendTemplate(toPhone, templateName, langHint = 'en', variables = []) {
     const now = Date.now();
     if (now - lastSendTime < RATE_LIMIT_MS) {
       throw new Error(`Please wait ${Math.ceil((RATE_LIMIT_MS - (now - lastSendTime))/1000)}s before next send`);
@@ -101,8 +143,19 @@ window.TIC_WA = (function() {
     if (!config) throw new Error("WhatsApp not configured. Contact admin.");
     const to = normalizePhone(toPhone);
     if (!to) throw new Error("Invalid phone number");
+    const langMap = config.wabaId ? await getTemplateLanguageMap(config) : {};
+    const lang = langMap[templateName] || langHint;
+    const headerMap = await getTemplateHeaderMap();
+    const headerMediaId = headerMap[templateName];
     lastSendTime = now;
     const url = `https://graph.facebook.com/${config.apiVersion || 'v25.0'}/${config.phoneNumberId}/messages`;
+    const components = [];
+    if (headerMediaId) {
+      components.push({ type: 'header', parameters: [{ type: 'image', image: { id: headerMediaId } }] });
+    }
+    if (variables.length) {
+      components.push({ type: 'body', parameters: variables.map(v => ({ type: 'text', text: String(typeof v === 'object' && v !== null ? v.text : v) })) });
+    }
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -116,7 +169,7 @@ window.TIC_WA = (function() {
         template: {
           name: templateName,
           language: { code: lang },
-          components: variables.length ? [{ type: 'body', parameters: variables.map(v => ({ type: 'text', text: String(typeof v === 'object' && v !== null ? v.text : v) })) }] : []
+          components: components
         }
       })
     });

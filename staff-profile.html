@@ -261,6 +261,7 @@ body { background: var(--darker); color: var(--text); min-height: 100vh; font-fa
 <button type="button" class="btn btn-secondary" style="flex:1" onclick="saveDraft()"><i class="fas fa-save"></i> Save Draft</button>
 <button type="button" class="btn btn-primary" style="flex:2" onclick="submitProfile()"><i class="fas fa-paper-plane"></i> Submit Profile</button>
 </div>
+<script src="js/staffValidation.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
@@ -275,6 +276,10 @@ var currentProfile = null;
 var currentEmpId = null;
 var staffFolderId = null;
 var isSubmitted = false;
+["mobile1","mobile2","mobile3","emergencyPhone1","emergencyPhone2","emergencyPhone3"].forEach(function(id){
+  var el=document.getElementById(id);
+  if(el){ el.setAttribute("inputmode","numeric"); el.addEventListener("input",function(){ this.value=this.value.replace(/\D/g,"").slice(0,10); }); }
+});
 auth.onAuthStateChanged(function(user){
   if(!user){ window.location.href="index.html"; return; }
   currentUser = user;
@@ -290,29 +295,28 @@ async function loadProfile(){
       isSubmitted = currentProfile.profileStatus === "submitted" || currentProfile.profileStatus === "verified";
       populateForm(currentProfile);
       updateHeader(currentProfile);
+      if(currentProfile.correctionNote && currentProfile.profileStatus==="draft") showAlert("Admin asked for corrections: "+currentProfile.correctionNote,"warning");
       if(isSubmitted) lockForm();
-      // Fix: if existing profile has empty empId, generate one
-      if(!currentEmpId || currentEmpId === ""){
-        currentEmpId = await generateEmployeeId();
-        document.getElementById("empIdBadge").textContent = currentEmpId;
-        document.getElementById("empIdBadge").style.display = "inline-block";
-        document.getElementById("declaredEmpId").textContent = currentEmpId;
-        console.log("Generated new EmpID for existing draft:", currentEmpId);
-      }
-    } else {
-      currentEmpId = await generateEmployeeId();
-      document.getElementById("empIdBadge").textContent = currentEmpId;
-      document.getElementById("empIdBadge").style.display = "inline-block";
-      document.getElementById("declaredEmpId").textContent = currentEmpId;
-      console.log("Generated EmpID:", currentEmpId);
     }
   } catch(e){ console.error("Load error:",e); showAlert("Error loading profile. Please refresh.","danger"); }
 }
 async function generateEmployeeId(){
   var year = new Date().getFullYear();
-  var snap = await db.collection("staffProfiles").get();
-  var count = snap.size + 1;
-  return "EMP-" + year + "-" + String(count).padStart(3,"0");
+  var ref = db.collection("counters").doc("staffEmp");
+  var n = await db.runTransaction(async function(tx){
+    var d = await tx.get(ref);
+    var next = (d.exists ? (d.data().last||0) : 0) + 1;
+    tx.set(ref, {last: next}, {merge:true});
+    return next;
+  });
+  return "EMP-" + year + "-" + String(n).padStart(3,"0");
+}
+async function ensureEmpId(){
+  if(currentEmpId) return;
+  currentEmpId = await generateEmployeeId();
+  document.getElementById("empIdBadge").textContent = currentEmpId;
+  document.getElementById("empIdBadge").style.display = "inline-block";
+  document.getElementById("declaredEmpId").textContent = currentEmpId;
 }
 function populateForm(p){
   var fields = ["fullName","dateOfBirth","bloodGroup","gender","mobile1","mobile2","mobile3",
@@ -396,16 +400,16 @@ function collectFormData(){
     dateOfBirth: document.getElementById("dateOfBirth").value,
     bloodGroup: document.getElementById("bloodGroup").value,
     gender: document.getElementById("gender").value,
-    mobile1: document.getElementById("mobile1").value.trim(),
-    mobile2: document.getElementById("mobile2").value.trim(),
-    mobile3: document.getElementById("mobile3").value.trim(),
+    mobile1: TIC_STAFF.phone(document.getElementById("mobile1").value),
+    mobile2: TIC_STAFF.phone(document.getElementById("mobile2").value),
+    mobile3: TIC_STAFF.phone(document.getElementById("mobile3").value),
     permanentAddress: document.getElementById("permanentAddress").value.trim(),
     temporaryAddress: document.getElementById("temporaryAddress").value.trim(),
     emergencyName: document.getElementById("emergencyName").value.trim(),
     emergencyRelation: document.getElementById("emergencyRelation").value,
-    emergencyPhone1: document.getElementById("emergencyPhone1").value.trim(),
-    emergencyPhone2: document.getElementById("emergencyPhone2").value.trim(),
-    emergencyPhone3: document.getElementById("emergencyPhone3").value.trim(),
+    emergencyPhone1: TIC_STAFF.phone(document.getElementById("emergencyPhone1").value),
+    emergencyPhone2: TIC_STAFF.phone(document.getElementById("emergencyPhone2").value),
+    emergencyPhone3: TIC_STAFF.phone(document.getElementById("emergencyPhone3").value),
     aadharNumber: document.getElementById("aadharNumber").value.trim(),
     panNumber: document.getElementById("panNumber").value.trim().toUpperCase(),
     highestDegree: document.getElementById("highestDegree").value,
@@ -427,30 +431,17 @@ function collectFormData(){
   };
 }
 function validateForm(data, forSubmit){
-  var required = [
-    ["fullName","Full Name"],["dateOfBirth","Date of Birth"],["bloodGroup","Blood Group"],
-    ["gender","Gender"],["mobile1","Mobile Number 1"],["mobile2","Mobile Number 2"],
-    ["permanentAddress","Permanent Address"],["emergencyName","Emergency Contact Name"],
-    ["emergencyRelation","Emergency Relation"],["emergencyPhone1","Emergency Phone 1"],
-    ["emergencyPhone2","Emergency Phone 2"],["highestDegree","Highest Degree"],
-    ["institutionName","Institution Name"],["yearOfPassing","Year of Passing"],
-    ["totalExperience","Total Experience"],["bankName","Bank Name"],
-    ["accountNumber","Account Number"],["ifscCode","IFSC Code"]
-  ];
-  for(var i=0;i<required.length;i++){
-    if(!data[required[i][0]]) return required[i][1] + " is required.";
-  }
+  var errs = TIC_STAFF.validate(data, {forSubmit: forSubmit});
   if(forSubmit){
     var photoFile = document.getElementById("photoInput").files[0];
-    if(!photoFile && !(currentProfile && currentProfile.photoURL)) return "Profile photo is required.";
+    if(!photoFile && !(currentProfile && currentProfile.photoURL)) errs.push("Profile photo is required.");
     var aadharFile = document.getElementById("aadharInput").files[0];
-    if(!aadharFile && !(currentProfile && currentProfile.aadharPhotoURL)) return "Aadhar card photo is required.";
+    if(!aadharFile && !(currentProfile && currentProfile.aadharPhotoURL)) errs.push("Aadhar card photo is required.");
     var degreeFile = document.getElementById("degreeInput").files[0];
-    if(!degreeFile && !(currentProfile && currentProfile.degreePhotoURL)) return "Degree certificate photo is required.";
-    if(!data.aadharNumber) return "Aadhar number is required.";
-    if(!data.declarationAccepted) return "You must accept the declaration to submit.";
+    if(!degreeFile && !(currentProfile && currentProfile.degreePhotoURL)) errs.push("Degree certificate photo is required.");
+    if(!data.declarationAccepted) errs.push("You must accept the declaration to submit.");
   }
-  return null;
+  return errs.length ? errs : null;
 }
 function fileToBase64(file){
   return new Promise(function(resolve,reject){
@@ -470,8 +461,11 @@ async function uploadFileToDrive(folderId, fileName, file, msg){
   return await res.json();
 }
 async function saveDraft(){
+  try{ await ensureEmpId(); } catch(e){ showAlert("Could not create your Employee ID: "+e.message,"danger"); return; }
   var data = collectFormData();
   if(!data.fullName){ showAlert("Please enter at least your full name to save draft.","warning"); return; }
+  var draftErrs = validateForm(data, false);
+  if(draftErrs){ showAlert(draftErrs,"danger"); return; }
   data.profileStatus = "draft";
   try{
     await db.collection("staffProfiles").doc(currentUser.uid).set(data,{merge:true});
@@ -480,9 +474,11 @@ async function saveDraft(){
   } catch(e){ showAlert("Error saving draft: "+e.message,"danger"); }
 }
 async function submitProfile(){
+  try{ await ensureEmpId(); } catch(e){ showAlert("Could not create your Employee ID: "+e.message,"danger"); return; }
   var data = collectFormData();
   var err = validateForm(data, true);
   if(err){ showAlert(err,"danger"); return; }
+
   // Safety: ensure empId exists
   if(!currentEmpId || currentEmpId === ""){
     currentEmpId = await generateEmployeeId();
@@ -562,7 +558,13 @@ function showAlert(msg,type){
   var el=document.getElementById("profileAlert");
   var msgEl=document.getElementById("profileAlertMsg");
   el.className="alert alert-"+type;
-  msgEl.textContent=msg;
+  if(Array.isArray(msg)){
+    msgEl.innerHTML="";
+    var head=document.createElement("strong"); head.textContent="Please fix the following:"; msgEl.appendChild(head);
+    var ul=document.createElement("ul"); ul.style.cssText="margin:6px 0 0 18px;padding:0";
+    msg.forEach(function(m){ var li=document.createElement("li"); li.textContent=m; ul.appendChild(li); });
+    msgEl.appendChild(ul);
+  } else msgEl.textContent=msg;
   el.style.display="block";
   el.scrollIntoView({behavior:"smooth",block:"nearest"});
   if(type==="success") setTimeout(function(){ el.style.display="none"; },5000);

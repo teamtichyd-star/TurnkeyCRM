@@ -55,6 +55,49 @@
     .badge.present { background:rgba(76,175,80,0.15); color:var(--success); }
     .badge.weekly_off { background:rgba(33,150,243,0.15); color:var(--info); }
     .badge.holiday { background:rgba(255,152,0,0.15); color:var(--warning); }
+    .badge.leave { background:rgba(156,39,176,0.15); color:#ce93d8; }
+    .review-head { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; padding:14px 16px; border-bottom:1px solid var(--border); }
+    .review-head h3 { font-size:15px; }
+    .review-emp { padding:12px 16px; border-bottom:1px solid rgba(255,255,255,0.04); }
+    .review-emp > strong { font-size:14px; }
+    .review-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:8px 0; }
+    .review-row .rdate { min-width:110px; font-size:12px; color:var(--subtext); }
+    .review-row input { padding:7px 10px; background:var(--card2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:12px; width:150px; outline:none; }
+    .mk { padding:6px 11px; border-radius:8px; border:1px solid var(--border); background:var(--card2); color:var(--text); font-size:11.5px; font-weight:600; cursor:pointer; }
+    .mk:hover { border-color:var(--primary); color:var(--primary); }
+    .mk.red:hover { border-color:var(--danger); color:var(--danger); }
+    .hide-cal { display:none !important; }
+    .cal-head { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; padding:14px 16px; border-bottom:1px solid var(--border); }
+    .cal-head h3 { font-size:16px; }
+    .cal-legend { display:flex; gap:12px; flex-wrap:wrap; font-size:11px; color:var(--subtext); }
+    .cal-legend i { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:4px; vertical-align:-1px; }
+    .cal-grid { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:6px; padding:14px 16px 18px; }
+    .cal-dow { font-size:11px; color:var(--subtext); text-transform:uppercase; letter-spacing:.7px; text-align:center; padding-bottom:2px; }
+    .cal-day { min-height:86px; border-radius:10px; padding:7px 8px; border:1px solid var(--border); background:var(--card2); cursor:pointer; display:flex; flex-direction:column; gap:3px; overflow:hidden; text-align:left; color:var(--text); font-size:11px; }
+    .cal-day:hover { border-color:var(--primary); }
+    .cal-day.blank { background:transparent; border:none; cursor:default; }
+    .cal-day.future { opacity:.35; cursor:not-allowed; }
+    .cal-day.today { box-shadow:0 0 0 1.5px var(--primary); }
+    .cal-day .dn { font-size:13px; font-weight:700; }
+    .cal-day .st { font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; }
+    .cal-day .sub { font-size:10.5px; color:var(--subtext); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .cal-day.present { background:rgba(76,175,80,0.14); border-color:rgba(76,175,80,0.35); } .cal-day.present .st { color:var(--success); }
+    .cal-day.weekly_off { background:rgba(33,150,243,0.14); border-color:rgba(33,150,243,0.35); } .cal-day.weekly_off .st { color:var(--info); }
+    .cal-day.holiday { background:rgba(255,152,0,0.14); border-color:rgba(255,152,0,0.35); } .cal-day.holiday .st { color:var(--warning); }
+    .cal-day.leave { background:rgba(156,39,176,0.14); border-color:rgba(156,39,176,0.35); } .cal-day.leave .st { color:#ce93d8; }
+    .cal-day.absent { background:rgba(244,67,54,0.14); border-color:rgba(244,67,54,0.4); } .cal-day.absent .st { color:var(--danger); }
+    .cal-day.norec { border-style:dashed; border-color:rgba(244,67,54,0.45); } .cal-day.norec .st { color:var(--danger); }
+    .modal-ov { position:fixed; inset:0; background:rgba(0,0,0,0.65); z-index:9000; display:none; align-items:center; justify-content:center; padding:16px; }
+    .modal-ov.show { display:flex; }
+    .modal-box { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:20px; width:100%; max-width:380px; box-shadow:var(--shadow); }
+    .modal-box h3 { font-size:16px; margin-bottom:4px; }
+    .modal-box .msub { font-size:12px; color:var(--subtext); margin-bottom:14px; }
+    .opt-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px; }
+    .opt { padding:11px 8px; border-radius:10px; border:1.5px solid var(--border); background:var(--card2); color:var(--text); font-size:13px; font-weight:600; cursor:pointer; }
+    .opt.sel { border-color:var(--primary); background:var(--primary-glow); color:var(--primary); }
+    .modal-box input[type=text] { width:100%; padding:10px 12px; background:var(--card2); border:1px solid var(--border); border-radius:10px; color:var(--text); font-size:13px; outline:none; margin-bottom:14px; }
+    .modal-actions { display:flex; gap:8px; justify-content:space-between; }
+    @media (max-width:768px) { .cal-grid { gap:4px; padding:10px 8px 14px; } .cal-day { min-height:64px; padding:5px; } .cal-day .sub { display:none; } }
     .badge.absent { background:rgba(244,67,54,0.15); color:var(--danger); }
     .badge.late { background:rgba(255,152,0,0.15); color:var(--warning); margin-left:4px; }
     .map-link { color:var(--primary); text-decoration:none; font-size:12px; }
@@ -77,6 +120,22 @@
 
 <div class="page-loader" id="pageLoader"><div class="spinner"></div><p style="color:var(--subtext);font-size:13px;letter-spacing:1px">Loading...</p></div>
 <div class="toast" id="toast"></div>
+
+<div class="modal-ov" id="dayModal" onclick="if(event.target===this)closeDay()">
+  <div class="modal-box">
+    <h3 id="dmTitle"></h3>
+    <div class="msub" id="dmSub"></div>
+    <div class="opt-grid" id="dmOpts"></div>
+    <input type="text" id="dmNote" placeholder="Note (optional)"/>
+    <div class="modal-actions">
+      <button class="btn btn-danger" id="dmClear" onclick="clearDay()"><i class="fas fa-eraser"></i> Clear</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn" style="background:var(--card2);color:var(--text);border:1px solid var(--border)" onclick="closeDay()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveDay()"><i class="fas fa-check"></i> Save</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <div id="deniedScreen" class="access-denied" style="display:none">
   <i class="fas fa-lock"></i>
@@ -103,8 +162,20 @@
       <div class="view-toggle">
         <button id="vSummary" class="active" onclick="setView('summary')">Summary</button>
         <button id="vDetail" onclick="setView('detail')">Detail</button>
+        <button id="vCalendar" onclick="setView('calendar')">Calendar</button>
       </div>
     </div>
+  </div>
+
+  <div class="table-card" id="reviewCard" style="display:none">
+    <div class="review-head">
+      <h3>⚠️ Attendance not recorded — mark status for each employee</h3>
+      <div><label style="font-size:11px;color:var(--subtext);text-transform:uppercase;margin-right:6px">Look back</label>
+        <select id="reviewDays" onchange="loadReview()" style="padding:7px 10px;background:var(--card2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px">
+          <option value="1">Yesterday</option><option value="3">Last 3 days</option><option value="7">Last 7 days</option>
+        </select></div>
+    </div>
+    <div id="reviewList"></div>
   </div>
 
   <div class="stats-grid" id="statsGrid"></div>
@@ -131,6 +202,8 @@ const auth = firebase.auth();
 let allUsers = [];
 let allRecords = [];
 let currentView = 'summary';
+let projectUpdateDates = {}; // projectId -> Set of dates with a daily update
+let currentAdminEmail = '';
 
 function onMonthChange() {
   document.getElementById('dateFilter').value = '';
@@ -185,19 +258,41 @@ async function loadData() {
     const snap = await db.collection('attendance').where('date','>=',start).where('date','<=',end).get();
     allRecords = [];
     snap.forEach(d => allRecords.push(d.data()));
+    await loadProjectUpdates();
     render();
   } catch(e) { console.error(e); showToast('Load error: '+e.message,'danger'); }
+}
+
+async function loadProjectUpdates() {
+  if (Object.keys(projectUpdateDates).length) return;
+  try {
+    const snap = await db.collection('projects').get();
+    snap.forEach(d => { projectUpdateDates[d.id] = new Set((d.data().updates||[]).map(u => u.date)); });
+  } catch(e) { console.error(e); }
+}
+
+function reportMissing(r) {
+  const t = new Date().toISOString().split('T')[0];
+  if (r.type !== 'present' || !r.projectId || r.projectId === 'office' || r.date >= t) return false;
+  const s = projectUpdateDates[r.projectId];
+  return !(s && s.has(r.date));
 }
 
 function setView(v) {
   currentView = v;
   document.getElementById('vSummary').classList.toggle('active', v==='summary');
   document.getElementById('vDetail').classList.toggle('active', v==='detail');
+  document.getElementById('vCalendar').classList.toggle('active', v==='calendar');
+  if (v==='calendar' && !document.getElementById('userFilter').value && allUsers.length) {
+    document.getElementById('userFilter').value = allUsers[0].email;
+  }
   render();
 }
 
 function render() {
+  document.getElementById('reviewCard').classList.toggle('hide-cal', currentView==='calendar');
   if (currentView === 'summary') renderSummary();
+  else if (currentView === 'calendar') renderCalendar();
   else renderDetail();
 }
 
@@ -208,11 +303,13 @@ function buildUserSummary(userEmail, records, y, m) {
   const present = userRecs.filter(r => r.type==='present').length;
   const off = userRecs.filter(r => r.type==='weekly_off').length;
   const hol = userRecs.filter(r => r.type==='holiday').length;
+  const leave = userRecs.filter(r => r.type==='leave').length;
+  const repMissing = userRecs.filter(reportMissing).length;
   const daysInMonth = new Date(y, m, 0).getDate();
   const today = new Date();
   const isCurrent = (today.getFullYear()===y && (today.getMonth()+1)===m);
   const daysCounted = isCurrent ? today.getDate() : daysInMonth;
-  const absent = Math.max(0, daysCounted - present - off - hol);
+  const absent = Math.max(0, daysCounted - present - off - hol - leave);
   const presentRecs = userRecs.filter(r => r.type==='present' && r.time);
   let avgTime = '-', lateCount = 0, firstDate = '-', lastDate = '-';
   if (presentRecs.length) {
@@ -233,8 +330,8 @@ function buildUserSummary(userEmail, records, y, m) {
     avgTime = String(Math.floor(avg/60)).padStart(2,'0')+':'+String(avg%60).padStart(2,'0');
   }
   const finalDays = _df ? 1 : daysCounted;
-  const finalAbsent = _df ? Math.max(0, 1 - present - off - hol) : absent;
-  return { present, off, hol, absent: finalAbsent, avgTime, lateCount, firstDate, lastDate, totalDays: finalDays, lastProject: (typeof lastProject !== 'undefined' ? lastProject : '-'), lastAddress: (typeof lastAddress !== 'undefined' ? lastAddress : '') };
+  const finalAbsent = _df ? Math.max(0, 1 - present - off - hol - leave) : absent;
+  return { present, off, hol, leave, repMissing, absent: finalAbsent, avgTime, lateCount, firstDate, lastDate, totalDays: finalDays, lastProject: (typeof lastProject !== 'undefined' ? lastProject : '-'), lastAddress: (typeof lastAddress !== 'undefined' ? lastAddress : '') };
 }
 
 function renderSummary() {
@@ -245,7 +342,7 @@ function renderSummary() {
   const users = userFilter ? allUsers.filter(u => u.email === userFilter) : allUsers;
 
   // Top stats
-  let totalPresent=0, totalOff=0, totalHol=0, totalAbsent=0, totalLate=0;
+  let totalPresent=0, totalOff=0, totalHol=0, totalAbsent=0, totalLate=0, totalLeave=0, totalRep=0;
   const summaries = users.map(u => {
     const s = buildUserSummary(u.email, allRecords, y, m);
     totalPresent += s.present;
@@ -253,6 +350,8 @@ function renderSummary() {
     totalHol += s.hol;
     totalAbsent += s.absent;
     totalLate += s.lateCount;
+    totalLeave += s.leave;
+    totalRep += s.repMissing;
     return { user: u, ...s };
   });
 
@@ -262,6 +361,8 @@ function renderSummary() {
     '<div class="stat-card blue"><h3>'+totalOff+'</h3><p>Weekly Off</p></div>'+
     '<div class="stat-card orange"><h3>'+totalHol+'</h3><p>Holiday</p></div>'+
     '<div class="stat-card red"><h3>'+totalAbsent+'</h3><p>Absent</p></div>'+
+    '<div class="stat-card blue"><h3>'+totalLeave+'</h3><p>Leave</p></div>'+
+    '<div class="stat-card red"><h3>'+totalRep+'</h3><p>Reports Missing</p></div>'+
     '<div class="stat-card orange"><h3>'+totalLate+'</h3><p>Late Days</p></div>';
 
   const rows = summaries.map(s => '<tr>'+
@@ -270,7 +371,9 @@ function renderSummary() {
     '<td><span class="badge present">'+s.present+'</span></td>'+
     '<td><span class="badge weekly_off">'+s.off+'</span></td>'+
     '<td><span class="badge holiday">'+s.hol+'</span></td>'+
+    '<td><span class="badge leave">'+s.leave+'</span></td>'+
     '<td><span class="badge absent">'+s.absent+'</span></td>'+
+    '<td>'+(s.repMissing>0?'<span class="badge absent">'+s.repMissing+'</span>':'0')+'</td>'+
     '<td>'+s.avgTime+'</td>'+
     '<td>'+(s.lateCount>0?'<span class="badge late">'+s.lateCount+'</span>':'0')+'</td>'+
     '<td><div style="font-size:12px"><div>📍 '+s.lastProject+'</div>'+(s.lastAddress?'<div style="color:var(--subtext);font-size:11px;margin-top:3px">🌍 '+s.lastAddress.substring(0,60)+(s.lastAddress.length>60?'...':'')+'</div>':'')+'</div></td>'+
@@ -278,8 +381,8 @@ function renderSummary() {
 
   document.getElementById('tableWrap').innerHTML =
     '<table><thead><tr>'+
-    '<th>User</th><th>Days</th><th>Present</th><th>Off</th><th>Holiday</th><th>Absent</th><th>Avg Time</th><th>Late</th><th>Last Location</th>'+
-    '</tr></thead><tbody>'+(rows || '<tr><td colspan="9"><div class="empty-state">No data</div></td></tr>')+'</tbody></table>';
+    '<th>User</th><th>Days</th><th>Present</th><th>Off</th><th>Holiday</th><th>Leave</th><th>Absent</th><th>Reports Missing</th><th>Avg Time</th><th>Late</th><th>Last Location</th>'+
+    '</tr></thead><tbody>'+(rows || '<tr><td colspan="11"><div class="empty-state">No data</div></td></tr>')+'</tbody></table>';
 }
 
 function renderDetail() {
@@ -308,22 +411,174 @@ function renderDetail() {
       '<td>'+gps+'</td>'+
       '<td><small style="color:var(--subtext)">'+(r.gpsAddress||'-').substring(0,60)+'</small></td>'+
       '<td><small>'+(r.notes||'-')+'</small></td>'+
+      '<td>'+(r.type==='present' && r.projectId && r.projectId!=='office' ? (reportMissing(r)?'<span class="badge absent">Missing</span>':(r.date>=new Date().toISOString().split('T')[0]?'-':'<span class="badge present">Filed</span>')) : '-')+'</td>'+
       '</tr>';
   }).join('');
 
   document.getElementById('tableWrap').innerHTML =
     '<table><thead><tr>'+
-    '<th>Date</th><th>User</th><th>Type</th><th>Time</th><th>Project</th><th>GPS</th><th>Address</th><th>Notes</th>'+
-    '</tr></thead><tbody>'+(rows || '<tr><td colspan="8"><div class="empty-state">No records</div></td></tr>')+'</tbody></table>';
+    '<th>Date</th><th>User</th><th>Type</th><th>Time</th><th>Project</th><th>GPS</th><th>Address</th><th>Notes</th><th>Daily Report</th>'+
+    '</tr></thead><tbody>'+(rows || '<tr><td colspan="9"><div class="empty-state">No records</div></td></tr>')+'</tbody></table>';
+}
+
+const REVIEW_OPTS = [['absent','Absent','red'],['leave','Leave',''],['holiday','Holiday',''],['weekly_off','Weekly Off',''],['present','Present','']];
+
+async function loadReview() {
+  const days = parseInt(document.getElementById('reviewDays').value, 10);
+  const dates = [];
+  for (let i=1; i<=days; i++) { const d = new Date(); d.setDate(d.getDate()-i); dates.push(d.toISOString().split('T')[0]); }
+  const from = dates[dates.length-1], to = dates[0];
+  const list = document.getElementById('reviewList');
+  const card = document.getElementById('reviewCard');
+  try {
+    const snap = await db.collection('attendance').where('date','>=',from).where('date','<=',to).get();
+    const have = new Set(); snap.forEach(d => { const r = d.data(); have.add((r.userEmail||'').toLowerCase()+'|'+r.date); });
+    let html = '';
+    allUsers.forEach(u => {
+      const miss = dates.filter(dt => !have.has(u.email.toLowerCase()+'|'+dt));
+      if (!miss.length) return;
+      html += '<div class="review-emp"><strong>'+u.name+'</strong> <small style="color:var(--subtext)">'+u.email+'</small>'+
+        miss.map(dt => {
+          const lbl = new Date(dt+'T00:00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'});
+          return '<div class="review-row" data-email="'+u.email+'" data-name="'+u.name.replace(/"/g,'&quot;')+'" data-date="'+dt+'"><span class="rdate">'+lbl+'</span>'+
+            '<input type="text" placeholder="Note (optional)"/>'+
+            REVIEW_OPTS.map(o => '<button class="mk '+o[2]+'" onclick="markFor(this,\''+o[0]+'\')">'+o[1]+'</button>').join('')+'</div>';
+        }).join('')+'</div>';
+    });
+    card.style.display = html ? 'block' : 'none';
+    list.innerHTML = html;
+  } catch(e) { console.error(e); showToast('Review load error: '+e.message,'danger'); }
+}
+
+async function markFor(btn, type) {
+  const row = btn.closest('.review-row');
+  const email = row.dataset.email, name = row.dataset.name, date = row.dataset.date;
+  const id = email.replace(/[.@]/g,'_')+'_'+date;
+  btn.disabled = true;
+  try {
+    await db.collection('attendance').doc(id).set({
+      userEmail: email, userName: name, date: date, time: '', type: type,
+      notes: row.querySelector('input').value.trim(),
+      markedByAdmin: currentAdminEmail,
+      createdAt: new Date().toISOString()
+    });
+    showToast('Saved: '+name+' — '+type.replace('_',' '));
+    const emp = row.closest('.review-emp');
+    row.remove();
+    if (!emp.querySelector('.review-row')) emp.remove();
+    if (!document.querySelector('#reviewList .review-emp')) document.getElementById('reviewCard').style.display = 'none';
+    loadData();
+  } catch(e) { btn.disabled = false; showToast('Error: '+e.message,'danger'); }
+}
+
+// ─── CALENDAR VIEW ───
+const DAY_TYPES = [['present','Present'],['absent','Absent'],['leave','Leave'],['holiday','Holiday'],['weekly_off','Weekly Off']];
+const TYPE_LABEL = { present:'Present', absent:'Absent', leave:'Leave', holiday:'Holiday', weekly_off:'Weekly Off' };
+let dayCtx = null; // { user, date, rec, type }
+
+function renderCalendar() {
+  const month = document.getElementById('monthFilter').value;
+  const [y,m] = month.split('-').map(Number);
+  const email = document.getElementById('userFilter').value;
+  const user = allUsers.find(u => u.email === email);
+  if (!user) { document.getElementById('statsGrid').innerHTML=''; document.getElementById('tableWrap').innerHTML='<div class="empty-state">Select a user to see the calendar</div>'; return; }
+  const recs = {};
+  allRecords.filter(r => r.userEmail === email).forEach(r => { recs[r.date] = r; });
+  const todayStr = new Date().toISOString().split('T')[0];
+  const daysInMonth = new Date(y, m, 0).getDate();
+  const firstDow = (new Date(y, m-1, 1).getDay() + 6) % 7; // Monday-first
+  const c = { present:0, weekly_off:0, holiday:0, leave:0, absent:0, late:0 };
+  const [lh,lm] = LATE_TIME.split(':').map(Number);
+  let cells = '';
+  ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].forEach(d => cells += '<div class="cal-dow">'+d+'</div>');
+  for (let i=0; i<firstDow; i++) cells += '<div class="cal-day blank"></div>';
+  for (let d=1; d<=daysInMonth; d++) {
+    const date = y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    const r = recs[date];
+    const future = date > todayStr;
+    let cls = '', st = '', sub = '';
+    if (future) { cls = 'future'; }
+    else if (r) {
+      cls = r.type; st = TYPE_LABEL[r.type] || r.type; c[r.type] = (c[r.type]||0)+1;
+      if (r.type==='present') {
+        sub = (r.time||'') + (r.projectName ? ' · '+r.projectName : '');
+        if (r.time) { const [hh,mm] = r.time.split(':').map(Number); if (hh*60+mm > lh*60+lm) c.late++; }
+      } else sub = r.notes || '';
+      if (r.markedByAdmin) sub += (sub?' ':'')+'(admin)';
+    } else { cls = 'norec'; st = 'No record'; c.absent++; }
+    if (date === todayStr) cls += ' today';
+    cells += '<div class="cal-day '+cls+'" '+(future?'':'onclick="openDay(\''+date+'\')"')+'><span class="dn">'+d+'</span>'+(st?'<span class="st">'+st+'</span>':'')+(sub?'<span class="sub">'+sub.replace(/</g,'&lt;')+'</span>':'')+'</div>';
+  }
+  document.getElementById('statsGrid').innerHTML =
+    '<div class="stat-card green"><h3>'+c.present+'</h3><p>Present</p></div>'+
+    '<div class="stat-card blue"><h3>'+c.weekly_off+'</h3><p>Weekly Off</p></div>'+
+    '<div class="stat-card orange"><h3>'+c.holiday+'</h3><p>Holiday</p></div>'+
+    '<div class="stat-card blue"><h3>'+c.leave+'</h3><p>Leave</p></div>'+
+    '<div class="stat-card red"><h3>'+c.absent+'</h3><p>Absent</p></div>'+
+    '<div class="stat-card orange"><h3>'+c.late+'</h3><p>Late Days</p></div>';
+  const label = new Date(y, m-1, 1).toLocaleDateString('en-IN',{month:'long',year:'numeric'});
+  document.getElementById('tableWrap').innerHTML =
+    '<div class="cal-head"><h3>'+user.name+' — '+label+'</h3><div class="cal-legend">'+
+    '<span><i style="background:var(--success)"></i>Present</span><span><i style="background:var(--danger)"></i>Absent / No record</span>'+
+    '<span><i style="background:#ce93d8"></i>Leave</span><span><i style="background:var(--warning)"></i>Holiday</span><span><i style="background:var(--info)"></i>Weekly Off</span></div></div>'+
+    '<div class="cal-grid">'+cells+'</div>';
+}
+
+function openDay(date) {
+  const email = document.getElementById('userFilter').value;
+  const user = allUsers.find(u => u.email === email);
+  const rec = allRecords.find(r => r.userEmail === email && r.date === date) || null;
+  dayCtx = { user, date, rec, type: rec ? rec.type : '' };
+  const lbl = new Date(date+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('dmTitle').textContent = user.name;
+  document.getElementById('dmSub').textContent = lbl + (rec ? ' · currently ' + (TYPE_LABEL[rec.type]||rec.type) + (rec.time?' at '+rec.time:'') : ' · no record');
+  document.getElementById('dmNote').value = rec ? (rec.notes||'') : '';
+  document.getElementById('dmClear').style.display = rec ? '' : 'none';
+  document.getElementById('dmOpts').innerHTML = DAY_TYPES.map(o => '<button class="opt'+(dayCtx.type===o[0]?' sel':'')+'" data-t="'+o[0]+'" onclick="pickType(\''+o[0]+'\')">'+o[1]+'</button>').join('');
+  document.getElementById('dayModal').classList.add('show');
+}
+function pickType(t) {
+  dayCtx.type = t;
+  document.querySelectorAll('#dmOpts .opt').forEach(b => b.classList.toggle('sel', b.dataset.t === t));
+}
+function closeDay() { document.getElementById('dayModal').classList.remove('show'); dayCtx = null; }
+
+async function saveDay() {
+  if (!dayCtx || !dayCtx.type) { showToast('Pick a status','warning'); return; }
+  const { user, date, rec, type } = dayCtx;
+  if (rec && rec.type==='present' && rec.gpsLat && type!=='present' && !confirm('This is a GPS-verified Present record. Replace it with '+TYPE_LABEL[type]+'?')) return;
+  const notes = document.getElementById('dmNote').value.trim();
+  const id = user.email.replace(/[.@]/g,'_')+'_'+date;
+  let data;
+  if (rec && rec.type === type) { data = { ...rec, notes: notes, markedByAdmin: currentAdminEmail }; } // same status: keep GPS/project, update note
+  else data = { userEmail: user.email, userName: user.name, date: date, time: '', type: type, notes: notes, markedByAdmin: currentAdminEmail, createdAt: new Date().toISOString() };
+  try {
+    await db.collection('attendance').doc(id).set(data);
+    allRecords = allRecords.filter(r => !(r.userEmail===user.email && r.date===date)); allRecords.push(data);
+    closeDay(); render(); loadReview();
+    showToast('Saved: '+user.name+' — '+TYPE_LABEL[type]+' ('+date+')');
+  } catch(e) { showToast('Error: '+e.message,'danger'); }
+}
+
+async function clearDay() {
+  if (!dayCtx || !dayCtx.rec) return;
+  const { user, date } = dayCtx;
+  if (!confirm('Delete the attendance record for '+user.name+' on '+date+'?')) return;
+  try {
+    await db.collection('attendance').doc(user.email.replace(/[.@]/g,'_')+'_'+date).delete();
+    allRecords = allRecords.filter(r => !(r.userEmail===user.email && r.date===date));
+    closeDay(); render(); loadReview();
+    showToast('Record cleared');
+  } catch(e) { showToast('Error: '+e.message,'danger'); }
 }
 
 function exportSummaryCSV() {
   const month = document.getElementById('monthFilter').value;
   const [y,m] = month.split('-').map(Number);
-  const headers = ['Name','Email','Total Days','Present','Weekly Off','Holiday','Absent','Avg Reporting Time','Late Days','First Check-in','Last Check-in'];
+  const headers = ['Name','Email','Total Days','Present','Weekly Off','Holiday','Leave','Absent','Reports Missing','Avg Reporting Time','Late Days','First Check-in','Last Check-in'];
   const rows = allUsers.map(u => {
     const s = buildUserSummary(u.email, allRecords, y, m);
-    return [u.name, u.email, s.totalDays, s.present, s.off, s.hol, s.absent, s.avgTime, s.lateCount, s.firstDate, s.lastDate];
+    return [u.name, u.email, s.totalDays, s.present, s.off, s.hol, s.leave, s.absent, s.repMissing, s.avgTime, s.lateCount, s.firstDate, s.lastDate];
   });
   const csv = [headers, ...rows].map(r => r.map(c => '"'+(c||'').toString().replace(/"/g,'""')+'"').join(',')).join('\n');
   downloadCSV(csv, 'Attendance_Summary_'+month+'.csv');
@@ -380,7 +635,9 @@ firebase.auth().onAuthStateChanged(async function(user) {
   }
   fillMonthSelect();
   await loadUsers();
+  currentAdminEmail = user.email;
   await loadData();
+  await loadReview();
   // Auto-cleanup on admin open (silent, runs in background)
   setTimeout(silentCleanup, 3000);
   document.getElementById('pageLoader').style.display='none';

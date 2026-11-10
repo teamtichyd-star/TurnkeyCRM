@@ -49,8 +49,8 @@
     .portal-brand-name { font-size: 14px; font-weight: 600; color: var(--primary); }
     .portal-brand-sub { font-size: 11px; color: var(--subtext); }
     .portal-content { padding: 20px; max-width: 800px; margin: 0 auto; }
-    .portal-tabs { display: flex; gap: 4px; background: var(--card); padding: 4px; border-radius: 12px; margin-bottom: 20px; overflow-x: auto; border: 1px solid rgba(255,255,255,0.05); }
-    .portal-tab { flex-shrink: 0; padding: 10px 16px; border-radius: 8px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; background: transparent; color: var(--subtext); transition: 0.2s; display: flex; align-items: center; gap: 6px; }
+    .portal-tabs { display: flex; flex-wrap: wrap; gap: 4px; background: var(--card); padding: 4px; border-radius: 12px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.05); }
+    .portal-tab { flex: 1 1 auto; white-space: nowrap; padding: 10px 16px; border-radius: 8px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; background: transparent; color: var(--subtext); transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px; }
     .portal-tab:hover { color: var(--text); }
     .portal-tab.active { background: rgba(200,169,110,0.15); color: var(--primary); }
     .tab-content { display: none; }
@@ -643,7 +643,10 @@
 
     try {
       await db.collection('projects').doc(projectId).update({ snags: projectData.snags });
-      if (projectData.manager) await TIC_NOTIF.send(db, projectData.manager, '⚠️ New snag added by client in: ' + (projectData.name || 'project') + ' · ' + desc, 'snag', 'projects.html');
+      const snagManagers = Array.isArray(projectData.managers) && projectData.managers.length ? projectData.managers : (projectData.manager ? [projectData.manager] : []);
+      for (const m of snagManagers) {
+        await TIC_NOTIF.send(db, m, '⚠️ New snag added by client in: ' + (projectData.name || 'project') + ' · ' + desc, 'snag', 'projects.html');
+      }
       closeSnagModal();
       loadClientSnags(projectData);
     } catch(e) { console.error("Error saving snag:", e); }

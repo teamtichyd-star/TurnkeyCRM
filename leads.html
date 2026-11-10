@@ -222,8 +222,12 @@
     .top-actions h2 { font-size: 22px; font-weight: 700; color: var(--text); }
     .top-actions h2 span { font-size: 14px; color: var(--subtext); font-weight: 400; margin-left: 8px; }
     .lead-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 14px; margin-bottom: 24px; }
-    .lead-stat { background: linear-gradient(145deg, var(--card2), var(--card)); border-radius: var(--radius); padding: 18px; text-align: center; border: 1px solid var(--border); box-shadow: var(--shadow); transition: 0.3s; }
+    .lead-stat { background: linear-gradient(145deg, var(--card2), var(--card)); border-radius: var(--radius); padding: 18px; text-align: center; border: 1px solid var(--border); box-shadow: var(--shadow); transition: 0.3s; cursor: pointer; }
     .lead-stat:hover { transform: translateY(-2px); border-color: rgba(200,169,110,0.2); }
+    .lead-stat.active { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(200,169,110,0.25); }
+    table th.sortable { cursor: pointer; user-select: none; }
+    table th.sortable:hover { color: var(--text); }
+    .sort-arrow { display: inline-block; margin-left: 4px; font-size: 9px; opacity: 0.8; }
     .lead-stat h3 { font-size: 28px; font-weight: 700; }
     .lead-stat p { font-size: 12px; color: var(--subtext); margin-top: 4px; }
     .lead-stat.gold h3 { color: var(--primary); }
@@ -316,12 +320,12 @@
   </div>
 
   <div class="lead-stats">
-    <div class="lead-stat gold"><h3 id="ls-total">0</h3><p>Total Leads</p></div>
-    <div class="lead-stat blue"><h3 id="ls-new">0</h3><p>New</p></div>
-    <div class="lead-stat blue"><h3 id="ls-visit">0</h3><p>Site Visit</p></div>
-    <div class="lead-stat orange"><h3 id="ls-proposal">0</h3><p>Proposal</p></div>
-    <div class="lead-stat green"><h3 id="ls-won">0</h3><p>Won</p></div>
-    <div class="lead-stat red"><h3 id="ls-lost">0</h3><p>Lost</p></div>
+    <div class="lead-stat gold active" id="stat-total" onclick="quickFilterStatus('')"><h3 id="ls-total">0</h3><p>Active Leads</p></div>
+    <div class="lead-stat blue" id="stat-new" onclick="quickFilterStatus('New')"><h3 id="ls-new">0</h3><p>New</p></div>
+    <div class="lead-stat blue" id="stat-visit" onclick="quickFilterStatus('Site Visit')"><h3 id="ls-visit">0</h3><p>Site Visit</p></div>
+    <div class="lead-stat orange" id="stat-proposal" onclick="quickFilterStatus('Proposal Sent')"><h3 id="ls-proposal">0</h3><p>Proposal</p></div>
+    <div class="lead-stat green" id="stat-won" onclick="quickFilterStatus('Won')"><h3 id="ls-won">0</h3><p>Won</p></div>
+    <div class="lead-stat red" id="stat-lost" onclick="quickFilterStatus('Lost')"><h3 id="ls-lost">0</h3><p>Lost</p></div>
   </div>
 
   <div class="filter-bar">
@@ -329,7 +333,7 @@
            placeholder="🔍 Search by name, phone, location..."
            oninput="filterLeads()"/>
     <select id="statusFilter" onchange="filterLeads()">
-      <option value="">All Statuses</option>
+      <option value="">All (except Lost)</option>
       <option value="New">New</option>
       <option value="Site Visit">Site Visit</option>
       <option value="Proposal Sent">Proposal Sent</option>
@@ -342,7 +346,7 @@
       <option value="Commercial">Commercial</option>
       <option value="Residential">Residential</option>
     </select>
-    <select id="sortFilter" onchange="filterLeads()">
+    <select id="sortFilter" onchange="onSortDropdownChange()">
       <option value="newest">Newest First</option>
       <option value="oldest">Oldest First</option>
       <option value="name">Name A-Z</option>
@@ -355,10 +359,16 @@
       <table>
         <thead>
           <tr>
-            <th>#</th><th>Name</th><th>Phone</th>
-            <th>Project Type</th><th>Location</th>
-            <th>Budget</th><th>Status</th>
-            <th>Assigned To</th><th>Date</th><th>Actions</th>
+            <th>#</th>
+            <th class="sortable" id="th-name" onclick="sortByColumn('name')">Name<span class="sort-arrow"></span></th>
+            <th class="sortable" id="th-phone" onclick="sortByColumn('phone')">Phone<span class="sort-arrow"></span></th>
+            <th class="sortable" id="th-projectType" onclick="sortByColumn('projectType')">Project Type<span class="sort-arrow"></span></th>
+            <th class="sortable" id="th-location" onclick="sortByColumn('location')">Location<span class="sort-arrow"></span></th>
+            <th>Budget</th>
+            <th class="sortable" id="th-status" onclick="sortByColumn('status')">Status<span class="sort-arrow"></span></th>
+            <th>Assigned To</th>
+            <th class="sortable" id="th-date" onclick="sortByColumn('createdAt')">Date<span class="sort-arrow"></span></th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody id="leadsTableBody"></tbody>
@@ -489,7 +499,7 @@
       <button class="btn btn-danger" onclick="closeModal()">
         <i class="fas fa-times"></i> Cancel
       </button>
-      <button class="btn btn-primary" onclick="saveLead()">
+      <button class="btn btn-primary" id="saveLeadBtn" onclick="saveLead()">
         <i class="fas fa-save"></i> Save Lead
       </button>
     </div>
@@ -636,7 +646,9 @@
         }
         const nowISO = new Date().toISOString();
         const todayDate = nowISO.split('T')[0];
-        if (!data.createdAt) data.createdAt = nowISO;
+        // Fall back to the lead's own saved date (not "now") so old leads
+        // missing createdAt don't jump to the top of "Newest First" on every load
+        if (!data.createdAt) data.createdAt = data.date ? new Date(data.date).toISOString() : new Date(0).toISOString();
         if (!data.updatedAt) data.updatedAt = nowISO;
         if (!data.date) data.date = todayDate;
         if (!data.status || !data.status.trim()) data.status = 'New';
@@ -822,7 +834,7 @@
   }
 
   function updateStats() {
-    document.getElementById('ls-total').textContent = leads.length;
+    document.getElementById('ls-total').textContent = leads.filter(l => l.status !== 'Lost').length;
     document.getElementById('ls-new').textContent =
       leads.filter(l => l.status === 'New').length;
     document.getElementById('ls-visit').textContent =
@@ -835,11 +847,75 @@
       leads.filter(l => l.status === 'Lost').length;
   }
 
+  // Single source of truth for sorting -- driven by either the "Newest First"
+  // dropdown or a click on a sortable column header.
+  let currentSort = { column: 'createdAt', direction: 'desc' };
+
+  const STATUS_TILE_MAP = { '': 'stat-total', 'New': 'stat-new', 'Site Visit': 'stat-visit', 'Proposal Sent': 'stat-proposal', 'Won': 'stat-won', 'Lost': 'stat-lost' };
+  const SORT_COLUMN_TH_MAP = { name: 'th-name', phone: 'th-phone', projectType: 'th-projectType', location: 'th-location', status: 'th-status', createdAt: 'th-date' };
+
+  function applySort() {
+    const { column, direction } = currentSort;
+    const dir = direction === 'asc' ? 1 : -1;
+    filteredLeads.sort((a, b) => {
+      let av, bv;
+      if (column === 'createdAt') {
+        av = new Date(a.createdAt || 0).getTime();
+        bv = new Date(b.createdAt || 0).getTime();
+      } else {
+        av = (a[column] || '').toString().toLowerCase();
+        bv = (b[column] || '').toString().toLowerCase();
+      }
+      if (av < bv) return -1 * dir;
+      if (av > bv) return 1 * dir;
+      return 0;
+    });
+  }
+
+  function updateSortArrows() {
+    Object.entries(SORT_COLUMN_TH_MAP).forEach(([col, id]) => {
+      const th = document.getElementById(id);
+      const arrow = th && th.querySelector('.sort-arrow');
+      if (!arrow) return;
+      arrow.textContent = currentSort.column === col ? (currentSort.direction === 'asc' ? ' ▲' : ' ▼') : '';
+    });
+  }
+
+  function updateStatTileActive(status) {
+    document.querySelectorAll('.lead-stat').forEach(el => el.classList.remove('active'));
+    const id = STATUS_TILE_MAP[status];
+    if (id) { const el = document.getElementById(id); if (el) el.classList.add('active'); }
+  }
+
+  // Click a sortable column header: toggles asc/desc if it's already the active column
+  function sortByColumn(column) {
+    if (currentSort.column === column) {
+      currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+    } else {
+      currentSort = { column, direction: 'asc' };
+    }
+    filterLeads();
+  }
+
+  // The "Newest First / Oldest First / Name A-Z" dropdown maps onto the same sort state
+  function onSortDropdownChange() {
+    const sort = document.getElementById('sortFilter').value;
+    if (sort === 'newest') currentSort = { column: 'createdAt', direction: 'desc' };
+    else if (sort === 'oldest') currentSort = { column: 'createdAt', direction: 'asc' };
+    else if (sort === 'name') currentSort = { column: 'name', direction: 'asc' };
+    filterLeads();
+  }
+
+  // Click a stat tile (New / Site Visit / Proposal / Won / Lost / Total): filters the list to that status
+  function quickFilterStatus(status) {
+    document.getElementById('statusFilter').value = status;
+    filterLeads();
+  }
+
   function filterLeads() {
     const search = document.getElementById('searchInput').value.toLowerCase();
     const status = document.getElementById('statusFilter').value;
     const type   = document.getElementById('typeFilter').value;
-    const sort   = document.getElementById('sortFilter').value;
 
     filteredLeads = leads.filter(lead => {
       const matchSearch =
@@ -847,21 +923,15 @@
         (lead.phone && lead.phone.includes(search)) ||
         (lead.location && lead.location.toLowerCase().includes(search)) ||
         (lead.company && lead.company.toLowerCase().includes(search));
-      const matchStatus = !status || lead.status === status;
+      // Default view hides Lost leads; pick "Lost" (or the Lost tile) to see them
+      const matchStatus = status ? lead.status === status : lead.status !== 'Lost';
       const matchType   = !type   || lead.projectType === type;
       return matchSearch && matchStatus && matchType;
     });
 
-    if (sort === 'newest') {
-      filteredLeads.sort((a,b) =>
-        new Date(b.createdAt||0) - new Date(a.createdAt||0));
-    } else if (sort === 'oldest') {
-      filteredLeads.sort((a,b) =>
-        new Date(a.createdAt||0) - new Date(b.createdAt||0));
-    } else if (sort === 'name') {
-      filteredLeads.sort((a,b) => a.name.localeCompare(b.name));
-    }
-
+    applySort();
+    updateStatTileActive(status);
+    updateSortArrows();
     renderLeads();
   }
 
@@ -911,6 +981,10 @@
   
   const BREVO_ALL_PIPELINE_LIST_IDS = [38, 39, 40, 41, 42, 43, 44];
   const BREVO_CRM_LEADS_LIST = 36;
+  // Property-type lists, kept separate from pipeline stage - a lead sits in
+  // one stage list AND one of these, so broadcast campaigns can target by
+  // type regardless of where the lead is in the pipeline.
+  const BREVO_TYPE_LISTS = { Residential: 58, Commercial: 59 };
   
   let brevoConfig = null;
   
@@ -940,6 +1014,38 @@
     } catch(e) { return { ok: false, error: e.message }; }
   }
   
+  async function sendThankYouEmail(leadData) {
+    if (!leadData.email) return { ok: false, error: "no_email" };
+    const config = await loadBrevoConfig();
+    if (!config || !config.brevoApiKey || !config.brevoSenderEmail) return { ok: false, error: "no_config" };
+    const senderName = config.brevoSenderName || "Our Team";
+    const projectPhrase = leadData.projectType ? leadData.projectType.toLowerCase() + " project " : "project ";
+    const payload = {
+      sender: { name: senderName, email: config.brevoSenderEmail },
+      to: [{ email: leadData.email, name: leadData.name || "" }],
+      subject: "Thanks for reaching out, " + (leadData.name || "there") + "!",
+      htmlContent:
+        '<div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;color:#222;">' +
+        '<h2 style="margin:0 0 16px;color:#1a1a1a;">Thank you, ' + (leadData.name || "there") + '!</h2>' +
+        '<p style="font-size:15px;line-height:1.6;margin:0 0 16px;">' +
+        'We\'ve received your ' + projectPhrase + 'enquiry' + (leadData.location ? ' for ' + leadData.location : '') + '. ' +
+        'Our team will reach out to you shortly to understand your requirements and next steps.</p>' +
+        '<p style="font-size:15px;line-height:1.6;margin:0 0 16px;">' +
+        'In the meantime, feel free to reply to this email or message us on WhatsApp if you have any questions.</p>' +
+        '<p style="font-size:14px;color:#666;margin-top:32px;">&mdash; ' + senderName + '</p>' +
+        '</div>'
+    };
+    try {
+      const r = await fetch("https://api.brevo.com/v3/smtp/email", {
+        method: "POST",
+        headers: { "accept": "application/json", "content-type": "application/json", "api-key": config.brevoApiKey },
+        body: JSON.stringify(payload)
+      });
+      const data = r.status === 204 ? {} : await r.json();
+      return { ok: r.ok, status: r.status, data };
+    } catch(e) { return { ok: false, error: e.message }; }
+  }
+
   async function findOrCreateBrevoContact(lead) {
     const config = await loadBrevoConfig();
     if (!config) return null;
@@ -992,6 +1098,18 @@
         }
       }
       await brevoCall("/contacts/lists/" + targetListId + "/contacts/add", "POST", { ids: [contactId] });
+
+      // Property-type list (Residential/Commercial) - independent of pipeline stage
+      const targetTypeListId = BREVO_TYPE_LISTS[leadData.projectType];
+      for (const typeListId of Object.values(BREVO_TYPE_LISTS)) {
+        if (typeListId !== targetTypeListId) {
+          await brevoCall("/contacts/lists/" + typeListId + "/contacts/remove", "POST", { ids: [contactId] });
+        }
+      }
+      if (targetTypeListId) {
+        await brevoCall("/contacts/lists/" + targetTypeListId + "/contacts/add", "POST", { ids: [contactId] });
+      }
+
       const email = (leadData.email || "").toLowerCase().trim();
       if (email) {
         await brevoCall("/contacts/" + encodeURIComponent(email), "PUT", { attributes: { LEAD_STATUS: leadData.status || "New" } });
@@ -1020,6 +1138,9 @@
     try {
       for (const listId of BREVO_ALL_PIPELINE_LIST_IDS) {
         await brevoCall("/contacts/lists/" + listId + "/contacts/remove", "POST", { ids: [leadData.brevoContactId] });
+      }
+      for (const typeListId of Object.values(BREVO_TYPE_LISTS)) {
+        await brevoCall("/contacts/lists/" + typeListId + "/contacts/remove", "POST", { ids: [leadData.brevoContactId] });
       }
     } catch(e) { console.error("Brevo removal error:", e); }
   }
@@ -1055,14 +1176,29 @@
   
   // END BREVO SYNC MODULE
   
+  let isSavingLead = false;
+
   async function saveLead() {
+    // Prevents a double-click from creating two Won->Project conversions
+    // (and two Drive folders) for the same lead -- same class of bug as
+    // projects.html's saveProject().
+    if (isSavingLead) return;
+    isSavingLead = true;
+    const saveBtn = document.getElementById('saveLeadBtn');
+    if (saveBtn) saveBtn.disabled = true;
+
     const name  = document.getElementById('leadName').value.trim();
     const phone = document.getElementById('leadPhone').value.trim();
 
-    if (!name)  { showToast('❌ Enter name!', 'danger'); return; }
-    if (!phone) { showToast('❌ Enter phone!', 'danger'); return; }
+    const abort = (msg) => {
+      showToast(msg, 'danger');
+      isSavingLead = false;
+      if (saveBtn) saveBtn.disabled = false;
+    };
+    if (!name)  { abort('❌ Enter name!'); return; }
+    if (!phone) { abort('❌ Enter phone!'); return; }
     if (phone.length !== 10 || !/^[0-9]{10}$/.test(phone)) {
-      showToast('❌ Phone must be 10 digits!', 'danger');
+      abort('❌ Phone must be 10 digits!');
       return;
     }
 
@@ -1150,6 +1286,22 @@
         syncLeadToBrevo(_newLeadRef.id, leadData).catch(function(e){console.error("Brevo sync:", e);});
         if (leadData.assignedTo) await TIC_NOTIF.send(db, leadData.assignedTo, '👤 New lead assigned: ' + (leadData.name || 'Lead'), 'lead', 'leads.html');
         showToast('✅ Lead saved to Firebase!', 'success');
+
+        // WhatsApp welcome auto-send disabled for now (email only) -- to re-enable, uncomment below
+        // const welcomeTemplate = leadData.projectType === 'Residential' ? 'residential_lead_welcome'
+        //   : leadData.projectType === 'Commercial' ? 'commercial_lead_welcome' : null;
+        // if (welcomeTemplate && window.TIC_WA) {
+        //   TIC_WA.sendTemplate(leadData.phone, welcomeTemplate, 'en', [leadData.name])
+        //     .then(() => console.log('WA welcome sent:', welcomeTemplate))
+        //     .catch(e => console.warn('WA welcome failed:', e.message));
+        // }
+
+        // Auto-send Brevo thank-you email if the lead provided an email
+        if (leadData.email) {
+          sendThankYouEmail(leadData)
+            .then(r => console.log('Thank-you email:', r.ok ? 'sent' : r))
+            .catch(e => console.warn('Thank-you email failed:', e.message));
+        }
       }
       closeModal();
       await loadLeads();
@@ -1158,6 +1310,8 @@
       showToast('❌ Error! Check connection.', 'danger');
     }
     showSaving(false);
+    isSavingLead = false;
+    if (saveBtn) saveBtn.disabled = false;
   }
 
   // ─── EDIT LEAD ───
@@ -1383,30 +1537,39 @@
   });
 </script>
 <script src="js/notifications.js"></script>
+<script src="js/whatsapp.js?v=3"></script>
 
 
 <script>
 // ─── ZAPIER LEAD NOTIFICATION LISTENER ───
-// Listens for new Google Ads leads and notifies Mustaq & Admin
+// Listens for new Google Ads leads and notifies Mustaq & Admin.
+// Scoped to only the most-recent leads (not the whole collection) --
+// a collection-wide onSnapshot here re-reads every one of the 129+ leads
+// on every listener (re)connect and on every single edit any user makes
+// to any lead, which was the single largest driver of Firestore read
+// usage in the app (contributed heavily to blowing past the free daily
+// read quota). This is functionally identical -- it still fires the same
+// "added" notification for new Google Ads leads -- just bounded to a
+// small recent window instead of the full table.
 let zapierListenerReady = false;
 setTimeout(() => { zapierListenerReady = true; console.log('🔔 Zapier listener now armed'); }, 3000);
 
 firebase.auth().onAuthStateChanged(function(user) {
   if (!user) return;
-  db.collection("leads").onSnapshot(snapshot => {
+  db.collection("leads").orderBy("createdAt", "desc").limit(25).onSnapshot(snapshot => {
     console.log("📡 Firestore snapshot received, changes:", snapshot.docChanges().length);
     snapshot.docChanges().forEach(change => {
         if (change.type === "added") {
             const lead = change.doc.data();
             console.log('➕ Added lead:', lead.name, '| source:', lead.source, '| armed:', zapierListenerReady);
-            
+
             // Only fire for new leads after listener arms (skip initial load)
             if (!zapierListenerReady) return;
-            
+
             if (lead.source === 'Google Ads') {
                 console.log('✅ New Google Ads lead detected! Sending notifications...');
                 TIC_NOTIF.send(db, 'Mustaq', '👤 New Google Ads Lead: ' + (lead.name || 'Unknown'), 'lead', 'leads.html');
-                TIC_NOTIF.send(db, 'admin@sbinteriorsolutions.net', '👤 New Google Ads Lead: ' + (lead.name || 'Unknown'), 'lead', 'leads.html');
+                TIC_NOTIF.send(db, 'info', '👤 New Google Ads Lead: ' + (lead.name || 'Unknown'), 'lead', 'leads.html');
             }
         }
     });

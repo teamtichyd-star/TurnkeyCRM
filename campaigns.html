@@ -99,12 +99,14 @@
   <div class="tab-switcher" style="display:flex;gap:2px;background:var(--card2);border-radius:8px;overflow:hidden;">
     <button id="tabEmail" class="btn btn-secondary btn-sm" onclick="switchCampaignTab('email')">Email Campaigns</button>
     <button id="tabWA" class="btn btn-secondary btn-sm" onclick="switchCampaignTab('wa')">WhatsApp Campaigns</button>
+    <button id="tabWATpl" class="btn btn-secondary btn-sm" onclick="switchCampaignTab('watpl')">WA Templates</button>
   </div>
   <button class="btn btn-secondary btn-sm" onclick="loadCampaigns()"><i class="fa fa-sync"></i> Refresh</button>
   <button id="btnNewEmail" class="btn btn-primary btn-sm" onclick="openNewCampaignModal()">📧 New Email Campaign</button>
   <button id="btnNewWA" class="btn btn-success btn-sm" onclick="openNewWACampaignModal()" style="display:none;">💬 New WhatsApp Campaign</button>
+  <button id="btnNewWATpl" class="btn btn-success btn-sm" onclick="openNewTemplateModal()" style="display:none;">📝 New Template</button>
 </div>
-<script src="js/whatsapp.js"></script>
+<script src="js/whatsapp.js?v=3"></script>
 <script>
 // WhatsApp Campaigns Tab Logic
 async function loadWATemplates() {
@@ -157,9 +159,29 @@ async function showWATemplateContent(templateName) {
       });
     }
     document.getElementById('waTemplateContent').innerText = msg.trim();
+    renderWAVarInputs(msg.trim());
   } catch (e) {
     document.getElementById('waTemplateContent').innerText = 'Failed to load template content.';
+    renderWAVarInputs('');
   }
+}
+
+// Renders one text input per {{n}} placeholder in the template body, so the
+// value is typed inline instead of via prompt() — native prompt() dialogs
+// are unreliable across browser/webview contexts and give no visual trace
+// of what was sent.
+function renderWAVarInputs(templateContent) {
+  const container = document.getElementById('waVarInputs');
+  const matches = templateContent.match(/\{\{\d+\}\}/g);
+  if (!matches) {
+    container.style.display = 'none';
+    container.innerHTML = '';
+    return;
+  }
+  container.style.display = 'flex';
+  container.innerHTML = matches.map((m, i) =>
+    `<input class="form-input wa-var-input" data-var="${m}" placeholder="Value for ${m} (e.g. recipient name)" value="${i === 0 ? 'Customer' : ''}">`
+  ).join('');
 }
 document.addEventListener('DOMContentLoaded',()=>{
   if(document.getElementById('waTemplate')){
@@ -182,15 +204,12 @@ async function startWAIndividualSend() {
   if (!phone || !template) { alert('Enter phone and select template'); return; }
   document.getElementById('waProgress').innerText = 'Sending...';
   try {
-    // Prompt for template variables if needed
-    let vars = [];
-    let templateContent = document.getElementById('waTemplateContent').innerText;
-    const matches = templateContent.match(/\{\{\d+}}/g);
-    if (matches) {
-      vars = matches.map((m, i) => prompt(`Enter value for variable ${m} (e.g. recipient name):`, ''));
-      if (vars.some(v => !v)) { document.getElementById('waProgress').innerText = 'Cancelled.'; return; }
-      // vars already plain strings, whatsapp.js handles wrapping
-    }
+    // Variable values come from the inline inputs rendered by
+    // renderWAVarInputs() (see updateWACostPreview/showWATemplateContent)
+    // rather than a native prompt() dialog.
+    const varInputs = Array.from(document.querySelectorAll('#waVarInputs .wa-var-input'));
+    const vars = varInputs.map(inp => inp.value.trim());
+    if (vars.some(v => !v)) { document.getElementById('waProgress').innerText = 'Fill in the template variable value(s) above.'; return; }
     await window.TIC_WA.sendTemplate(phone, template, 'en', vars);
     document.getElementById('waProgress').innerText = 'Message sent!';
   } catch(e) {
@@ -216,6 +235,14 @@ const WA_BATCH_INFO = {
     {label:'C1',listId:52,count:162},{label:'C2',listId:53,count:162},
     {label:'C3',listId:54,count:162},{label:'C4',listId:55,count:162},
     {label:'C5',listId:56,count:162},{label:'C6',listId:57,count:161}
+  ]},
+  // CRM leads, split by property type instead of Residential/Commercial's
+  // arbitrary batches - small enough (~20-100 contacts) to send in one go.
+  crm_residential: { label: '🏠 CRM Residential', batches: [
+    {label:'ALL',listId:58,count:21}
+  ]},
+  crm_commercial: { label: '🏢 CRM Commercial', batches: [
+    {label:'ALL',listId:59,count:94}
   ]}
 };
 
@@ -300,6 +327,7 @@ function openNewWACampaignModal() {
   document.getElementById('wacName').value = '';
   document.getElementById('wacAudience').value = '';
   document.getElementById('wacTemplate').value = '';
+  loadApprovedWATemplateOptions();
 }
 function closeNewWACampaignModal() {
   document.getElementById('newWACampaignModal').style.display = 'none';
@@ -560,11 +588,15 @@ async function startWABulkSend() {
 function switchCampaignTab(tab) {
   document.getElementById('mainContent').style.display = (tab==='email') ? '' : 'none';
   document.getElementById('waCampaigns').style.display = (tab==='wa') ? '' : 'none';
+  document.getElementById('waTemplatesTab').style.display = (tab==='watpl') ? '' : 'none';
   document.getElementById('tabEmail').classList.toggle('btn-primary', tab==='email');
   document.getElementById('tabEmail').classList.toggle('btn-secondary', tab!=='email');
   document.getElementById('tabWA').classList.toggle('btn-primary', tab==='wa');
   document.getElementById('tabWA').classList.toggle('btn-secondary', tab!=='wa');
+  document.getElementById('tabWATpl').classList.toggle('btn-primary', tab==='watpl');
+  document.getElementById('tabWATpl').classList.toggle('btn-secondary', tab!=='watpl');
   if (tab==='wa') { loadWACampaigns(); }
+  if (tab==='watpl') { loadWATemplatesList(); }
   // Hide email stats when on WA tab
   const statsRow = document.querySelector('.stats-row');
   const filtersBar = document.querySelector('.filters-bar');
@@ -575,33 +607,269 @@ function switchCampaignTab(tab) {
   if (campaignsList) campaignsList.style.display = (tab==='email') ? '' : 'none';
   const btnEmail = document.getElementById('btnNewEmail');
   const btnWA = document.getElementById('btnNewWA');
+  const btnWATpl = document.getElementById('btnNewWATpl');
   if (btnEmail) btnEmail.style.display = (tab==='email') ? '' : 'none';
   if (btnWA) btnWA.style.display = (tab==='wa') ? '' : 'none';
+  if (btnWATpl) btnWATpl.style.display = (tab==='watpl') ? '' : 'none';
 }
+
+// ═══ WA TEMPLATE CREATOR ═══
+// Meta App ID (public, not a secret) — needed for the resumable media
+// upload API when a template has an image header.
+const META_APP_ID = '27765675376376657';
+
+let tplButtons = [];
+
+function openNewTemplateModal() {
+  document.getElementById('tplName').value = '';
+  document.getElementById('tplCategory').value = 'MARKETING';
+  document.getElementById('tplLanguage').value = 'en_US';
+  document.getElementById('tplImage').value = '';
+  document.getElementById('tplBody').value = '';
+  const statusEl = document.getElementById('tplSubmitStatus');
+  statusEl.style.display = 'none';
+  statusEl.textContent = '';
+  tplButtons = [];
+  renderTplButtonsList();
+  document.getElementById('newTemplateModal').style.display = 'flex';
+}
+function closeNewTemplateModal() {
+  document.getElementById('newTemplateModal').style.display = 'none';
+}
+
+// ── Template buttons (QUICK_REPLY / PHONE_NUMBER / URL) ──
+function addTplButtonRow() {
+  if (tplButtons.length >= 3) return;
+  tplButtons.push({ type: 'QUICK_REPLY', text: '', phone: '', url: '' });
+  renderTplButtonsList();
+}
+function removeTplButtonRow(i) {
+  tplButtons.splice(i, 1);
+  renderTplButtonsList();
+}
+function updateTplButton(i, field, value) {
+  tplButtons[i][field] = value;
+  if (field === 'type') renderTplButtonsList(); // value field (phone/url) depends on type
+}
+function renderTplButtonsList() {
+  const list = document.getElementById('tplButtonsList');
+  list.innerHTML = tplButtons.map((b, i) => `
+    <div style="display:flex;gap:6px;align-items:center;background:var(--bg-alt,rgba(255,255,255,0.03));padding:8px;border-radius:8px;">
+      <select class="form-input" style="flex:0 0 130px;" onchange="updateTplButton(${i},'type',this.value)">
+        <option value="QUICK_REPLY" ${b.type === 'QUICK_REPLY' ? 'selected' : ''}>Quick Reply</option>
+        <option value="PHONE_NUMBER" ${b.type === 'PHONE_NUMBER' ? 'selected' : ''}>Call Phone</option>
+        <option value="URL" ${b.type === 'URL' ? 'selected' : ''}>Website URL</option>
+      </select>
+      <input class="form-input" style="flex:1;" placeholder="Button label e.g. Get Quote" value="${b.text}" oninput="updateTplButton(${i},'text',this.value)">
+      ${b.type === 'PHONE_NUMBER' ? `<input class="form-input" style="flex:1;" placeholder="+918142666454" value="${b.phone}" oninput="updateTplButton(${i},'phone',this.value)">` : ''}
+      ${b.type === 'URL' ? `<input class="form-input" style="flex:1;" placeholder="https://..." value="${b.url}" oninput="updateTplButton(${i},'url',this.value)">` : ''}
+      <button type="button" class="btn btn-secondary btn-sm" onclick="removeTplButtonRow(${i})" title="Remove"><i class="fa fa-times"></i></button>
+    </div>
+  `).join('');
+  document.getElementById('tplAddButtonBtn').style.display = tplButtons.length >= 3 ? 'none' : 'inline-flex';
+}
+
+async function uploadTemplateHeaderImage(file) {
+  // Meta's resumable upload endpoint has no CORS headers, so this goes
+  // through the Cloudflare Worker (server-side, not subject to CORS)
+  // instead of calling graph.facebook.com directly from the browser.
+  const res = await fetch('https://orange-sea-e881.teamtic-hyd.workers.dev/template-upload', {
+    method: 'POST',
+    headers: { 'X-File-Type': file.type },
+    body: file
+  });
+  const data = await res.json();
+  if (!data.handle) throw new Error('Upload failed: ' + (data.error || JSON.stringify(data)));
+  return data.handle;
+}
+
+async function submitNewTemplate() {
+  const name = document.getElementById('tplName').value.trim();
+  const category = document.getElementById('tplCategory').value;
+  const language = document.getElementById('tplLanguage').value;
+  const body = document.getElementById('tplBody').value.trim();
+  const imageFile = document.getElementById('tplImage').files[0];
+  const statusEl = document.getElementById('tplSubmitStatus');
+  const btn = document.getElementById('tplSubmitBtn');
+
+  const showStatus = (text, color) => {
+    statusEl.style.display = 'block';
+    statusEl.textContent = text;
+    statusEl.style.color = color || '';
+  };
+
+  if (!name) { showStatus('Enter a template name', 'var(--danger)'); return; }
+  if (!body) { showStatus('Enter body text', 'var(--danger)'); return; }
+
+  const doc = await firebase.firestore().collection('settings').doc('integrations').get();
+  const wa = doc.data()?.whatsapp;
+  if (!wa || !wa.accessToken || !wa.wabaId) { showStatus('WhatsApp not configured in Settings', 'var(--danger)'); return; }
+
+  btn.disabled = true;
+  showStatus('Submitting...', '');
+
+  try {
+    const components = [];
+
+    if (imageFile) {
+      showStatus('Uploading image to Meta...', '');
+      const handle = await uploadTemplateHeaderImage(imageFile);
+      components.push({ type: 'HEADER', format: 'IMAGE', example: { header_handle: [handle] } });
+    }
+
+    // Meta requires a sample "example" value for every {{n}} placeholder
+    // in the body text, or the template is rejected with "component of
+    // type BODY is missing expected field(s) (example)".
+    const placeholderCount = new Set((body.match(/\{\{\s*\d+\s*\}\}/g) || []).map(p => p.replace(/\D/g, ''))).size;
+    const bodyComponent = { type: 'BODY', text: body };
+    if (placeholderCount > 0) {
+      const samples = ['Rahul'];
+      for (let i = 2; i <= placeholderCount; i++) samples.push('Sample ' + i);
+      bodyComponent.example = { body_text: [samples] };
+    }
+    components.push(bodyComponent);
+
+    const validButtons = tplButtons.filter(b => b.text && b.text.trim());
+    if (validButtons.length > 0) {
+      components.push({
+        type: 'BUTTONS',
+        buttons: validButtons.map(b => {
+          if (b.type === 'PHONE_NUMBER') return { type: 'PHONE_NUMBER', text: b.text.trim(), phone_number: b.phone.trim() };
+          if (b.type === 'URL') return { type: 'URL', text: b.text.trim(), url: b.url.trim() };
+          return { type: 'QUICK_REPLY', text: b.text.trim() };
+        })
+      });
+    }
+
+    showStatus('Creating template...', '');
+    const res = await fetch(`https://graph.facebook.com/v19.0/${wa.wabaId}/message_templates`, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + wa.accessToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, category, language, components })
+    });
+    const data = await res.json();
+
+    if (data.id) {
+      // Register a reusable send-time media id for this template's header
+      // image, so future sends can actually include it (the handle used
+      // above is a one-time creation artifact, not reusable for sending).
+      if (imageFile && wa.phoneNumberId) {
+        try {
+          const upRes = await fetch(`https://orange-sea-e881.teamtic-hyd.workers.dev/media-upload?phone_number_id=${wa.phoneNumberId}`, {
+            method: 'POST',
+            headers: { 'X-File-Type': imageFile.type },
+            body: imageFile
+          });
+          const upData = await upRes.json();
+          if (upData.mediaId) {
+            await firebase.firestore().collection('wa_template_headers').doc(name).set({
+              mediaId: upData.mediaId, uploadedAt: new Date().toISOString()
+            });
+          }
+        } catch (e) { console.error('Header media registration failed (template still created fine):', e); }
+      }
+
+      showStatus('✅ Submitted! Status: PENDING — Meta usually reviews within a few minutes to 24h.', 'var(--success)');
+      setTimeout(() => { closeNewTemplateModal(); loadWATemplatesList(); }, 1800);
+    } else {
+      throw new Error(data.error?.error_user_msg || data.error?.message || JSON.stringify(data));
+    }
+  } catch (e) {
+    showStatus('❌ ' + e.message, 'var(--danger)');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function loadWATemplatesList() {
+  const listEl = document.getElementById('waTemplatesList');
+  listEl.innerHTML = '<div style="text-align:center;padding:40px;color:var(--subtext);">Loading...</div>';
+
+  const doc = await firebase.firestore().collection('settings').doc('integrations').get();
+  const wa = doc.data()?.whatsapp;
+  if (!wa || !wa.accessToken || !wa.wabaId) {
+    listEl.innerHTML = '<div class="not-configured"><i class="fa fa-exclamation-triangle"></i><h3>WhatsApp not configured</h3><p>Add your access token and WABA ID in Settings.</p></div>';
+    return;
+  }
+
+  try {
+    const res = await fetch(
+      `https://graph.facebook.com/v19.0/${wa.wabaId}/message_templates?fields=name,category,language,status,components&limit=100`,
+      { headers: { Authorization: 'Bearer ' + wa.accessToken } }
+    );
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+
+    if (!data.data || !data.data.length) {
+      listEl.innerHTML = '<div style="text-align:center;padding:40px;color:var(--subtext);"><i class="fa fa-file-alt" style="font-size:40px;opacity:0.3;"></i><p style="margin-top:10px;">No templates yet. Click "New Template" to create one.</p></div>';
+      return;
+    }
+
+    const statusBadgeClass = { APPROVED: 'badge-complete', PENDING: 'badge-progress', REJECTED: 'badge-paused' };
+
+    listEl.innerHTML = data.data.map((t, i) => {
+      const bodyComp = (t.components || []).find(c => c.type === 'BODY');
+      const headerComp = (t.components || []).find(c => c.type === 'HEADER');
+      const badgeClass = statusBadgeClass[t.status] || 'badge-draft';
+      return `<div class="campaign-card" style="padding:0;overflow:hidden;">
+        <div class="campaign-header" style="padding:16px;cursor:pointer;margin:0;" onclick="toggleTplDetails(${i})">
+          <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
+            <i class="fa fa-chevron-right" id="tplChevron${i}" style="color:var(--subtext);font-size:11px;transition:transform 0.2s;flex-shrink:0;"></i>
+            <div class="campaign-title" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.name}</div>
+          </div>
+          <span class="badge ${badgeClass}">${t.status}</span>
+        </div>
+        <div id="tplDetails${i}" style="display:none;padding:0 16px 16px;">
+          <div class="campaign-sub" style="margin-bottom:8px;">${t.category} · ${t.language}${headerComp && headerComp.format === 'IMAGE' ? ' · 🖼️ Image header' : ''}</div>
+          ${bodyComp ? `<div style="font-size:13px;color:var(--text);white-space:pre-wrap;">${bodyComp.text}</div>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+  } catch (e) {
+    listEl.innerHTML = '<div style="text-align:center;padding:40px;color:var(--danger);">Failed to load templates: ' + e.message + '</div>';
+  }
+}
+
+function toggleTplDetails(i) {
+  const details = document.getElementById('tplDetails' + i);
+  const chevron = document.getElementById('tplChevron' + i);
+  const isOpen = details.style.display !== 'none';
+  details.style.display = isOpen ? 'none' : 'block';
+  chevron.style.transform = isOpen ? '' : 'rotate(90deg)';
+}
+// End WA Template Creator
+// Populates the "WhatsApp Template" dropdowns (New Campaign modal, Quick
+// Send) with the live, APPROVED templates from Meta — previously this was
+// a hardcoded list of 8 names frozen at whenever this code was written, so
+// any newly-created template could never appear no matter how often the
+// page was refreshed.
+async function loadApprovedWATemplateOptions() {
+  const targets = ['wacTemplate','waTemplate'].map(id => document.getElementById(id)).filter(Boolean);
+  if (!targets.length) return;
+
+  const doc = await firebase.firestore().collection('settings').doc('integrations').get();
+  const wa = doc.data()?.whatsapp;
+  if (!wa || !wa.accessToken || !wa.wabaId) return;
+
+  try {
+    const res = await fetch(
+      `https://graph.facebook.com/v19.0/${wa.wabaId}/message_templates?fields=name,category,status&limit=100`,
+      { headers: { Authorization: 'Bearer ' + wa.accessToken } }
+    );
+    const data = await res.json();
+    if (!data.data) return;
+    const approved = data.data.filter(t => t.status === 'APPROVED');
+    const opts = approved.map(t => '<option value="'+t.name+'">'+t.name+' ('+t.category+')</option>').join('');
+    targets.forEach(el => { el.innerHTML = '<option value="">Select template...</option>' + opts; });
+  } catch (e) {
+    console.error('Failed to load WA templates for dropdown:', e);
+  }
+}
+
 window.addEventListener('DOMContentLoaded',()=>{
   if(!document.getElementById('waCampaigns'))return;
   switchCampaignTab('email');
-  // Populate WA template dropdowns when brevo templates load
-  const origLoad = window.loadBrevoCampaigns;
-  window.loadBrevoCampaigns = async function() {
-    await origLoad.call(this);
-    // Populate WA template selects from loaded templates
-    const waTemplates = [
-      {name:'awareness_promo',cat:'MARKETING'},
-      {name:'festive_offer',cat:'MARKETING'},
-      {name:'proposal_sent',cat:'UTILITY'},
-      {name:'sales_followup',cat:'MARKETING'},
-      {name:'request_details_commercial',cat:'UTILITY'},
-      {name:'request_details_residential',cat:'UTILITY'},
-      {name:'residential_lead_welcome',cat:'MARKETING'},
-      {name:'commercial_lead_welcome',cat:'MARKETING'}
-    ];
-    const opts = waTemplates.map(t=>'<option value="'+t.name+'">'+t.name+' ('+t.cat+')</option>').join('');
-    ['wacTemplate','waTemplate'].forEach(id=>{
-      const el = document.getElementById(id);
-      if(el) el.innerHTML = '<option value="">Select template...</option>'+opts;
-    });
-  };
+  loadApprovedWATemplateOptions();
 });
 </script>
 <!-- End Tab Switcher -->
@@ -664,6 +932,7 @@ window.addEventListener('DOMContentLoaded',()=>{
       <button class="btn btn-success" onclick="startWAIndividualSend()"><i class="fa fa-paper-plane"></i> Send</button>
     </div>
     <div id="waCostPreview" style="font-size:12px;color:var(--subtext);margin-top:8px;"></div>
+    <div id="waVarInputs" style="display:none;margin-top:10px;flex-direction:column;gap:8px;"></div>
     <div id="waProgress" style="font-size:12px;color:var(--primary);margin-top:6px;"></div>
     <div id="waTemplateContent" style="display:none;"></div>
   </div>
@@ -675,6 +944,74 @@ window.addEventListener('DOMContentLoaded',()=>{
   </div>
 </div>
 <!-- End WhatsApp Campaigns Tab -->
+
+<!-- WA Templates Tab -->
+<div id="waTemplatesTab" style="display:none;padding:16px 12px 40px;">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+    <h2 style="color:var(--primary);font-size:17px;flex:1;margin:0;"><i class="fa fa-file-alt" style="margin-right:8px;"></i>WhatsApp Templates</h2>
+    <button class="btn btn-secondary btn-sm" onclick="loadWATemplatesList()"><i class="fa fa-sync"></i> Refresh Status</button>
+  </div>
+  <div id="waTemplatesList" style="display:flex;flex-direction:column;gap:10px;">
+    <div style="text-align:center;padding:40px;color:var(--subtext);">Loading templates...</div>
+  </div>
+</div>
+<!-- End WA Templates Tab -->
+
+<!-- New Template Modal -->
+<div class="modal-overlay" id="newTemplateModal" style="display:none;">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>📝 New WhatsApp Template</h3>
+      <button class="modal-close" onclick="closeNewTemplateModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div>
+        <label class="form-label">Template Name</label>
+        <input type="text" id="tplName" class="form-input" placeholder="e.g. festive_offer_2026"
+          oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9_]/g,'_')">
+        <div style="font-size:11px;color:var(--subtext);margin-top:4px;">Lowercase letters, numbers, underscores only — auto-formatted as you type.</div>
+      </div>
+      <div>
+        <label class="form-label">Category</label>
+        <select id="tplCategory" class="form-input">
+          <option value="MARKETING">Marketing</option>
+          <option value="UTILITY">Utility</option>
+          <option value="AUTHENTICATION">Authentication</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Language</label>
+        <select id="tplLanguage" class="form-input">
+          <option value="en_US">English (US)</option>
+          <option value="en">English</option>
+          <option value="hi">Hindi</option>
+          <option value="te">Telugu</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Header Image (optional)</label>
+        <input type="file" id="tplImage" accept="image/jpeg,image/png" class="form-input">
+      </div>
+      <div>
+        <label class="form-label">Body Text</label>
+        <textarea id="tplBody" class="form-input" rows="5" style="resize:vertical;"
+          placeholder="Hi {{1}}, your order is ready for pickup..."></textarea>
+        <div style="font-size:11px;color:var(--subtext);margin-top:4px;">Use {{1}}, {{2}} etc. as placeholders for variables like customer name.</div>
+      </div>
+      <div>
+        <label class="form-label">Buttons (optional, up to 3)</label>
+        <div id="tplButtonsList" style="display:flex;flex-direction:column;gap:8px;"></div>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="addTplButtonRow()" style="margin-top:8px;" id="tplAddButtonBtn"><i class="fa fa-plus"></i> Add Button</button>
+      </div>
+      <div id="tplSubmitStatus" class="info-box" style="display:none;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeNewTemplateModal()">Cancel</button>
+      <button class="btn btn-primary" id="tplSubmitBtn" onclick="submitNewTemplate()"><i class="fa fa-paper-plane"></i> Submit to Meta</button>
+    </div>
+  </div>
+</div>
+<!-- End New Template Modal -->
   <!-- Stats -->
   <div class="stats-row">
     <div class="stat-card">
@@ -736,6 +1073,8 @@ window.addEventListener('DOMContentLoaded',()=>{
           <option value="">Select audience...</option>
           <option value="residential">🏠 Residential (1,270 contacts, R1-R6 batches)</option>
           <option value="commercial">🏢 Commercial (971 contacts, C1-C6 batches)</option>
+          <option value="crm_residential">🏠 CRM Residential (21 leads, 1 batch)</option>
+          <option value="crm_commercial">🏢 CRM Commercial (94 leads, 1 batch)</option>
         </select>
       </div>
       <div>
@@ -796,7 +1135,8 @@ const BREVO_LISTS = {
   zoho_import: 35, crm_leads: 36, manual: 37,
   lead_new: 38, lead_contacted: 39, lead_sitevisit: 40,
   lead_proposal: 41, lead_negotiation: 42,
-  won: 43, lost: 44, unclassified: 45
+  won: 43, lost: 44, unclassified: 45,
+  crm_residential: 58, crm_commercial: 59
 };
 
 // Batch list IDs (each is a separate list with only that batch's contacts)
@@ -812,7 +1152,19 @@ const BATCH_LISTS = {
   C3: {id: 54, count: 162, master: 33},
   C4: {id: 55, count: 162, master: 33},
   C5: {id: 56, count: 162, master: 33},
-  C6: {id: 57, count: 161, master: 33}
+  C6: {id: 57, count: 161, master: 33},
+  // CRM leads split by property type - small enough for a single batch each
+  CR1: {id: 58, count: 21, master: 58},
+  CM1: {id: 59, count: 94, master: 59}
+};
+
+// Per-audience send config, used by createCampaign()/updateAudiencePreview()
+// so new audiences don't need hardcoded if/else branches.
+const AUDIENCE_CONFIG = {
+  residential:      { listId: BREVO_LISTS.residential,      totalContacts: 1270, batchPrefix: "R", totalBatches: 6, previewText: "1,270 residential contacts, split into 6 batches (R1-R6, ~212 each). Send 1 batch per day." },
+  commercial:       { listId: BREVO_LISTS.commercial,       totalContacts: 971,  batchPrefix: "C", totalBatches: 6, previewText: "971 commercial contacts, split into 6 batches (C1-C6, ~162 each). Send 1 batch per day." },
+  crm_residential:  { listId: BREVO_LISTS.crm_residential,  totalContacts: 21,   batchPrefix: "CR", totalBatches: 1, previewText: "21 CRM leads (Residential), sent in a single batch." },
+  crm_commercial:   { listId: BREVO_LISTS.crm_commercial,   totalContacts: 94,   batchPrefix: "CM", totalBatches: 1, previewText: "94 CRM leads (Commercial), sent in a single batch." }
 };
 
 let brevoConfig = null;
@@ -999,11 +1351,9 @@ function updateAudiencePreview() {
   const aud = document.getElementById("ncAudience").value;
   const box = document.getElementById("audiencePreview");
   const txt = document.getElementById("previewText");
-  if (aud === "residential") {
-    txt.innerText = "1,270 residential contacts, split into 6 batches (R1-R6, ~212 each). Send 1 batch per day.";
-    box.style.display = "block";
-  } else if (aud === "commercial") {
-    txt.innerText = "971 commercial contacts, split into 6 batches (C1-C6, ~162 each). Send 1 batch per day.";
+  const cfg = AUDIENCE_CONFIG[aud];
+  if (cfg) {
+    txt.innerText = cfg.previewText;
     box.style.display = "block";
   } else {
     box.style.display = "none";
@@ -1019,10 +1369,12 @@ async function createCampaign() {
   if (!name || !audience) { alert("Enter name and select audience"); return; }
   if (!templateId) { alert("Please select an email template"); return; }
 
-  const audienceListId = audience === "residential" ? BREVO_LISTS.residential : BREVO_LISTS.commercial;
-  const totalContacts = audience === "residential" ? 1270 : 971;
-  const batchPrefix = audience === "residential" ? "R" : "C";
-  const totalBatches = 6;
+  const cfg = AUDIENCE_CONFIG[audience];
+  if (!cfg) { alert("Unknown audience"); return; }
+  const audienceListId = cfg.listId;
+  const totalContacts = cfg.totalContacts;
+  const batchPrefix = cfg.batchPrefix;
+  const totalBatches = cfg.totalBatches;
 
   try {
     const campaignRef = await db.collection("campaigns").add({
@@ -1125,6 +1477,8 @@ async function confirmSendBatch() {
       name: campaign.name + " - " + batch.batchNumber + " (" + new Date().toISOString().split("T")[0] + ")",
       subject: campaign.subject || srcData.subject || "SB Interior Solutions",
       sender: { name: brevoConfig.brevoSenderName, email: brevoConfig.brevoSenderEmail },
+      // Replies go to the Zoho inbox even though Brevo's verified sender is the .com address
+      replyTo: (srcData.replyTo && !/DEFAULT/.test(srcData.replyTo)) ? srcData.replyTo : "info@sbinteriorsolutions.net",
       htmlContent: srcData.htmlContent,
       recipients: {
         listIds: [batch.brevoListId || campaign.audienceListId]
@@ -1484,6 +1838,8 @@ document.getElementById("audienceFilter").addEventListener("change", renderCampa
           <option value="">Select audience...</option>
           <option value="residential">🏠 Residential (1,270 contacts · R1-R6)</option>
           <option value="commercial">🏢 Commercial (971 contacts · C1-C6)</option>
+          <option value="crm_residential">🏠 CRM Residential (21 leads · 1 batch)</option>
+          <option value="crm_commercial">🏢 CRM Commercial (94 leads · 1 batch)</option>
         </select>
       </div>
       <div>

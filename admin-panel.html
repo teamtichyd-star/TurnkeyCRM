@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Admin Control Panel – TurnkeyCRM</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="js/driveAccess.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <style>
@@ -479,6 +480,27 @@
     <div class="status-msg" id="brevoStatus"></div>
   </div>
 
+  <!-- ONESIGNAL INTEGRATION -->
+  <div class="card" id="oneSignalCard">
+    <h2><i class="fa-solid fa-bell"></i> OneSignal Integration</h2>
+    <div style="background:rgba(200,169,110,0.05); border:1px solid rgba(200,169,110,0.15); border-radius:8px; padding:12px; margin-bottom:15px; font-size:12px; color:#8888aa;">
+      <i class="fa-solid fa-shield-halved" style="color:#c8a96e;"></i> API key is stored securely in Firestore. Only admins can view/edit.
+    </div>
+    <div class="form-group">
+      <label>OneSignal REST API Key</label>
+      <input type="password" id="oneSignalApiKey" placeholder="os_v2_app_..." style="font-family: monospace;">
+    </div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="btn btn-primary" onclick="saveOneSignalSettings()">
+        <i class="fa-solid fa-save"></i> Save Settings
+      </button>
+      <button class="btn" style="background:#2196f3; color:#fff;" onclick="testOneSignalConnection()">
+        <i class="fa-solid fa-plug"></i> Test Connection
+      </button>
+    </div>
+    <div class="status-msg" id="oneSignalStatus"></div>
+  </div>
+
   <div class="card">
     <h2><i class="fa-solid fa-bolt"></i> Quick Actions</h2>
     <div style="display:flex;flex-direction:column;gap:12px;">
@@ -597,6 +619,9 @@
                 <span style="font-size:11px;color:#6b7280;">Created: ${created}</span>
               </div>
               <div class="user-card-v2-actions">
+                <button onclick="openEditUserModal('${u.email || u.id}')" class="user-action-btn perm">
+                  <i class="fa-solid fa-pen"></i> Edit
+                </button>
                 <button onclick="openPermModal('${u.email}')" class="user-action-btn perm">
                   <i class="fa-solid fa-key"></i> Permissions
                 </button>
@@ -673,10 +698,12 @@
   }
 
   // ── DELETE USER ──
+  const WORKER_BASE_URL = "https://orange-sea-e881.teamtic-hyd.workers.dev";
+
   function triggerDelete(email) {
     pendingDeleteEmail = email;
     document.getElementById("confirmMsg").textContent =
-      `Remove "${email}"? Their Firestore data will be deleted.`;
+      `Remove "${email}"? This deletes both their login and their Firestore data.`;
     document.getElementById("confirmOverlay").classList.add("active");
     document.getElementById("confirmYesBtn").onclick = confirmDelete;
   }
@@ -689,12 +716,113 @@
     closeConfirm();
     const status = document.getElementById("removeUserStatus");
     try {
+      const driveRes = await TIC_DRIVE.revokeForUser(db, auth, pendingDeleteEmail);
+      const idToken = await auth.currentUser.getIdToken();
+      const res = await fetch(WORKER_BASE_URL + "/delete-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: pendingDeleteEmail, idToken })
+      });
+      const data = await res.json();
+      if (!res.ok || data.success === false) {
+        throw new Error(data.error || "Failed to delete login account");
+      }
       await db.collection("users").doc(pendingDeleteEmail).delete();
-      showStatus(status, `✅ "${pendingDeleteEmail}" removed.`, "success");
+      showStatus(status, driveRes.ok
+        ? `✅ "${pendingDeleteEmail}" removed (login + profile + Drive access).`
+        : `✅ "${pendingDeleteEmail}" removed (login + profile), but Drive access could NOT be removed automatically (${driveRes.error}). Remove them from the Drive folders manually.`,
+        driveRes.ok ? "success" : "error");
       loadUsers();
       loadUsageStats();
     } catch(e) {
       showStatus(status, `Error: ${e.message}`, "error");
+    }
+  }
+
+  // ── EDIT USER ──
+  let editingUserEmail = null;
+
+  function openEditUserModal(email) {
+    const u = allUsersData.find(x => (x.email || x.id) === email);
+    if (!u) return;
+    editingUserEmail = email;
+    document.getElementById("editUserName").value = u.name || "";
+    document.getElementById("editUserEmail").value = u.email || u.id || "";
+    document.getElementById("editUserPassword").value = "";
+    document.getElementById("editUserRole").value = u.role || "";
+    document.getElementById("editUserStatus").textContent = "";
+    document.getElementById("editUserModal").style.display = "flex";
+  }
+
+  function closeEditUserModal() {
+    document.getElementById("editUserModal").style.display = "none";
+    editingUserEmail = null;
+  }
+
+  async function saveUserEdit() {
+    const status = document.getElementById("editUserStatus");
+    const name = document.getElementById("editUserName").value.trim();
+    const newEmail = document.getElementById("editUserEmail").value.trim();
+    const newPassword = document.getElementById("editUserPassword").value;
+    const role = document.getElementById("editUserRole").value;
+    const btn = document.getElementById("saveUserEditBtn");
+
+    if (!name || !newEmail) {
+      showStatus(status, "Name and email are required.", "error"); return;
+    }
+    if (newPassword && newPassword.length < 6) {
+      showStatus(status, "Password must be at least 6 characters (or leave blank to keep it unchanged).", "error"); return;
+    }
+
+    const original = allUsersData.find(x => (x.email || x.id) === editingUserEmail);
+    const emailChanged = newEmail.toLowerCase() !== editingUserEmail.toLowerCase();
+
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner"></span> Saving...`;
+
+    try {
+      if (emailChanged || newPassword) {
+        const idToken = await auth.currentUser.getIdToken();
+        const res = await fetch(WORKER_BASE_URL + "/update-user", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: editingUserEmail,
+            idToken,
+            ...(emailChanged ? { newEmail } : {}),
+            ...(newPassword ? { newPassword } : {})
+          })
+        });
+        const data = await res.json();
+        if (!res.ok || data.success === false) {
+          throw new Error(data.error || "Failed to update login account");
+        }
+      }
+
+      const updatedData = {
+        name, role,
+        email: newEmail,
+        uid: original?.uid || null,
+        createdAt: original?.createdAt || firebase.firestore.FieldValue.serverTimestamp(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedBy: auth.currentUser?.email || "admin"
+      };
+
+      if (emailChanged) {
+        await db.collection("users").doc(newEmail).set(updatedData);
+        await db.collection("users").doc(editingUserEmail).delete();
+      } else {
+        await db.collection("users").doc(editingUserEmail).update(updatedData);
+      }
+
+      closeEditUserModal();
+      showStatus(document.getElementById("addUserStatus"), `✅ "${name}" updated.`, "success");
+      loadUsers();
+    } catch(e) {
+      showStatus(status, `Error: ${e.message}`, "error");
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = `<i class="fa-solid fa-check"></i> Save Changes`;
     }
   }
 
@@ -763,12 +891,15 @@
   }
 
   // Make functions global
-  window.handleAddUser  = handleAddUser;
-  window.triggerDelete  = triggerDelete;
-  window.closeConfirm   = closeConfirm;
-  window.loadUsers      = loadUsers;
-  window.exportUsers    = exportUsers;
-  window.doSignOut      = doSignOut;
+  window.handleAddUser     = handleAddUser;
+  window.triggerDelete     = triggerDelete;
+  window.closeConfirm      = closeConfirm;
+  window.loadUsers         = loadUsers;
+  window.exportUsers       = exportUsers;
+  window.doSignOut         = doSignOut;
+  window.openEditUserModal = openEditUserModal;
+  window.closeEditUserModal = closeEditUserModal;
+  window.saveUserEdit      = saveUserEdit;
 </script>
 
 <div id="permModal" style="position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:5000;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px);">
@@ -800,6 +931,46 @@
     <div style="padding:14px 24px;border-top:1px solid rgba(255,255,255,0.08);display:flex;gap:10px;justify-content:flex-end;">
       <button onclick="closePermModal()" style="padding:10px 18px;border-radius:10px;background:rgba(244,67,54,0.1);color:#f44336;border:1px solid rgba(244,67,54,0.25);cursor:pointer;font-size:13px;font-weight:600;">Cancel</button>
       <button onclick="savePermissions()" style="padding:10px 18px;border-radius:10px;background:linear-gradient(135deg,#c8a96e,#a07840);color:white;border:none;cursor:pointer;font-size:13px;font-weight:600;">Save Permissions</button>
+    </div>
+  </div>
+</div>
+
+<div id="editUserModal" style="position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:5000;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px);">
+  <div style="background:linear-gradient(145deg,#1e2d5e,#16213e);border-radius:20px;width:100%;max-width:440px;border:1px solid rgba(200,169,110,0.18);box-shadow:0 30px 80px rgba(0,0,0,0.6);">
+    <div style="padding:20px 24px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;justify-content:space-between;align-items:center;">
+      <h3 style="color:#c8a96e;font-size:16px;"><i class="fas fa-pen"></i> Edit User</h3>
+      <button onclick="closeEditUserModal()" style="background:rgba(255,255,255,0.05);border:none;color:#f0f0f0;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:15px;">&times;</button>
+    </div>
+    <div style="padding:20px 24px;display:flex;flex-direction:column;gap:14px;">
+      <div>
+        <label style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:#8888aa;margin-bottom:6px;">Full Name</label>
+        <input type="text" id="editUserName" style="width:100%;padding:11px 14px;border-radius:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#f0f0f0;font-size:14px;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:#8888aa;margin-bottom:6px;">Email Address</label>
+        <input type="email" id="editUserEmail" style="width:100%;padding:11px 14px;border-radius:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#f0f0f0;font-size:14px;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:#8888aa;margin-bottom:6px;">New Password <span style="text-transform:none;letter-spacing:0;">(leave blank to keep current)</span></label>
+        <input type="text" id="editUserPassword" placeholder="Min 6 characters" style="width:100%;padding:11px 14px;border-radius:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#f0f0f0;font-size:14px;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:#8888aa;margin-bottom:6px;">Role</label>
+        <select id="editUserRole" style="width:100%;padding:11px 14px;border-radius:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#f0f0f0;font-size:14px;box-sizing:border-box;">
+          <option value="admin">👤 Admin (Full Access)</option>
+          <option value="manager">👥 Manager</option>
+          <option value="supervisor">🏗️ Supervisor</option>
+          <option value="purchase">🛒 Purchase</option>
+          <option value="designer">🎨 Designer</option>
+          <option value="accounts">💰 Accounts</option>
+          <option value="marketing">📣 Marketing</option>
+        </select>
+      </div>
+      <div class="status-msg" id="editUserStatus"></div>
+    </div>
+    <div style="padding:14px 24px;border-top:1px solid rgba(255,255,255,0.08);display:flex;gap:10px;justify-content:flex-end;">
+      <button onclick="closeEditUserModal()" style="padding:10px 18px;border-radius:10px;background:rgba(244,67,54,0.1);color:#f44336;border:1px solid rgba(244,67,54,0.25);cursor:pointer;font-size:13px;font-weight:600;">Cancel</button>
+      <button id="saveUserEditBtn" onclick="saveUserEdit()" style="padding:10px 18px;border-radius:10px;background:linear-gradient(135deg,#c8a96e,#a07840);color:white;border:none;cursor:pointer;font-size:13px;font-weight:600;"><i class="fa-solid fa-check"></i> Save Changes</button>
     </div>
   </div>
 </div>
@@ -969,6 +1140,71 @@ function savePermissions() {
     }
 
     setTimeout(loadBrevoSettings, 1500);
+
+    // ══════════════════════════════════════════
+    // ONESIGNAL INTEGRATION SETTINGS
+    // ══════════════════════════════════════════
+    async function loadOneSignalSettings() {
+      try {
+        const doc = await db.collection("settings").doc("integrations").get();
+        if (doc.exists) {
+          const d = doc.data();
+          if (d.oneSignalApiKey) document.getElementById("oneSignalApiKey").value = d.oneSignalApiKey;
+        }
+      } catch(e) {
+        console.log("No OneSignal settings yet or access denied", e.message);
+      }
+    }
+
+    async function saveOneSignalSettings() {
+      const apiKey = document.getElementById("oneSignalApiKey").value.trim();
+      const status = document.getElementById("oneSignalStatus");
+
+      if (!apiKey) {
+        status.innerHTML = "<span style='color:#f44336'>API Key is required</span>";
+        return;
+      }
+
+      status.innerHTML = "<span style='color:#8888aa'>Saving...</span>";
+      try {
+        await db.collection("settings").doc("integrations").set({
+          oneSignalApiKey: apiKey,
+          updatedAt: new Date().toISOString(),
+          updatedBy: auth.currentUser?.email || "unknown"
+        }, { merge: true });
+        status.innerHTML = "<span style='color:#4caf50'>Settings saved successfully</span>";
+      } catch(e) {
+        status.innerHTML = "<span style='color:#f44336'>Error: " + e.message + "</span>";
+      }
+    }
+
+    async function testOneSignalConnection() {
+      const apiKey = document.getElementById("oneSignalApiKey").value.trim();
+      const status = document.getElementById("oneSignalStatus");
+      const appId = "9bc49e74-801f-4ffb-ab7e-ea78ba2f1089";
+
+      if (!apiKey) {
+        status.innerHTML = "<span style='color:#f44336'>Enter API key first</span>";
+        return;
+      }
+
+      status.innerHTML = "<span style='color:#8888aa'>Testing connection...</span>";
+      try {
+        const r = await fetch("https://api.onesignal.com/apps/" + appId, {
+          headers: { "accept": "application/json", "Authorization": "Key " + apiKey }
+        });
+        const data = await r.json();
+        if (r.ok) {
+          status.innerHTML = "<span style='color:#4caf50'>Connected to \"" + data.name + "\" | Subscribers: " + (data.players ?? "-") + "</span>";
+        } else {
+          status.innerHTML = "<span style='color:#f44336'>" + (data.errors ? data.errors.join(", ") : "Connection failed") + "</span>";
+        }
+      } catch(e) {
+        status.innerHTML = "<span style='color:#f44336'>Network error: " + e.message + "</span>";
+      }
+    }
+
+    setTimeout(loadOneSignalSettings, 1500);
 
 </script>
 

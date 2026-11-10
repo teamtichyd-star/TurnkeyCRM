@@ -65,6 +65,18 @@ body { background: var(--darker); color: var(--text); min-height: 100vh; font-fa
 .badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase}
 .badge-draft{background:rgba(245,158,11,0.15);color:var(--warning)}
 .badge-submitted{background:rgba(16,185,129,0.15);color:var(--success)}
+.staff-card{position:relative;overflow:visible!important}
+.staff-card:hover{z-index:5}
+.warn-tip{position:relative;display:inline-block;outline:none}
+.warn-tip .badge{cursor:help}
+.warn-tip .tip{display:none;position:absolute;bottom:calc(100% + 8px);left:0;width:300px;max-width:78vw;background:#1a2550;border:1px solid rgba(255,152,0,0.5);border-radius:10px;padding:12px 14px;box-shadow:0 8px 24px rgba(0,0,0,0.55);z-index:20;font-size:12px;line-height:1.6;color:var(--text)}
+.warn-tip .tip strong{color:var(--warning);display:block;margin-bottom:4px}
+.warn-tip .tip ul{margin:0 0 0 16px;padding:0}
+.warn-tip:hover .tip,.warn-tip:focus .tip{display:block}
+.badge-notstarted{background:rgba(244,67,54,0.15);color:var(--danger)}
+.badge-issues{background:rgba(255,152,0,0.18);color:var(--warning)}
+.issues-box{background:rgba(244,67,54,0.08);border:1px solid rgba(244,67,54,0.3);color:var(--danger);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px}
+.issues-box ul{margin:6px 0 0 18px;padding:0}
 .badge-verified{background:rgba(99,102,241,0.15);color:var(--primary)}
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;overflow-y:auto;padding:20px}
 .modal-overlay.active{display:flex;align-items:flex-start;justify-content:center}
@@ -94,12 +106,16 @@ body { background: var(--darker); color: var(--text); min-height: 100vh; font-fa
 <div><h2><i class="fas fa-users-cog" style="color:var(--primary)"></i> Staff Directory</h2>
 <p>Manage all employee profiles and documents</p></div>
 <div style="display:flex;gap:8px">
+<button class="btn btn-secondary" id="lockBtn" onclick="toggleLock()"><i class="fas fa-lock-open"></i> Attendance lock: OFF</button>
+<button class="btn btn-secondary" onclick="emailIssuesNow()" id="emailNowBtn"><i class="fas fa-envelope"></i> Email issues now</button>
+<button class="btn btn-secondary" onclick="remindAllPending()" id="remindAllBtn"><i class="fas fa-bell"></i> Remind pending</button>
 <button class="btn btn-secondary" onclick="exportCSV()"><i class="fas fa-file-csv"></i> Export CSV</button>
 <button class="btn btn-primary" onclick="loadStaff()"><i class="fas fa-sync"></i> Refresh</button>
 </div>
 </div>
 <div class="stats-row">
 <div class="stat-card"><div class="icon"><i class="fas fa-users"></i></div><div class="info"><h4>Total Staff</h4><p id="statTotal">-</p></div></div>
+<div class="stat-card"><div class="icon"><i class="fas fa-user-clock" style="color:var(--danger)"></i></div><div class="info"><h4>Not Started</h4><p id="statNotStarted">-</p></div></div>
 <div class="stat-card"><div class="icon"><i class="fas fa-edit" style="color:var(--warning)"></i></div><div class="info"><h4>Draft</h4><p id="statDraft">-</p></div></div>
 <div class="stat-card"><div class="icon"><i class="fas fa-clock" style="color:var(--info)"></i></div><div class="info"><h4>Submitted</h4><p id="statSubmitted">-</p></div></div>
 <div class="stat-card"><div class="icon"><i class="fas fa-check-double" style="color:var(--success)"></i></div><div class="info"><h4>Verified</h4><p id="statVerified">-</p></div></div>
@@ -108,6 +124,8 @@ body { background: var(--darker); color: var(--text); min-height: 100vh; font-fa
 <input type="text" id="searchInput" placeholder="Search by name, ID, mobile..." oninput="filterStaff()"/>
 <select id="statusFilter" onchange="filterStaff()">
 <option value="">All Status</option>
+<option value="notstarted">Not Started</option>
+<option value="issues">Has Data Issues</option>
 <option value="draft">Draft</option>
 <option value="submitted">Submitted</option>
 <option value="verified">Verified</option>
@@ -124,6 +142,7 @@ body { background: var(--darker); color: var(--text); min-height: 100vh; font-fa
 <h3 id="modalTitle">Staff Details</h3>
 <div style="display:flex;gap:8px">
 <button class="btn btn-secondary" id="editToggleBtn" onclick="toggleEditMode()" style="padding:6px 14px;font-size:12px"><i class="fas fa-edit"></i> Edit</button>
+<button class="btn btn-danger" id="reqFixBtn" onclick="requestCorrection()" style="padding:6px 14px;font-size:12px;display:none"><i class="fas fa-undo"></i> Request Correction</button>
 <button class="btn btn-success" id="verifyBtn" onclick="verifyProfile()" style="padding:6px 14px;font-size:12px;display:none"><i class="fas fa-check"></i> Verify</button>
 <button style="background:rgba(255,255,255,0.2);border:none;color:#fff;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:16px" onclick="closeModal()">x</button>
 </div>
@@ -135,6 +154,7 @@ body { background: var(--darker); color: var(--text); min-height: 100vh; font-fa
 </div>
 </div>
 </div>
+<script src="js/staffValidation.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
@@ -161,25 +181,56 @@ auth.onAuthStateChanged(function(user){
 });
 async function loadStaff(){
   try{
-    var snap=await db.collection("staffProfiles").get();
+    var res=await Promise.all([db.collection("staffProfiles").get(), db.collection("users").get()]);
     allStaff=[];
-    snap.forEach(function(doc){ allStaff.push({id:doc.id, data:doc.data()}); });
-    allStaff.sort(function(a,b){ return (a.data.employeeId||"").localeCompare(b.data.employeeId||""); });
+    var haveEmail={};
+    res[0].forEach(function(doc){
+      var d=doc.data();
+      allStaff.push({id:doc.id, data:d});
+      if(d.userEmail) haveEmail[d.userEmail.toLowerCase()]=true;
+    });
+    // Old profiles saved without an email: link to the one user whose name is a whole word in the profile name
+    var usersList=[]; res[1].forEach(function(doc){ var u=doc.data(); usersList.push({email:(u.email||doc.id||"").toLowerCase(), name:(u.name||"").toLowerCase().trim(), rawName:u.name||"", role:u.role}); });
+    allStaff.forEach(function(s){
+      if(s.data.userEmail) return;
+      var fn=" "+(s.data.fullName||"").toLowerCase().replace(/[^a-z ]/g," ")+" ";
+      var cands=usersList.filter(function(u){ return u.name.length>2 && !haveEmail[u.email] && fn.indexOf(" "+u.name+" ")>-1; });
+      if(cands.length===1){ s.data.userEmail=cands[0].email; haveEmail[cands[0].email]=true; }
+    });
+    res[1].forEach(function(doc){
+      var u=doc.data(); var email=(u.email||doc.id||"").toLowerCase();
+      if(!email || haveEmail[email] || u.role==="superadmin") return;
+      allStaff.push({id:"u:"+email, data:{fullName:u.name||email, userEmail:email, role:u.role||"", profileStatus:"notstarted", noProfile:true}});
+    });
+    var nameByEmail={}; usersList.forEach(function(u){ nameByEmail[u.email]=u.rawName; });
+    allStaff.forEach(function(s){ s.userName=nameByEmail[(s.data.userEmail||"").toLowerCase()]||""; });
+    allStaff.forEach(function(s,i){
+      if(s.data.noProfile){ s.issues=[]; return; }
+      var others=allStaff.filter(function(o,j){ return j!==i && !o.data.noProfile; }).map(function(o){ return o.data; });
+      s.issues=TIC_STAFF.validate(s.data).concat(TIC_STAFF.duplicatesAgainst(s.data, others));
+    });
+    allStaff.sort(function(a,b){
+      if(!!a.data.noProfile!==!!b.data.noProfile) return a.data.noProfile?1:-1;
+      return (a.data.employeeId||a.data.fullName||"").localeCompare(b.data.employeeId||b.data.fullName||"");
+    });
     updateStats();
-    renderStaff(allStaff);
+    filterStaff();
   } catch(e){
     document.getElementById("staffGrid").innerHTML="<div style=\"grid-column:1/-1;text-align:center;padding:40px;color:var(--danger)\">Error loading data: "+e.message+"</div>";
   }
 }
+function esc(v){ return String(v==null?"":v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
 function updateStats(){
-  var draft=0,submitted=0,verified=0;
+  var draft=0,submitted=0,verified=0,notstarted=0;
   allStaff.forEach(function(s){
     var st=s.data.profileStatus||"draft";
-    if(st==="draft") draft++;
+    if(st==="notstarted") notstarted++;
+    else if(st==="draft") draft++;
     else if(st==="submitted") submitted++;
     else if(st==="verified") verified++;
   });
   document.getElementById("statTotal").textContent=allStaff.length;
+  document.getElementById("statNotStarted").textContent=notstarted;
   document.getElementById("statDraft").textContent=draft;
   document.getElementById("statSubmitted").textContent=submitted;
   document.getElementById("statVerified").textContent=verified;
@@ -190,7 +241,7 @@ function filterStaff(){
   var filtered=allStaff.filter(function(s){
     var d=s.data;
     var match=(d.fullName||"").toLowerCase().includes(q)||(d.employeeId||"").toLowerCase().includes(q)||(d.mobile1||"").includes(q)||(d.userEmail||"").toLowerCase().includes(q);
-    var statusMatch=!st||(d.profileStatus||"draft")===st;
+    var statusMatch=!st||(st==="issues"?(s.issues&&s.issues.length>0):(d.profileStatus||"draft")===st);
     return match&&statusMatch;
   });
   renderStaff(filtered);
@@ -203,6 +254,12 @@ function renderStaff(list){
     var d=s.data;
     var st=d.profileStatus||"draft";
     var initial=(d.fullName||"?").charAt(0).toUpperCase();
+    if(d.noProfile){
+      html+="<div class=\"staff-card\"><div class=\"staff-card-top\"><div class=\"staff-avatar-placeholder\">"+initial+"</div><div><p class=\"staff-name\">"+esc(d.fullName)+"</p><p class=\"staff-empid\">"+esc((d.role||"").toUpperCase())+"</p><p class=\"staff-email\">"+esc(d.userEmail)+"</p></div></div>";
+      html+="<div class=\"staff-card-body\"><div class=\"info-row\"><span class=\"label\">Profile</span><span class=\"value\" style=\"color:var(--danger)\">Not started - attendance is locked</span></div></div>";
+      html+="<div class=\"staff-card-footer\"><span class=\"badge badge-notstarted\">NOT STARTED</span><button class=\"btn btn-secondary\" style=\"padding:5px 12px;font-size:12px;margin-left:auto\" onclick=\"remindOne('"+esc(d.userEmail)+"')\"><i class=\"fas fa-bell\"></i> Remind</button></div></div>";
+      return;
+    }
     var avatarHtml=d.photoURL ? "<img class=\"staff-avatar\" src=\""+d.photoURL+"\" onerror=\"this.style.display='none'\"/>" : "<div class=\"staff-avatar-placeholder\">"+initial+"</div>";
     var submittedDate=d.submittedAt ? new Date(d.submittedAt.toDate()).toLocaleDateString() : "Not submitted";
     html+="<div class=\"staff-card\">";
@@ -220,6 +277,7 @@ function renderStaff(list){
     html+="</div>";
     html+="<div class=\"staff-card-footer\">";
     html+="<span class=\"badge badge-"+st+"\">"+st.toUpperCase()+"</span>";
+    if(s.issues&&s.issues.length) html+="<span class=\"warn-tip\" tabindex=\"0\"><span class=\"badge badge-issues\">&#9888; "+s.issues.length+"</span><div class=\"tip\"><strong>&#9888; Data problems</strong><ul>"+s.issues.map(function(i){ return "<li>"+esc(i)+"</li>"; }).join("")+"</ul></div></span>";
     html+="<button class=\"btn btn-secondary\" style=\"padding:5px 12px;font-size:12px;margin-left:auto\" onclick=\"openDetail('"+s.id+"')\" ><i class=\"fas fa-eye\"></i> View</button>";
     if(d.driveFolderUrl) html+="<a href=\""+d.driveFolderUrl+"\" target=\"_blank\" class=\"btn btn-info\" style=\"padding:5px 12px;font-size:12px\"><i class=\"fab fa-google-drive\"></i></a>";
     html+="</div>";
@@ -229,7 +287,7 @@ function renderStaff(list){
 }
 function openDetail(uid){
   var found=allStaff.find(function(s){ return s.id===uid; });
-  if(!found) return;
+  if(!found || found.data.noProfile) return;
   currentDocId=uid;
   currentDocData=found.data;
   editMode=false;
@@ -237,12 +295,17 @@ function openDetail(uid){
   document.getElementById("saveEditBtn").style.display="none";
   var st=found.data.profileStatus||"draft";
   document.getElementById("verifyBtn").style.display=(st==="submitted")?"inline-flex":"none";
+  document.getElementById("reqFixBtn").style.display=(st==="submitted"||st==="verified")?"inline-flex":"none";
   renderModalContent(found.data, false);
   document.getElementById("detailModal").classList.add("active");
 }
 function renderModalContent(d, isEdit){
   document.getElementById("modalTitle").textContent=(d.fullName||"Staff")+" - "+(d.employeeId||"");
   var html="";
+  var cur=allStaff.find(function(s){ return s.id===currentDocId; });
+  if(cur&&cur.issues&&cur.issues.length&&!isEdit){
+    html+="<div class=\"issues-box\"><strong>&#9888; Data problems found</strong><ul>"+cur.issues.map(function(i){ return "<li>"+esc(i)+"</li>"; }).join("")+"</ul></div>";
+  }
   html+="<div style=\"display:flex;align-items:center;gap:16px;margin-bottom:20px;padding:16px;background:var(--input-bg);border-radius:12px\">";
   if(d.photoURL) html+="<img src=\""+d.photoURL+"\" style=\"width:70px;height:70px;border-radius:50%;object-fit:cover;border:2px solid var(--border)\"/>";
   else html+="<div style=\"width:70px;height:70px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--secondary));display:flex;align-items:center;justify-content:center;font-size:28px;color:#fff;font-weight:700\">"+(d.fullName||"?").charAt(0).toUpperCase()+"</div>";
@@ -336,6 +399,8 @@ async function saveEdit(){
   var inputs=document.querySelectorAll(".edit-field");
   var updates={};
   inputs.forEach(function(inp){ updates[inp.dataset.key]=inp.value.trim(); });
+  var probs=TIC_STAFF.validate(Object.assign({}, currentDocData, updates));
+  if(probs.length && !confirm("These problems were found:\n\n- "+probs.join("\n- ")+"\n\nSave anyway?")) return;
   updates.lastUpdated=firebase.firestore.FieldValue.serverTimestamp();
   try{
     await db.collection("staffProfiles").doc(currentDocId).update(updates);
@@ -346,7 +411,7 @@ async function saveEdit(){
     document.getElementById("editToggleBtn").innerHTML="<i class=\"fas fa-edit\"></i> Edit";
     document.getElementById("saveEditBtn").style.display="none";
     renderModalContent(currentDocData, false);
-    renderStaff(allStaff);
+    loadStaff();
     alert("Changes saved successfully!");
   } catch(e){ alert("Error saving: "+e.message); }
 }
@@ -361,6 +426,77 @@ async function verifyProfile(){
     renderStaff(allStaff);
     alert("Profile verified successfully!");
   } catch(e){ alert("Error: "+e.message); }
+}
+function notifyUser(email, name, title, body, link, id){
+  var s=allStaff.find(function(x){ return (x.data.userEmail||"").toLowerCase()===email.toLowerCase(); });
+  var uname=s&&s.userName;
+  if(uname && typeof TIC_NOTIF!=="undefined") return TIC_NOTIF.send(db, uname, title+": "+body, "staff", link, id);
+  var ref=id?db.collection("notifications").doc(id):db.collection("notifications").doc();
+  return ref.set({to:email,toName:name||"",title:title,body:body,type:"staff",link:link,read:false,createdAt:new Date().toISOString()});
+}
+var REMIND_TXT="Please complete and submit your Staff Profile. You cannot mark attendance until it is submitted.";
+async function remindOne(email){
+  var s=allStaff.find(function(x){ return (x.data.userEmail||"").toLowerCase()===email.toLowerCase(); });
+  try{
+    await notifyUser(email, s&&s.data.fullName, "Staff Profile pending", REMIND_TXT, "staff-profile.html", "staff-remind-"+email.replace(/[.@]/g,"_")+"-"+new Date().toISOString().slice(0,10));
+    alert("Reminder sent to "+email);
+  }catch(e){ alert("Error: "+e.message); }
+}
+async function remindAllPending(){
+  var list=allStaff.filter(function(s){ var st=s.data.profileStatus||"draft"; return s.data.userEmail && (st==="notstarted"||st==="draft"); });
+  if(!list.length){ alert("Everyone has submitted their profile."); return; }
+  if(!confirm("Send a reminder to "+list.length+" employee(s) who haven't submitted?")) return;
+  var day=new Date().toISOString().slice(0,10);
+  try{
+    await Promise.all(list.map(function(s){ return notifyUser(s.data.userEmail, s.data.fullName, "Staff Profile pending", REMIND_TXT, "staff-profile.html", "staff-remind-"+s.data.userEmail.replace(/[.@]/g,"_")+"-"+day); }));
+    alert("Reminders sent to "+list.length+" employee(s).");
+  }catch(e){ alert("Error: "+e.message); }
+}
+async function requestCorrection(){
+  var cur=allStaff.find(function(s){ return s.id===currentDocId; });
+  if(!cur) return;
+  var def=(cur.issues&&cur.issues.length)?cur.issues.join("; "):"";
+  var note=prompt("What should "+(cur.data.fullName||"the employee")+" correct? (they will be notified and cannot mark attendance until they resubmit)", def);
+  if(note===null) return;
+  note=note.trim()||"Please review and correct your details.";
+  try{
+    await db.collection("staffProfiles").doc(currentDocId).update({profileStatus:"draft",correctionNote:note,correctionRequestedAt:firebase.firestore.FieldValue.serverTimestamp()});
+    if(cur.data.userEmail) await notifyUser(cur.data.userEmail, cur.data.fullName, "Staff Profile needs correction", note, "staff-profile.html");
+    closeModal(); await loadStaff();
+    alert("Sent back to the employee for correction.");
+  }catch(e){ alert("Error: "+e.message); }
+}
+var lockOn=false;
+function paintLock(){
+  var b=document.getElementById("lockBtn");
+  b.innerHTML=lockOn?"<i class=\"fas fa-lock\" style=\"color:var(--danger)\"></i> Attendance lock: ON":"<i class=\"fas fa-lock-open\"></i> Attendance lock: OFF";
+}
+async function loadLock(){
+  try{ var d=await db.collection("settings").doc("staffProfile").get(); lockOn=!!(d.exists&&d.data().enforceAttendanceLock===true); }catch(e){ lockOn=false; }
+  paintLock();
+}
+async function toggleLock(){
+  var next=!lockOn;
+  var msg=next?"Turn the attendance lock ON?\n\nEmployees whose Staff Profile is not submitted will NOT be able to mark attendance.":"Turn the attendance lock OFF? Everyone can mark attendance again.";
+  if(!confirm(msg)) return;
+  try{ await db.collection("settings").doc("staffProfile").set({enforceAttendanceLock:next, updatedBy:(auth.currentUser&&auth.currentUser.email)||"", updatedAt:new Date().toISOString()},{merge:true}); lockOn=next; paintLock(); }
+  catch(e){ alert("Error: "+e.message); }
+}
+loadLock();
+async function emailIssuesNow(){
+  var btn=document.getElementById("emailNowBtn");
+  try{
+    btn.disabled=true;
+    var prev=await TIC_STAFF_MAIL.run(db,{dryRun:true});
+    if(prev.error){ alert(prev.error); return; }
+    if(!prev.plan.length){ alert("Nobody needs an email - all profiles are submitted and correct."); return; }
+    var lines=prev.plan.map(function(p){ return "- "+(p.name||p.to)+": "+p.subject.replace("Action needed: ","")+(p.issues.length?" ("+p.issues.length+" issue"+(p.issues.length>1?"s":"")+")":""); }).join("\n");
+    if(!confirm("Send e-mail to "+prev.plan.length+" employee(s)?"+(prev.wouldReopen?"\n"+prev.wouldReopen+" submitted profile(s) will be reopened for correction.":"")+"\n\n"+lines)) return;
+    var r=await TIC_STAFF_MAIL.run(db,{force:true});
+    alert("Sent: "+r.sent+(r.failed?"\nFailed: "+r.failed+(r.firstError?" ("+r.firstError+")":""):"")+(r.reopened?"\nReopened for correction: "+r.reopened:""));
+    loadStaff();
+  }catch(e){ alert("Error: "+e.message); }
+  finally{ btn.disabled=false; }
 }
 function closeModal(){
   document.getElementById("detailModal").classList.remove("active");
@@ -394,5 +530,7 @@ document.getElementById("detailModal").addEventListener("click",function(e){
   if(e.target===this) closeModal();
 });
 </script>
+<script src="js/notifications.js"></script>
+<script src="js/staffReminders.js"></script>
 </body>
 </html>
