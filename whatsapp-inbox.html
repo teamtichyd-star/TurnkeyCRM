@@ -8,7 +8,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-  <script src="js/whatsapp.js"></script>
+  <script src="js/whatsapp.js?v=3"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
     :root {
@@ -78,6 +78,14 @@
     .badge.unread { background: var(--wa); color: white; }
     .badge.lead { background: rgba(200,169,110,0.15); color: var(--primary); }
     .badge.window { background: rgba(76,175,80,0.15); color: var(--success); }
+    .conv-filter { display:flex; gap:6px; padding:8px 16px 0; }
+    .conv-filter button { flex:1; padding:6px 8px; border-radius:8px; border:1px solid rgba(255,255,255,0.12); background:transparent; color:var(--subtext); font-size:12px; font-weight:600; cursor:pointer; }
+    .conv-filter button.active { background:var(--wa); color:#fff; border-color:var(--wa); }
+    .conv-item.has-unread .conv-name { font-weight:800; color:#fff; }
+    .unsup-box { display:flex; flex-direction:column; gap:8px; }
+    .unsup-actions { display:flex; gap:6px; flex-wrap:wrap; }
+    .unsup-actions a { padding:6px 10px; border-radius:8px; font-size:12px; font-weight:600; text-decoration:none; background:rgba(255,255,255,0.08); color:#fff; }
+    .unsup-actions a.wa { background:var(--wa); }
     
     .empty-list { padding: 40px 20px; text-align: center; color: var(--subtext); font-size: 13px; }
     .empty-list i { font-size: 40px; margin-bottom: 12px; display: block; opacity: 0.3; }
@@ -181,6 +189,10 @@
             <input type="text" class="search-input" id="searchInput" placeholder="Search conversations..." oninput="filterConversations()">
           </div>
         </div>
+        <div class="conv-filter">
+          <button id="fltReplies" class="active" onclick="setConvFilter(true)">💬 Replies</button>
+          <button id="fltAll" onclick="setConvFilter(false)">All</button>
+        </div>
         <div class="conv-count" id="convCount">Loading...</div>
         <div id="conversationsList"></div>
       </div>
@@ -217,11 +229,55 @@
 
   firebase.auth().onAuthStateChanged(async (user) => {
     if (!user) { window.location.href = 'index.html'; return; }
-    await loadLeads();
+    await Promise.all([loadLeads(), loadTemplateDefs()]);
     await loadConversations();
     document.getElementById('loadingOverlay').classList.add('hide');
     setInterval(loadConversations, 30000); // auto-refresh every 30s
   });
+
+  // ─── Template definitions cache ───
+  // Sent template messages were only ever logged as {template: name, variables:
+  // [...]} -- rendering that as a bare "Template: xyz" label is what made the
+  // inbox unreadable. This fetches each template's real body text + header +
+  // buttons once, so a template message can be rendered exactly as the
+  // customer actually saw it (image, filled-in text, tappable buttons).
+  let waTemplateDefs = {};      // name -> { bodyText, hasImageHeader, buttons }
+  let waTemplateHeaderMedia = {}; // name -> mediaId (registered at template-creation time)
+
+  async function loadTemplateDefs() {
+    try {
+      const doc = await db.collection('settings').doc('integrations').get();
+      const wa = doc.data()?.whatsapp;
+
+      const headersSnap = await db.collection('wa_template_headers').get();
+      headersSnap.forEach(d => { waTemplateHeaderMedia[d.id] = d.data().mediaId; });
+
+      if (!wa || !wa.accessToken || !wa.wabaId) return;
+      const res = await fetch(`https://graph.facebook.com/v19.0/${wa.wabaId}/message_templates?fields=name,components&limit=200`, {
+        headers: { Authorization: 'Bearer ' + wa.accessToken }
+      });
+      const data = await res.json();
+      (data.data || []).forEach(t => {
+        const body = (t.components || []).find(c => c.type === 'BODY');
+        const header = (t.components || []).find(c => c.type === 'HEADER');
+        const buttonsComp = (t.components || []).find(c => c.type === 'BUTTONS');
+        waTemplateDefs[t.name] = {
+          bodyText: body ? body.text : '',
+          hasImageHeader: !!(header && header.format === 'IMAGE'),
+          buttons: buttonsComp ? buttonsComp.buttons : []
+        };
+      });
+    } catch (e) { console.error('loadTemplateDefs failed:', e); }
+  }
+
+  function fillTemplateVariables(text, variables) {
+    if (!text) return '';
+    return text.replace(/\{\{\s*(\d+)\s*\}\}/g, (match, n) => {
+      const v = variables[parseInt(n, 10) - 1];
+      if (v == null) return match;
+      return String(typeof v === 'object' ? v.text : v).replace(/</g, '&lt;');
+    });
+  }
 
   async function loadLeads() {
     try {
@@ -237,6 +293,31 @@
     if (n.length === 10) n = '91' + n;
     if (n.startsWith('0')) n = '91' + n.substring(1);
     return n;
+  }
+
+  let showRepliesOnly = true;
+  function setConvFilter(v) {
+    showRepliesOnly = v;
+    document.getElementById('fltReplies').classList.toggle('active', v);
+    document.getElementById('fltAll').classList.toggle('active', !v);
+    renderConversations();
+  }
+  window.setConvFilter = setConvFilter;
+
+  // Meta sends no profile name with some payloads (e.g. unsupported types) and the
+  // worker stores "Unknown" -- treat that as no name so the lead name / phone shows.
+  function cleanName(n) {
+    if (!n) return null;
+    const t = String(n).trim();
+    return (!t || t.toLowerCase() === 'unknown') ? null : t;
+  }
+  function getDisplayName(conv, lead) {
+    if (lead && lead.name) return lead.name + (lead.company ? ' – ' + lead.company : '');
+    return cleanName(conv.contactName) || '+' + conv.phone;
+  }
+  function previewText(m) {
+    if (m.type === 'unsupported') return '⚠️ Message not shown by WhatsApp – call back';
+    return (m.messageText || (m.template ? '📋 ' + m.template : '[media]'));
   }
 
   function findLeadByPhone(phone) {
@@ -259,14 +340,14 @@
           conversations[phone] = {
             phone: phone,
             messages: [],
-            contactName: m.contactName || m.leadName || null,
+            contactName: cleanName(m.contactName) || m.leadName || null,
             lastMessage: null,
             lastMessageTime: null,
             unreadCount: 0
           };
         }
         conversations[phone].messages.push(m);
-        if (m.contactName && !conversations[phone].contactName) conversations[phone].contactName = m.contactName;
+        if (cleanName(m.contactName) && !conversations[phone].contactName) conversations[phone].contactName = cleanName(m.contactName);
         if (m.leadName && !conversations[phone].contactName) conversations[phone].contactName = m.leadName;
       });
 
@@ -277,6 +358,7 @@
         c.lastMessage = last;
         c.lastMessageTime = last.createdAt;
         c.unreadCount = c.messages.filter(m => m.direction === 'inbound' && !m.readByAgent).length;
+        c.hasInbound = c.messages.some(m => m.direction === 'inbound');
         // check 24hr window
         const lastInbound = [...c.messages].reverse().find(m => m.direction === 'inbound');
         if (lastInbound) {
@@ -296,14 +378,17 @@
 
   function renderConversations() {
     const list = Object.values(conversations)
+      .filter(c => !showRepliesOnly || c.hasInbound)
       .filter(c => {
         if (!filterText) return true;
         const t = filterText.toLowerCase();
-        return (c.contactName || '').toLowerCase().includes(t) || c.phone.includes(t);
+        const ld = findLeadByPhone(c.phone);
+        return getDisplayName(c, ld).toLowerCase().includes(t) || c.phone.includes(t);
       })
-      .sort((a, b) => (b.lastMessageTime || '').localeCompare(a.lastMessageTime || ''));
+      .sort((a, b) => ((b.unreadCount > 0) - (a.unreadCount > 0)) || (b.lastMessageTime || '').localeCompare(a.lastMessageTime || ''));
 
-    document.getElementById('convCount').textContent = list.length + ' conversation' + (list.length !== 1 ? 's' : '');
+    const totalUnread = list.reduce((n, c) => n + (c.unreadCount > 0 ? 1 : 0), 0);
+    document.getElementById('convCount').textContent = list.length + ' conversation' + (list.length !== 1 ? 's' : '') + (totalUnread ? ' · ' + totalUnread + ' unread' : '');
 
     if (list.length === 0) {
       document.getElementById('conversationsList').innerHTML = '<div class="empty-list"><i class="fab fa-whatsapp"></i>No conversations yet<br><small style="opacity:0.6">Messages will appear here</small></div>';
@@ -312,14 +397,14 @@
 
     const html = list.map(c => {
       const lead = findLeadByPhone(c.phone);
-      const displayName = c.contactName || (lead && lead.name) || '+' + c.phone;
+      const displayName = getDisplayName(c, lead);
       const initials = displayName.charAt(0).toUpperCase();
-      const preview = (c.lastMessage.messageText || (c.lastMessage.template ? '📋 ' + c.lastMessage.template : '[media]')).substring(0, 50);
+      const preview = previewText(c.lastMessage).substring(0, 50).replace(/</g, '&lt;');
       const timeStr = c.lastMessageTime ? formatTime(c.lastMessageTime) : '';
       const dirIcon = c.lastMessage.direction === 'outbound' ? '<i class="fas fa-arrow-right" style="font-size:9px;opacity:0.5;"></i> ' : '';
       
       return `
-        <div class="conv-item ${currentConvPhone === c.phone ? 'active' : ''}" onclick="openConversation('${c.phone}')">
+        <div class="conv-item ${currentConvPhone === c.phone ? 'active' : ''} ${c.unreadCount > 0 ? 'has-unread' : ''}" onclick="openConversation('${c.phone}')">
           <div class="conv-avatar">${initials}</div>
           <div class="conv-info">
             <div class="conv-header-row">
@@ -361,7 +446,7 @@
     if (!conv) return;
 
     const lead = findLeadByPhone(phone);
-    const displayName = conv.contactName || (lead && lead.name) || '+' + phone;
+    const displayName = getDisplayName(conv, lead);
     const initials = displayName.charAt(0).toUpperCase();
 
     document.getElementById('noChatSelected').style.display = 'none';
@@ -372,7 +457,7 @@
       const statusIcon = m.direction === 'outbound' ? getStatusIcon(m.status) : '';
       return `
         <div class="msg ${m.direction}">
-          ${(m.messageText || (m.template ? '📋 Template: ' + m.template : '[media message]')).replace(/</g, '&lt;')}
+          ${renderMessageContent(m)}
           <div class="meta">${timeStr} ${statusIcon}</div>
         </div>
       `;
@@ -418,6 +503,81 @@
     // Mark inbound messages as read
     await markConvAsRead(phone);
     renderConversations();
+  }
+
+  // Cloudflare Worker proxies WhatsApp media (photos/documents/audio/video) —
+  // Meta's own links are short-lived and need the access token to fetch,
+  // which browsers can't attach, so the CRM loads media through this instead.
+  const WA_MEDIA_PROXY = 'https://orange-sea-e881.teamtic-hyd.workers.dev/media?id=';
+
+  // WhatsApp only keeps media for a limited window; once Meta expires an
+  // old mediaId the proxy 404s, so image/video swap to the text label instead
+  // of leaving a broken-media icon in the thread.
+  function waMediaExpired(el, fallbackText) {
+    const span = document.createElement('span');
+    span.style.opacity = '0.7';
+    span.style.fontStyle = 'italic';
+    span.textContent = fallbackText || 'Media no longer available';
+    (el.closest('a') || el).replaceWith(span);
+  }
+  window.waMediaExpired = waMediaExpired;
+
+  function renderMessageContent(m) {
+    const caption = (m.messageText || '').replace(/^(📷 Photo|🎥 Video|📄 Document: .+?)(: |$)/, '$2').replace(/</g, '&lt;');
+    const mediaUrl = m.mediaId ? WA_MEDIA_PROXY + encodeURIComponent(m.mediaId) : null;
+    const typeLabel = m.type === 'video' ? 'Video' : m.type === 'audio' ? 'Audio' : 'Photo';
+    const fallback = `${typeLabel} no longer available (expired)`;
+
+    if (mediaUrl && m.type === 'image') {
+      return `<a href="${mediaUrl}" target="_blank"><img src="${mediaUrl}" onerror="waMediaExpired(this, '${fallback}')" style="max-width:240px;max-height:320px;border-radius:8px;display:block;margin-bottom:${caption ? '6px' : '0'};cursor:pointer;" loading="lazy"></a>${caption}`;
+    }
+    if (mediaUrl && m.type === 'video') {
+      return `<video src="${mediaUrl}" controls onerror="waMediaExpired(this, '${fallback}')" style="max-width:240px;border-radius:8px;display:block;margin-bottom:${caption ? '6px' : '0'};"></video>${caption}`;
+    }
+    if (mediaUrl && m.type === 'audio') {
+      return `<audio src="${mediaUrl}" controls onerror="waMediaExpired(this, '${fallback}')" style="max-width:240px;"></audio>`;
+    }
+    if (mediaUrl && (m.type === 'document' || m.type === 'sticker')) {
+      const label = m.filename || (m.messageText || 'Download file').replace('📄 Document: ', '');
+      return `<a href="${mediaUrl}" target="_blank" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:rgba(255,255,255,0.06);border-radius:8px;text-decoration:none;color:inherit;">
+        <i class="fas fa-file-arrow-down" style="color:var(--primary);font-size:18px;"></i>
+        <span style="font-size:13px;word-break:break-word;">${label.replace(/</g, '&lt;')}</span>
+      </a>`;
+    }
+
+    if (m.type === 'unsupported') {
+      const ph = m.from || '';
+      return `<div class="unsup-box">
+        <div>⚠️ Customer sent a message WhatsApp couldn't share (e.g. edited message, view-once, poll). Please call or WhatsApp them back.</div>
+        <div class="unsup-actions">
+          <a href="tel:+${ph}">📞 Call +${ph}</a>
+          <a class="wa" href="https://wa.me/${ph}" target="_blank">💬 WhatsApp</a>
+        </div>
+      </div>`;
+    }
+
+    if (m.template) {
+      const def = waTemplateDefs[m.template];
+      if (def) {
+        const filledBody = fillTemplateVariables(def.bodyText, m.variables || []);
+        const headerMediaId = waTemplateHeaderMedia[m.template];
+        const headerImg = def.hasImageHeader && headerMediaId
+          ? `<a href="${WA_MEDIA_PROXY + encodeURIComponent(headerMediaId)}" target="_blank"><img src="${WA_MEDIA_PROXY + encodeURIComponent(headerMediaId)}" onerror="waMediaExpired(this, 'Image no longer available')" style="max-width:240px;max-height:320px;border-radius:8px;display:block;margin-bottom:8px;cursor:pointer;" loading="lazy"></a>`
+          : '';
+        const buttonsHtml = (def.buttons || []).length
+          ? `<div style="margin-top:8px;display:flex;flex-direction:column;gap:4px;">${def.buttons.map(b =>
+              `<div style="text-align:center;padding:7px 10px;border-top:1px solid rgba(255,255,255,0.12);color:#4fc3f7;font-size:13px;font-weight:500;">${
+                b.type === 'PHONE_NUMBER' ? '📞 ' : b.type === 'URL' ? '🔗 ' : '↩️ '
+              }${(b.text || '').replace(/</g, '&lt;')}</div>`
+            ).join('')}</div>`
+          : '';
+        return `${headerImg}<div style="font-size:14px;white-space:pre-wrap;">${filledBody}</div>${buttonsHtml}`;
+      }
+      // Template definition not loaded/found (e.g. since-deleted template) -- fall back to a labeled, non-cryptic placeholder
+      return `<div style="opacity:0.75;font-style:italic;">📋 Template message: ${m.template.replace(/</g, '&lt;')}</div>`;
+    }
+
+    return (m.messageText || '[media message]').replace(/</g, '&lt;');
   }
 
   function getStatusIcon(status) {

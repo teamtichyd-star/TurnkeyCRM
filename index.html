@@ -28,7 +28,7 @@
     OneSignalDeferred.push(async function(OneSignal) {
       await OneSignal.init({
         appId: "9bc49e74-801f-4ffb-ab7e-ea78ba2f1089",
-        serviceWorkerPath: "/TurnkeyCRM/OneSignalSDKWorker.js",
+        serviceWorkerPath: "/OneSignalSDKWorker.js",
         notifyButton: { enable: false },
         promptOptions: {
           slidedown: {
@@ -493,6 +493,7 @@
       <div class="menu-item" onclick="showPage('whatsapp-inbox')" id="menu-whatsapp-inbox">
         <i class="fab fa-whatsapp" style="color:#25d366"></i>
         <span>WhatsApp Inbox</span>
+        <span id="waUnreadBadge" style="display:none;margin-left:auto;background:#25d366;color:#fff;font-size:11px;font-weight:700;padding:1px 7px;border-radius:10px;"></span>
       </div>
 
       <div class="menu-label" id="admin-label" style="display:none">Admin</div>
@@ -911,15 +912,15 @@
 
   // ─── ROLE MODULES ───
   const roleModules = {
-    superadmin:  ['leads','tasks','projects','users','vendors','attendance','attendanceadmin','staffprofile','staffadmin','campaigns'],
-    admin:       ['leads','tasks','projects','users','vendors','attendance','attendanceadmin','staffprofile','staffadmin','campaigns'],
-    manager:     ['leads','tasks','projects','vendors','attendance','staffprofile','campaigns'],
+    superadmin:  ['leads','tasks','projects','users','vendors','attendance','attendanceadmin','staffprofile','staffadmin','campaigns','whatsapp-inbox'],
+    admin:       ['leads','tasks','projects','users','vendors','attendance','attendanceadmin','staffprofile','staffadmin','campaigns','whatsapp-inbox'],
+    manager:     ['leads','tasks','projects','vendors','attendance','staffprofile','campaigns','whatsapp-inbox'],
     supervisor:  ['tasks','projects','vendors','attendance','staffprofile'],
     purchase:    ['tasks','projects','vendors','attendance','staffprofile'],
     designer:    ['tasks','projects','vendors','attendance','staffprofile'],
     accounts:    ['leads','tasks','vendors','attendance','staffprofile'],
-    projectmanager:['leads','tasks','projects','vendors','attendance'],
-    marketing:   ['campaigns']
+    projectmanager:['leads','tasks','projects','vendors','attendance','staffprofile'],
+    marketing:   ['campaigns','whatsapp-inbox','staffprofile']
   };
 
   const roleNames = {
@@ -941,11 +942,29 @@
   //     AUTH STATE LISTENER
   //     (Keeps user logged in!)
   // ═══════════════════════════════════════
+  // Unread WhatsApp replies badge on the sidebar menu item
+  let _waUnreadUnsub = null;
+  function listenWaUnread() {
+    if (_waUnreadUnsub) return;
+    try {
+      _waUnreadUnsub = db.collection('whatsapp_messages').where('direction', '==', 'inbound')
+        .onSnapshot(snap => {
+          const phones = new Set();
+          snap.forEach(d => { const m = d.data(); if (!m.readByAgent && m.from) phones.add(m.from); });
+          const el = document.getElementById('waUnreadBadge');
+          if (!el) return;
+          el.textContent = phones.size;
+          el.style.display = phones.size ? 'inline-block' : 'none';
+        }, err => console.warn('WA unread badge:', err.message));
+    } catch (e) { console.warn('WA unread badge failed', e); }
+  }
+
   auth.onAuthStateChanged(async (user) => {
     if (user) {
       // User is logged in!
       currentUser = user;
       listenNotifications(user.email);
+      listenWaUnread();
       await loadUserData(user.email);
     } else {
       // User is NOT logged in
@@ -1038,7 +1057,7 @@ if (role === "supervisor") {
   }
 }
     // Show/Hide menu items based on role + custom permissions (STAGE 2)
-    const allMenus = ['leads','tasks','projects','vendors','attendance','attendanceadmin','staffprofile','staffadmin'];
+    const allMenus = ['leads','tasks','projects','vendors','attendance','attendanceadmin','staffprofile','staffadmin','campaigns','whatsapp-inbox'];
     const customPerms = currentUserData?.permissions || null;
     const isAdminBypass = ['admin','superadmin'].includes(role);
     function canReadModule(m) {
@@ -1087,53 +1106,10 @@ if (role === "supervisor") {
     showPage(lastPage);
   }
 
-  // ─── ONESIGNAL PUSH NOTIFICATION ───
-  const OS_APP_ID = '9bc49e74-801f-4ffb-ab7e-ea78ba2f1089';
-  const OS_API_KEY = 'os_v2_app_tpcj45ead5h7xk365j4lulyqrewjylt7ro7e4je7vkzk57i5odhbhhuiax7qpxgmq3xfklcagphdgc6augpkj3zrpi2sua2erpkhbmy';
-
-  async function sendPushNotification(userEmail, title, message, url) {
-    try {
-      // Get OneSignal player ID from user's Firestore doc
-      const userDoc = await db.collection('users').doc(userEmail).get();
-      const playerId = userDoc.data()?.osPlayerId;
-      if (!playerId) return;
-
-      await fetch('https://onesignal.com/api/v1/notifications', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Basic ' + OS_API_KEY
-        },
-        body: JSON.stringify({
-          app_id: OS_APP_ID,
-          include_player_ids: [playerId],
-          headings: { en: title },
-          contents: { en: message },
-          url: url || 'https://teamtichyd-star.github.io/TurnkeyCRM/',
-          ios_sound: 'notification.wav',
-          android_sound: 'notification',
-          priority: 10
-        })
-      });
-    } catch(e) { console.log('Push error:', e); }
-  }
-
-  // Save OneSignal player ID when user subscribes
-  function savePlayerIdToFirestore(userEmail) {
-    if (!window.OneSignal) return;
-    OneSignal.push(function() {
-      OneSignal.getUserId(async function(playerId) {
-        if (playerId && userEmail) {
-          await db.collection('users').doc(userEmail).update({
-            osPlayerId: playerId
-          });
-          console.log('OneSignal Player ID saved:', playerId);
-        }
-      });
-    });
-  }
-
   // ─── NOTIFICATIONS LISTENER ───
+  // Actual push delivery happens server-side via the sendOneSignalPush Cloud
+  // Function, triggered whenever TIC_NOTIF.send() writes to `notifications`
+  // (see functions/index.js) — browsers can't call OneSignal's API directly.
   // ═══ NOTIFICATION HELPERS ═══════════════════════════════════════════
 // WhatsApp-like beep sound using Web Audio API (no external CDN)
 function createNotificationSound() {
@@ -1291,8 +1267,8 @@ async function listenNotifications(userEmail) {
                     navigator.serviceWorker.ready.then(reg => {
                       reg.showNotification(n.title || 'TurnkeyCRM', {
                         body: n.body || '',
-                        icon: 'https://teamtichyd-star.github.io/TurnkeyCRM/icon-192.png',
-                        badge: 'https://teamtichyd-star.github.io/TurnkeyCRM/icon-192.png',
+                        icon: '/icon-192.png',
+                        badge: '/icon-badge.png',
                         tag: change.doc.id,
                         requireInteraction: true,
                         vibrate: [300, 100, 300, 100, 300],
@@ -1304,7 +1280,7 @@ async function listenNotifications(userEmail) {
                   } else {
                     const notif = new Notification(n.title || 'TurnkeyCRM', {
                       body: n.body || '',
-                      icon: 'https://teamtichyd-star.github.io/TurnkeyCRM/icon-192.png',
+                      icon: '/icon-192.png',
                       tag: change.doc.id
                     });
                     notif.onclick = () => { window.focus(); if (n.link) window.location.href = n.link; notif.close(); };
@@ -1368,6 +1344,9 @@ async function listenNotifications(userEmail) {
           const n = d.data();
           d.ref.update({ read: true });
           var linkPage = n.link ? n.link.replace('.html','') : '';
+          if (linkPage === 'attendance-admin') linkPage = 'attendanceadmin';
+          else if (linkPage === 'staff-profile') linkPage = 'staffprofile';
+          else if (linkPage === 'staff-profile-admin') linkPage = 'staffadmin';
           var itemDiv = '<div ';
           if (linkPage) {
             itemDiv += 'onclick="document.getElementById(\'notifPanel\').remove();notifPanelOpen=false;showPage(\''+linkPage+'\')" ';
@@ -1587,6 +1566,10 @@ async function listenNotifications(userEmail) {
 
     if (page === 'dashboard') loadDashboard();
     if (page === 'users')     loadUsers();
+    // Projects always opens on the Execution filter (the page is already loaded after the first visit)
+    if (page === 'projects' && iframe) {
+      try { const w = iframe.contentWindow; if (w && typeof w.setTab === 'function' && w.document.getElementById('searchInput')) w.setTab('Execution'); } catch (e) {}
+    }
   }
 
   function showAccessDenied(page) {
@@ -1657,7 +1640,10 @@ async function listenNotifications(userEmail) {
       document.getElementById('stat-tasks').textContent = myTasks2.length;
 
       const myProjects = isRestricted && uName
-        ? projects.filter(p => p.manager && p.manager.toLowerCase() === uName.toLowerCase())
+        ? projects.filter(p => {
+            const mgrs = Array.isArray(p.managers) && p.managers.length ? p.managers : (p.manager ? [p.manager] : []);
+            return mgrs.some(m => m.toLowerCase() === uName.toLowerCase());
+          })
         : projects;
       document.getElementById('stat-projects').textContent = myProjects.length;
       const wonEl = document.getElementById('stat-won');
@@ -1841,8 +1827,28 @@ async function listenNotifications(userEmail) {
     if (!confirm(`Remove user ${email} from CRM?\nThey will lose access!`)) return;
 
     try {
+      // Remove their Google Drive access first (needs the user doc for driveEmail)
+      const driveRes = await TIC_DRIVE.revokeForUser(db, auth, email);
+      if (!driveRes.ok) console.warn('Drive access not removed automatically:', driveRes.error);
       await db.collection('users').doc(email).delete();
-      showToast('✅ User removed!', 'success');
+
+      // Also delete their Firebase Auth account (via a Cloudflare Worker
+      // holding a scoped Auth-only service account — the browser SDK can't
+      // delete other users' accounts). Best-effort: the Firestore removal
+      // above is what actually revokes CRM access either way.
+      try {
+        const res = await fetch('https://orange-sea-e881.teamtic-hyd.workers.dev/delete-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, idToken: await auth.currentUser.getIdToken() })
+        });
+        const result = await res.json();
+        if (!result.success) console.warn('Auth account cleanup failed:', result.error);
+      } catch (e) {
+        console.warn('Auth account cleanup request failed:', e.message);
+      }
+
+      showToast(driveRes.ok ? '✅ User removed (login + Drive access)!' : '✅ User removed — but Drive access could NOT be removed automatically. Remove ' + email + ' from the Drive folders manually.', driveRes.ok ? 'success' : 'danger');
       loadUsers();
     } catch (error) {
       showToast('❌ Error removing user!', 'danger');
@@ -2016,13 +2022,17 @@ async function listenNotifications(userEmail) {
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/TurnkeyCRM/sw.js')
+        navigator.serviceWorker.register('/sw.js')
           .then(reg => console.log('SW registered'))
           .catch(err => console.log('SW error:', err));
       });
     }
   </script>
 <script src="js/notifications.js"></script>
+<script src="js/staffValidation.js"></script>
+<script src="js/staffReminders.js"></script>
+<script src="js/staffWarn.js"></script>
+<script src="js/driveAccess.js"></script>
 
 <!-- ══════════════════════════════════ -->
 <!--      BALANCE DUE MODAL           -->
@@ -2150,31 +2160,68 @@ async function listenNotifications(userEmail) {
 
 
 <script>
+async function saveOneSignalPlayerId(playerId) {
+  if (!playerId || !currentUser?.email) return;
+  try {
+    await db.collection('users').doc(currentUser.email).update({ osPlayerId: playerId });
+    console.log('OneSignal Player ID saved:', playerId);
+  } catch(e) { console.log('Could not save OneSignal player ID:', e.message); }
+}
+
 async function enablePushNotifications() {
   if (!('Notification' in window)) {
     alert('Your browser does not support notifications');
-    return;
-  }
-  if (Notification.permission === 'granted') {
-    alert('✅ Notifications already enabled!');
-    document.getElementById('enableNotifBtn').style.display = 'none';
     return;
   }
   if (Notification.permission === 'denied') {
     alert('❌ Notifications blocked. Please enable in browser Settings → Site Settings → Notifications.');
     return;
   }
-  const result = await Notification.requestPermission();
-  if (result === 'granted') {
-    alert('✅ Notifications enabled! You will now get popup alerts.');
+  if (!window.OneSignal) {
+    alert('Notifications are still loading, please try again in a moment.');
+    return;
+  }
+  const alreadyGranted = Notification.permission === 'granted';
+  try {
+    await OneSignal.Notifications.requestPermission();
+    if (Notification.permission !== 'granted') {
+      alert('Notifications were not enabled.');
+      return;
+    }
     document.getElementById('enableNotifBtn').style.display = 'none';
-    // Test notification
-    new Notification('TurnkeyCRM', {
-      body: 'Notifications are now active! 🎉',
-      icon: 'https://teamtichyd-star.github.io/TurnkeyCRM/icon-192.png'
-    });
-  } else {
-    alert('Notifications were not enabled.');
+
+    // OneSignal registers the subscription with its server after permission is
+    // granted; the ID can be available immediately or arrive a moment later.
+    if (OneSignal.User.PushSubscription.id) {
+      await saveOneSignalPlayerId(OneSignal.User.PushSubscription.id);
+    } else {
+      const handler = (event) => {
+        if (event.current?.id) {
+          saveOneSignalPlayerId(event.current.id);
+          OneSignal.User.PushSubscription.removeEventListener('change', handler);
+        }
+      };
+      OneSignal.User.PushSubscription.addEventListener('change', handler);
+    }
+
+    if (alreadyGranted) {
+      alert('✅ Notifications reconnected!');
+    } else {
+      alert('✅ Notifications enabled! You will now get popup alerts.');
+      // new Notification() is desktop-only; mobile Chrome requires going
+      // through the service worker registration instead.
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.ready.then(reg => {
+          reg.showNotification('TurnkeyCRM', {
+            body: 'Notifications are now active! 🎉',
+            icon: '/icon-192.png'
+          });
+        }).catch(e => console.log('Test notification skipped:', e.message));
+      }
+    }
+  } catch(e) {
+    console.log('Enable notifications error:', e.message);
+    alert('Could not enable notifications: ' + e.message);
   }
 }
 
@@ -2195,7 +2242,7 @@ window.addEventListener('load', () => {
 
 
 <script>
-// ── ATTENDANCE DASHBOARD CARD + 11 AM ALERT ──
+// ── ATTENDANCE DASHBOARD CARD + 9 AM ALERT ──
 (function() {
   let attCardInjected = false;
 
@@ -2207,7 +2254,7 @@ window.addEventListener('load', () => {
     try {
       const doc = await firebase.firestore().collection('attendance').doc(docId).get();
       injectAttendanceCard(doc.exists ? doc.data() : null);
-      check11AMAlert(doc.exists);
+      checkMorningAlert(doc.exists);
     } catch(e) { console.log('Attendance check skipped:', e.message); }
   }
 
@@ -2224,7 +2271,7 @@ window.addEventListener('load', () => {
     let content;
     if (todayDoc) {
       const typeLabel = todayDoc.type === 'present' ? ('✅ Present at '+todayDoc.time+' • '+(todayDoc.projectName||'')) :
-                       todayDoc.type === 'weekly_off' ? '☕ Weekly Off' : '🏖️ Holiday';
+                       todayDoc.type === 'weekly_off' ? '☕ Weekly Off' : todayDoc.type === 'leave' ? '🌴 Leave' : todayDoc.type === 'absent' ? '❌ Absent' : '🏖️ Holiday';
       content = '<div><div style="font-size:11px;color:var(--subtext);text-transform:uppercase;letter-spacing:1px">Today Attendance</div>'+
                 '<div style="font-size:16px;font-weight:700;color:var(--success);margin-top:4px">'+typeLabel+'</div></div>'+
                 '<button class="btn btn-secondary" onclick="showPage(\'attendance\')" style="padding:10px 18px;border-radius:10px;background:rgba(200,169,110,0.15);color:var(--primary);border:1px solid rgba(200,169,110,0.3);cursor:pointer;font-weight:600;font-size:13px">View History</button>';
@@ -2240,10 +2287,10 @@ window.addEventListener('load', () => {
     else dashboard.appendChild(card);
   }
 
-  function check11AMAlert(alreadyMarked) {
+  function checkMorningAlert(alreadyMarked) {
     if (alreadyMarked) return;
     const now = new Date();
-    if (now.getHours() < 11) return;
+    if (now.getHours() < 9) return;
     const today = now.toISOString().split('T')[0];
     const alertKey = 'att_alert_'+today;
     if (localStorage.getItem(alertKey)) return;
@@ -2274,6 +2321,50 @@ window.addEventListener('load', () => {
   });
 })();
 </script>
+
+<script>
+// ── ADMIN: MISSING ATTENDANCE CARD (yesterday) ──
+(function() {
+  async function checkMissingYesterday() {
+    const role = sessionStorage.getItem('crm_role');
+    if (!['admin','superadmin'].includes(role)) return;
+    const y = new Date(); y.setDate(y.getDate()-1);
+    const ydate = y.toISOString().split('T')[0];
+    const db = firebase.firestore();
+    try {
+      const [users, att] = await Promise.all([
+        db.collection('users').get(),
+        db.collection('attendance').where('date','==',ydate).get()
+      ]);
+      const marked = new Set(); att.forEach(d => marked.add((d.data().userEmail||'').toLowerCase()));
+      const missing = [];
+      users.forEach(d => { const u = d.data(); const e=(u.email||d.id).toLowerCase(); if (!marked.has(e)) missing.push(u.name||e); });
+      if (missing.length) {
+        // One bell alert + push per day to info, even if several admins open the CRM
+        const nid = 'att-missing-' + ydate;
+        try {
+          const ex = await db.collection('notifications').doc(nid).get();
+          if (!ex.exists && typeof TIC_NOTIF !== 'undefined') {
+            await TIC_NOTIF.send(db, 'info', '📅 ' + missing.length + ' employee' + (missing.length>1?'s have':' has') + ' no attendance for ' + ydate + ' — review & mark: ' + missing.slice(0,5).join(', ') + (missing.length>5?' +'+(missing.length-5)+' more':''), 'attendance', 'attendance-admin.html', nid);
+          }
+        } catch(e) { console.log('Missing attendance alert skipped:', e.message); }
+      }
+      const dash = document.getElementById('page-dashboard');
+      if (!dash || !missing.length || document.getElementById('attMissingCard')) return;
+      const card = document.createElement('div');
+      card.id = 'attMissingCard';
+      card.style.cssText = 'background:linear-gradient(145deg,var(--card2),var(--card));border-radius:14px;padding:18px;margin-bottom:18px;border:1px solid rgba(244,67,54,0.35);display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;';
+      card.innerHTML = '<div><div style="font-size:11px;color:var(--subtext);text-transform:uppercase;letter-spacing:1px">Attendance not recorded · '+ydate+'</div>'+
+        '<div style="font-size:16px;font-weight:700;color:var(--danger);margin-top:4px">'+missing.length+' employee'+(missing.length>1?'s':'')+' need your review</div>'+
+        '<div style="font-size:12px;color:var(--subtext);margin-top:4px">'+missing.slice(0,6).join(', ')+(missing.length>6?' +'+(missing.length-6)+' more':'')+'</div></div>'+
+        '<button onclick="showPage(\'attendanceadmin\')" style="padding:12px 24px;border-radius:12px;background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:white;border:none;cursor:pointer;font-weight:700;font-size:14px">Review &amp; Mark</button>';
+      dash.insertBefore(card, dash.firstChild);
+    } catch(e) { console.log('Missing attendance check skipped:', e.message); }
+  }
+  firebase.auth().onAuthStateChanged(function(user) { if (user) setTimeout(checkMissingYesterday, 3500); });
+})();
+</script>
+
 
 </body>
 </html>
